@@ -1,0 +1,759 @@
+<!doctype html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>合約掃描</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="合約掃描">
+<meta name="theme-color" content="#0C121D">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+/* Layout: 篩選器 — 頂部控制列＋掃描進度，下方是全部合約的排行表，點一列展開詳細訊號卡 */
+:root{
+  --bg:#EEF1F6; --paper:#FFFFFF; --ink:#101A2B; --muted:#5A687E; --line:#D9E0EA; --sunk:#F5F7FA;
+  --accent:#3346C4; --accent-soft:#E3E7FB;
+  --long:#0B8A66; --long-soft:#DDF3EC; --short:#CF3E33; --short-soft:#FBE3E0; --watch:#A86A0C; --watch-soft:#F8EBD2;
+  --sans:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0C121D; --paper:#141C2A; --ink:#E5ECF6; --muted:#8C9AB0; --line:#253246; --sunk:#101826;
+  --accent:#8E9BFF; --accent-soft:#232C52;
+  --long:#3ACB9B; --long-soft:#123328; --short:#FF7C70; --short-soft:#3A1D1B; --watch:#E9B24E; --watch-soft:#352816; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0C121D; --paper:#141C2A; --ink:#E5ECF6; --muted:#8C9AB0; --line:#253246; --sunk:#101826;
+  --accent:#8E9BFF; --accent-soft:#232C52;
+  --long:#3ACB9B; --long-soft:#123328; --short:#FF7C70; --short-soft:#3A1D1B; --watch:#E9B24E; --watch-soft:#352816; color-scheme:dark}
+*{box-sizing:border-box}
+html{font-size:15px}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.6;padding-inline:16px;padding-block:0 48px}
+.wrap{max-width:1320px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
+h1,h2,h3{margin:0;font-weight:700;text-wrap:balance}
+p{margin:0}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);margin-inline:-16px;padding:12px 16px 0;border-bottom:1px solid var(--line)}
+.top-in{max-width:1320px;margin:0 auto;display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;padding-bottom:10px}
+.brand{display:flex;align-items:center;gap:10px}
+.brand h1{font-size:1.2rem;letter-spacing:.02em}
+.mark{width:30px;height:30px;border-radius:8px;border:2px solid var(--accent);display:grid;grid-template-columns:repeat(3,1fr);gap:2px;padding:4px;flex:none}
+.mark i{background:var(--accent);border-radius:1px;opacity:.35}.mark i:nth-child(5),.mark i:nth-child(3){opacity:1}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--paper)}
+.seg button{border:0;background:transparent;padding:6px 12px;font-size:.9rem}
+.seg button[aria-pressed="true"]{background:var(--accent);color:var(--paper)}
+.seg small{opacity:.75;font-size:.72rem;margin-left:4px}
+.ctrl{display:flex;flex-wrap:wrap;gap:8px 10px;align-items:center}
+.fld{display:flex;align-items:center;gap:6px;font-size:.84rem;color:var(--muted)}
+.fld input{width:4.8em;border:1px solid var(--line);border-radius:8px;background:var(--paper);padding:5px 8px;font-family:var(--mono);text-align:right}
+.btn{border:1px solid var(--line);background:var(--paper);border-radius:9px;padding:6px 12px;font-size:.88rem}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--paper);font-weight:500}
+.btn[aria-pressed="true"]{border-color:var(--accent);color:var(--accent)}
+.btn:disabled{opacity:.5;cursor:default}
+.progress{height:3px;background:transparent;margin-inline:-16px}
+.progress i{display:block;height:100%;width:0;background:var(--accent);transition:width .3s}
+@media (prefers-reduced-motion:reduce){.progress i{transition:none}}
+
+.banner{border-radius:12px;padding:12px 16px;font-size:.92rem;display:flex;flex-direction:column;gap:4px;background:var(--watch-soft);border:1px solid color-mix(in srgb,var(--watch) 45%,transparent)}
+.banner b{color:var(--watch)}
+.statusbar{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;font-size:.84rem;color:var(--muted)}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--long);display:inline-block;margin-right:4px}
+.dot.warn{background:var(--watch)}.dot.err{background:var(--short)}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{display:flex;align-items:center;gap:8px;background:var(--paper);border:1px solid var(--line);border-radius:999px;padding:5px 14px;font-size:.88rem}
+.chip b{font-family:var(--mono);font-size:1.02rem}
+.chip.go b{color:var(--long)}.chip.short b{color:var(--short)}.chip.watch b{color:var(--watch)}
+
+.filters{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+.filters .lbl{font-size:.82rem;color:var(--muted)}
+.filters input[type=search]{border:1px solid var(--line);border-radius:8px;background:var(--sunk);padding:5px 10px;width:10em}
+.filters select{border:1px solid var(--line);border-radius:8px;background:var(--sunk);padding:5px 8px}
+
+.tbl-wrap{background:var(--paper);border:1px solid var(--line);border-radius:14px;overflow-x:auto}
+table.list{width:100%;border-collapse:collapse;font-size:.88rem;min-width:980px}
+.list th{position:sticky;top:0;background:var(--sunk);text-align:right;font-weight:500;color:var(--muted);font-size:.76rem;letter-spacing:.04em;padding:8px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
+.list th:nth-child(-n+2){text-align:left}
+.list>tbody>tr>td{padding:8px 10px;border-bottom:1px solid var(--line);text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+.list>tbody>tr>td:nth-child(-n+2){text-align:left}
+.list tr.row{cursor:pointer}
+.list tr.row:hover>td{background:var(--sunk)}
+.list tr.row.open>td{background:var(--accent-soft)}
+.list tr.pin>td{background:color-mix(in srgb,var(--accent-soft) 45%,transparent)}
+.list tr.pin-end>td{border-bottom:2px solid var(--line)}
+.star{color:var(--watch);margin-right:4px}
+.list>tbody>tr>td.rank{color:var(--muted);width:3em}
+.coin{font-weight:600;font-family:var(--mono)}
+.up{color:var(--long)}.down{color:var(--short)}
+.pill{font-family:var(--sans);font-size:.76rem;padding:2px 9px;border-radius:999px;font-weight:500;white-space:nowrap;display:inline-block}
+.pill.long{background:var(--long-soft);color:var(--long)}
+.pill.short{background:var(--short-soft);color:var(--short)}
+.pill.flat{background:var(--sunk);color:var(--muted);border:1px solid var(--line)}
+.st{font-family:var(--sans);font-size:.8rem;font-weight:500}
+.st.go{color:var(--long)}.st.watch{color:var(--watch)}.st.no,.st.flat{color:var(--muted)}
+.scorebar{display:inline-flex;align-items:center;gap:6px}
+.scorebar i{display:inline-block;width:46px;height:6px;border-radius:999px;background:var(--line);overflow:hidden;position:relative}
+.scorebar i b{position:absolute;inset:0 auto 0 0;background:var(--muted);border-radius:999px}
+.scorebar.go i b{background:var(--long)}.scorebar.watch i b{background:var(--watch)}
+.sl{color:var(--short)}.tp{color:var(--long)}
+.dim{color:var(--muted)}
+.empty{padding:36px 16px;text-align:center;color:var(--muted);font-family:var(--sans)}
+
+/* detail */
+.list>tbody>tr.detail>td{background:var(--sunk);padding:0;white-space:normal;text-align:left;font-family:var(--sans)}
+.det{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:18px;padding:16px;position:sticky;left:0;max-width:calc(100vw - 34px)}
+.det-col{display:flex;flex-direction:column;gap:12px;min-width:0}
+.verdict{padding:8px 12px;border-radius:10px;font-size:.9rem;background:var(--paper);border:1px solid var(--line)}
+.verdict.go{background:var(--long-soft);border-color:transparent}
+.verdict.watch{background:var(--watch-soft);border-color:transparent}
+canvas.chart{display:block;width:100%;height:220px;background:var(--paper);border:1px solid var(--line);border-radius:10px}
+.legend{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:.74rem;color:var(--muted)}
+.legend i{display:inline-block;width:14px;height:0;border-top:2px solid;vertical-align:middle;margin-right:4px}
+.legend i.dash{border-top-style:dashed}
+.legend i.band{height:8px;border:0}
+.levels{width:100%;border-collapse:collapse;font-size:.88rem;background:var(--paper);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.levels td{padding:6px 10px;border-bottom:1px dotted var(--line)}
+.levels tr:last-child td{border-bottom:0}
+.levels td:nth-child(2){text-align:right;font-family:var(--mono);font-weight:500}
+.levels td:nth-child(3){text-align:right;font-family:var(--mono);font-size:.78rem;color:var(--muted)}
+.levels td:nth-child(4){font-size:.74rem;color:var(--muted)}
+.lv-name{display:flex;align-items:center;gap:8px}
+.lv-name i{width:10px;height:10px;border-radius:3px;flex:none}
+.pos{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+.pos div{display:flex;flex-direction:column;min-width:0}
+.pos span{font-size:.72rem;color:var(--muted)}
+.pos b{font-family:var(--mono);font-weight:500;font-size:.9rem;overflow-wrap:anywhere}
+.warn-txt{font-size:.82rem;color:var(--short)}
+.checks{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.checks li{display:grid;grid-template-areas:"k m p" "t t t";grid-template-columns:7em minmax(0,1fr) 3.6em;gap:2px 8px;align-items:center;font-size:.83rem}
+.checks .k{grid-area:k;color:var(--muted)}
+.meter{grid-area:m;height:6px;border-radius:999px;background:var(--line);overflow:hidden}
+.meter i{display:block;height:100%;background:var(--accent);border-radius:999px}
+.meter.full i{background:var(--long)}
+.checks .p{grid-area:p;text-align:right;font-family:var(--mono);font-size:.76rem;color:var(--muted)}
+.checks .t{grid-area:t}
+.snr{display:flex;flex-wrap:wrap;gap:6px;font-size:.76rem}
+.snr span{border:1px solid var(--line);border-radius:999px;padding:2px 8px;font-family:var(--mono);background:var(--paper)}
+.snr .s{color:var(--long)}.snr .r{color:var(--short)}
+.bt{font-size:.84rem;display:flex;flex-direction:column;gap:4px;border-top:1px dashed var(--line);padding-top:10px}
+.bt-row{display:flex;flex-wrap:wrap;gap:4px 14px}
+.bt-row b{font-family:var(--mono)}
+.small{font-size:.76rem;color:var(--muted)}
+details.sec{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:0 18px}
+details.sec summary{cursor:pointer;padding:14px 0;font-weight:700}
+details.sec .in{padding-bottom:16px;display:flex;flex-direction:column;gap:10px;font-size:.9rem;max-width:80ch}
+details.sec ol,details.sec ul{margin:0;padding-left:1.3em;display:flex;flex-direction:column;gap:4px}
+.paper{display:flex;flex-direction:column;gap:12px;background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:16px}
+.paper h2{font-size:1.15rem}
+.paper .lead{font-size:.86rem;color:var(--muted);max-width:80ch}
+.paper .tbl-wrap{border-radius:10px}
+.out-win{color:var(--long)}.out-loss{color:var(--short)}.out-be{color:var(--muted)}
+.toast{font-size:.84rem;color:var(--long)}
+.risk-banner{border-radius:12px;padding:12px 16px;font-size:.92rem;display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;background:var(--short-soft);border:1px solid color-mix(in srgb,var(--short) 40%,transparent)}
+.risk-banner b{color:var(--short)}
+.risk-set{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;font-size:.84rem;color:var(--muted);background:var(--sunk);border-radius:10px;padding:10px 12px}
+.risk-set input{width:3.6em;border:1px solid var(--line);border-radius:8px;background:var(--paper);padding:4px 6px;font-family:var(--mono);text-align:right}
+.chip.mkt b{font-family:var(--sans);font-size:.92rem}
+footer{font-size:.8rem;color:var(--muted);display:flex;flex-direction:column;gap:4px;border-top:1px solid var(--line);padding-top:14px}
+@media (max-width:860px){.det{grid-template-columns:1fr}}
+/* 手機版 */
+body.m:not(.setopen) .setgrp{display:none!important}
+body.m .tbl-wrap{display:none}
+body.m .top-in{gap:8px 10px}
+body.m .brand h1{font-size:1.05rem}
+body.m .chips{flex-wrap:nowrap;overflow-x:auto;padding-bottom:2px;align-items:center}
+body.m .chips>*{flex:none;white-space:nowrap}
+.mlist{display:flex;flex-direction:column;gap:10px}
+.mc{background:var(--paper);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.mc.pin{border-color:color-mix(in srgb,var(--watch) 55%,var(--line))}
+.mc.go{border-color:var(--long)}
+.mc-main{padding:12px 14px;display:flex;flex-direction:column;gap:8px;cursor:pointer}
+.mc-r1{display:flex;align-items:center;gap:8px;min-width:0}
+.mc-r1 .rk{font-family:var(--mono);color:var(--muted);font-size:.8rem;min-width:1.4em}
+.mc-r1 .coin{font-size:1.05rem}
+.mc-r1 .st{margin-left:auto;font-size:.85rem}
+.mc-r2{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:.78rem;color:var(--muted)}
+.mc-r2 b{font-family:var(--mono);font-weight:500;color:var(--ink)}
+.mc-lv{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:4px;background:var(--sunk);border-radius:10px;padding:8px}
+.mc-lv div{display:flex;flex-direction:column;min-width:0}
+.mc-lv span{font-size:.66rem;color:var(--muted)}
+.mc-lv b{font-family:var(--mono);font-size:.76rem;font-weight:500;overflow-wrap:anywhere}
+.mc .det{grid-template-columns:1fr;padding:12px;border-top:1px solid var(--line);background:var(--sunk);position:static;max-width:none}
+.mc-empty{padding:28px 16px;text-align:center;color:var(--muted);background:var(--paper);border:1px solid var(--line);border-radius:14px}
+@media (max-width:480px){.levels td:nth-child(4){display:none}.pos{grid-template-columns:repeat(2,minmax(0,1fr))}.fld input{width:4.2em}.filters input[type=search]{width:100%}}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="top-in">
+    <div class="brand"><span class="mark" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span><h1>合約全幣掃描</h1></div>
+    <div class="seg" role="group" aria-label="交易模式">
+      <button type="button" id="mSwing" data-mode="swing">波段<small>4H／日線</small></button>
+      <button type="button" id="mScalp" data-mode="scalp">短線<small>15m／1H</small></button>
+    </div>
+    <div class="ctrl setgrp">
+      <label class="fld" for="inVol">24h 成交額至少（百萬 U）<input id="inVol" inputmode="decimal" value="20"></label>
+      <label class="fld" for="inMax">最多掃描<input id="inMax" inputmode="numeric" value="150"></label>
+    </div>
+    <div class="ctrl setgrp">
+      <label class="fld" for="inCap">本金 U<input id="inCap" inputmode="decimal" value="1000"></label>
+      <label class="fld" for="inRisk">每筆最多賠 %<input id="inRisk" inputmode="decimal" value="1"></label>
+      <label class="fld" for="inMargin">保證金佔本金 %<input id="inMargin" inputmode="decimal" value="20"></label>
+    </div>
+    <div class="ctrl">
+      <button class="btn primary" type="button" id="btnScan">重新掃描</button>
+      <button class="btn" type="button" id="btnSet" aria-expanded="false" hidden>設定</button>
+      <button class="btn setgrp" type="button" id="btnAuto" aria-pressed="true">自動重掃：開</button>
+      <button class="btn setgrp" type="button" id="btnNotify">開啟訊號通知</button>
+    </div>
+  </div>
+  <div class="progress"><i id="prog"></i></div>
+</header>
+
+<main class="wrap">
+  <div id="banner"></div>
+  <div id="riskBanner"></div>
+  <div class="statusbar" id="statusbar"><span><span class="dot warn"></span>準備中…</span></div>
+  <div class="chips" id="chips"></div>
+
+  <div class="filters">
+    <span class="lbl">顯示</span>
+    <div class="seg" role="group" aria-label="顯示範圍">
+      <button type="button" data-f="go">條件符合</button>
+      <button type="button" data-f="watch">觀察以上</button>
+      <button type="button" data-f="all">全部</button>
+    </div>
+    <div class="seg" role="group" aria-label="方向">
+      <button type="button" data-d="all">多空都看</button>
+      <button type="button" data-d="long">只看做多</button>
+      <button type="button" data-d="short">只看做空</button>
+    </div>
+    <label class="lbl setgrp" for="sortSel">排序</label>
+    <select id="sortSel" class="setgrp">
+      <option value="score">分數高到低</option>
+      <option value="vol">成交額大到小</option>
+      <option value="chg">24h 漲幅</option>
+      <option value="chgd">24h 跌幅</option>
+    </select>
+    <input type="search" class="setgrp" id="q" placeholder="搜尋幣名，例如 PEPE" aria-label="搜尋幣名">
+    <label class="lbl setgrp" for="inPins">固定關注</label>
+    <input type="text" class="setgrp" id="inPins" value="BTC,ETH" aria-label="固定關注的幣，用逗號分隔" style="border:1px solid var(--line);border-radius:8px;background:var(--sunk);padding:5px 10px;width:11em;font-family:var(--mono)">
+  </div>
+
+  <div class="tbl-wrap">
+    <table class="list">
+      <thead><tr><th>#</th><th>幣種</th><th>24h 成交額</th><th>24h 漲跌</th><th>方向</th><th>分數</th><th>狀態</th><th>現價</th><th>進場</th><th>停損</th><th>TP1</th><th>TP2</th><th>TP3</th></tr></thead>
+      <tbody id="tbody"><tr><td colspan="13" class="empty">正在讀取 BingX 的合約清單…</td></tr></tbody>
+    </table>
+  </div>
+
+  <div class="mlist" id="mlist" hidden></div>
+
+  <section class="paper" id="paper">
+    <h2>虛擬單測試</h2>
+    <p class="lead">開啟後，每次掃描到「可進場」的幣，會用當下真實價格自動下一張虛擬單（遵守下面的風控上限，分數高的優先），之後每 15 分鐘K檢查一次有沒有打到停損或 TP：TP1 平 1/3 後停損移到進場價、TP2 再平 1/3、剩下放到 TP3，並扣約 0.1% 手續費。紀錄存在這台電腦的瀏覽器裡。頁面關掉期間的價格變化，下次打開會自動補算，但關掉期間出現的新訊號會漏掉。</p>
+    <div class="chips" id="pChips"></div>
+    <div class="risk-set">
+      <b style="color:var(--ink)">風控上限</b>
+      <label for="rkOpen">同時最多持倉 <input id="rkOpen" inputmode="numeric" value="5"> 張</label>
+      <label for="rkSame">同方向最多 <input id="rkSame" inputmode="numeric" value="3"> 張</label>
+      <label for="rkDay">每天最多虧 <input id="rkDay" inputmode="decimal" value="3"> R</label>
+      <label for="rkStreak">連虧 <input id="rkStreak" inputmode="numeric" value="3"> 筆就暫停</label>
+    </div>
+    <div class="ctrl">
+      <button class="btn" type="button" id="btnPaper" aria-pressed="true">自動下虛擬單：開</button>
+      <button class="btn" type="button" id="btnCopyPaper">複製測試紀錄（貼給 Claude）</button>
+      <button class="btn" type="button" id="btnClearPaper">清除紀錄</button>
+      <span class="toast" id="pToast" hidden></span>
+    </div>
+    <div class="tbl-wrap">
+      <table class="list">
+        <thead><tr><th>開單時間</th><th>幣種</th><th>方向</th><th>分數</th><th>進場</th><th>停損</th><th>TP1</th><th>TP2</th><th>TP3</th><th>狀態</th><th>結果</th></tr></thead>
+        <tbody id="pBody"><tr><td colspan="11" class="empty">還沒有虛擬單。掃描到「可進場」的幣時會自動建立。</td></tr></tbody>
+      </table>
+    </div>
+  </section>
+
+  <details class="sec">
+    <summary>這個掃描器怎麼運作？</summary>
+    <div class="in">
+      <p><b>掃哪些幣</b>：自動讀取 BingX 全部 USDT 永續合約，先排除穩定幣和 24 小時成交額太小的幣（流動性差、容易被插針），再依成交額由大到小，最多掃你設定的數量。</p>
+      <p><b>怎麼評分</b>：跟「合約進場雷達」完全相同的規則，滿分 100：大週期趨勢 25、均線位置 10、費波納契 15、支撐壓力 15、RSI 10、量能 5、獲利空間 10、資金費率 10。70 分以上列為「條件符合」，50–69 分為觀察。</p>
+      <p><b>狀態說明</b>：</p>
+      <ul>
+        <li><b>可進場</b>：條件符合，現價還在進場區附近。</li>
+        <li><b>等回檔</b>：條件符合，但價格已經跑掉一段，不要追，等回到進場區。</li>
+        <li><b>已錯過</b>：現價已經到 TP1，這次就放掉。</li>
+        <li><b>已失效</b>：現價已經碰到停損位置，不要進場。</li>
+      </ul>
+      <p><b>點位</b>：停損放在最近的波段低點或支撐外側（做空反過來），TP1 是 1R、TP2 對齊前方壓力位（沒有就用 2R）、TP3 用費波納契 1.618 延伸（不合理就用 3R）。建議 TP1 平 1/3 後把停損移到進場價。</p>
+      <p><b>大盤濾網</b>：山寨幣大多跟著 BTC 走。BTC 大週期偏多時，山寨幣做空扣 15 分；偏空時，做多扣 15 分；方向不明扣 5 分。BTC 最近 6 根K棒急跌超過 2 倍 ATR 時，山寨幣的做多訊號一律暫停（急漲時暫停做空）。BTC 自己不套用這個濾網。</p>
+      <p><b>風控上限</b>：同時持倉數、同方向持倉數有上限，避免一次全部做多、大盤一跌全部打停損。當天虧損達上限、或連續虧損到設定筆數，會暫停新的虛擬單並跳出提醒，你自己也應該照做。</p>
+      <p><b>回測</b>：點開某個幣時才會另外抓更長的歷史資料計算，所以要等幾秒。回測沒有套用大盤濾網和風控，實際結果以虛擬單為準。</p>
+      <p><b>小幣風險</b>：成交額小、剛上市的幣波動大、容易被插針，資料也比較少，同樣的分數可信度比主流幣低。建議下單金額比主流幣更小。</p>
+    </div>
+  </details>
+
+  <footer>
+    <p>本工具依固定規則計算，是輔助判斷用，不是投資建議，也不保證獲利。合約有槓桿，虧損可能很快，請只用賠得起的錢。</p>
+    <p>行情來源：BingX 公開行情；連不上時改用 Binance（幣種清單可能和 BingX 不完全一樣）。</p>
+  </footer>
+</main>
+
+<script>
+/*CORE-START*/
+const PIV=3;
+function fmtP(p){if(p==null||!isFinite(p))return"—";const a=Math.abs(p);const d=a>=1000?1:a>=100?2:a>=1?3:a>=0.1?4:5;return p.toLocaleString("en-US",{minimumFractionDigits:d,maximumFractionDigits:d})}
+function ema(a,n){const o=new Array(a.length).fill(NaN);if(a.length<n)return o;let s=0;for(let i=0;i<n;i++)s+=a[i];o[n-1]=s/n;const k=2/(n+1);for(let i=n;i<a.length;i++)o[i]=a[i]*k+o[i-1]*(1-k);return o}
+function sma(a,n){const o=new Array(a.length).fill(NaN);let s=0;for(let i=0;i<a.length;i++){s+=a[i];if(i>=n)s-=a[i-n];if(i>=n-1)o[i]=s/n}return o}
+function rsi(a,n=14){const o=new Array(a.length).fill(NaN);if(a.length<=n)return o;let g=0,l=0;for(let i=1;i<=n;i++){const d=a[i]-a[i-1];if(d>0)g+=d;else l-=d}g/=n;l/=n;o[n]=l===0?100:100-100/(1+g/l);for(let i=n+1;i<a.length;i++){const d=a[i]-a[i-1];g=(g*(n-1)+Math.max(d,0))/n;l=(l*(n-1)+Math.max(-d,0))/n;o[i]=l===0?100:100-100/(1+g/l)}return o}
+function atr(c,n=14){const o=new Array(c.length).fill(NaN);if(c.length<=n)return o;const tr=c.map((x,i)=>i?Math.max(x.h-x.l,Math.abs(x.h-c[i-1].c),Math.abs(x.l-c[i-1].c)):x.h-x.l);let s=0;for(let i=1;i<=n;i++)s+=tr[i];o[n]=s/n;for(let i=n+1;i<c.length;i++)o[i]=(o[i-1]*(n-1)+tr[i])/n;return o}
+function pivots(c){const ph=new Array(c.length).fill(false),pl=new Array(c.length).fill(false);for(let k=PIV;k<c.length-PIV;k++){let hi=true,lo=true;for(let j=k-PIV;j<=k+PIV;j++){if(j===k)continue;if(c[j].h>=c[k].h)hi=false;if(c[j].l<=c[k].l)lo=false}ph[k]=hi;pl[k]=lo}return{ph,pl}}
+function prep(c,dt){const cl=c.map(x=>x.c);const p=pivots(c);return{c,dt,e20:ema(cl,20),e50:ema(cl,50),e200:ema(cl,200),rsi:rsi(cl),atr:atr(c),vs:sma(c.map(x=>x.v),20),ph:p.ph,pl:p.pl}}
+function tIdx(T,t){let lo=0,hi=T.c.length-1,ans=-1;while(lo<=hi){const m=(lo+hi)>>1;if(T.c[m].t+T.dt<=t){ans=m;lo=m+1}else hi=m-1}return ans}
+/* 支撐壓力：只用到 i 為止已確認的轉折點，相近價位合併，碰越多次越強 */
+function levels(P,i,look=200){const a=P.atr[i];const pts=[];for(let k=Math.max(0,i-look);k<=i-PIV;k++){if(P.ph[k])pts.push(P.c[k].h);if(P.pl[k])pts.push(P.c[k].l)}pts.sort((x,y)=>x-y);const out=[];for(const p of pts){const last=out[out.length-1];if(last&&p-last.hi<=0.6*a){last.hi=p;last.sum+=p;last.n++}else out.push({hi:p,sum:p,n:1})}return out.map(x=>({price:x.sum/x.n,touches:x.n}))}
+function trendAt(T,j){if(j<6)return{dir:0,pts:0,txt:"大週期資料不足"};const c=T.c[j].c,e50=T.e50[j],e200=T.e200[j],up=T.e50[j]>T.e50[j-5];
+  if(!(e200>0))return{dir:0,pts:0,txt:"大週期資料不足"};
+  if(c>e50&&e50>e200&&up)return{dir:1,pts:25,txt:"大週期多頭排列，均線向上"};
+  if(c<e50&&e50<e200&&!up)return{dir:-1,pts:25,txt:"大週期空頭排列，均線向下"};
+  if(c>e200&&e50>e200)return{dir:1,pts:12,txt:"大週期偏多，但短期轉弱"};
+  if(c<e200&&e50<e200)return{dir:-1,pts:12,txt:"大週期偏空，但短期反彈"};
+  return{dir:0,pts:0,txt:"大週期均線糾結，方向不明"}}
+/* 費波納契：做多取最近波段的低→高，做空取高→低 */
+function fibAt(P,i,d,look=80){const s=Math.max(0,i-look),c=P.c;let ei=s,oi=s;
+  if(d>0){for(let k=s;k<=i;k++)if(c[k].h>c[ei].h)ei=k;oi=s;for(let k=s;k<=ei;k++)if(c[k].l<c[oi].l)oi=k;const hi=c[ei].h,lo=c[oi].l,r=hi-lo||1e-12;
+    return{hi,lo,range:hi-lo,ret:(hi-c[i].c)/r,lvl:x=>hi-x*r,ext:x=>lo+x*r,from:oi,to:ei}}
+  for(let k=s;k<=i;k++)if(c[k].l<c[ei].l)ei=k;oi=s;for(let k=s;k<=ei;k++)if(c[k].h>c[oi].h)oi=k;const lo=c[ei].l,hi=c[oi].h,r=hi-lo||1e-12;
+  return{hi,lo,range:hi-lo,ret:(c[i].c-lo)/r,lvl:x=>lo+x*r,ext:x=>hi-x*r,from:oi,to:ei}}
+function analyze(P,T,i,funding){
+  const j=tIdx(T,P.c[i].t+P.dt);const tr=trendAt(T,j);const bar=P.c[i],a=P.atr[i],px=bar.c;
+  const A={dir:tr.dir,price:px,atr:a,checks:[],score:0,i};
+  const add=(k,p,max,t)=>{A.checks.push({k,p,max,t});A.score+=p};
+  add("大週期趨勢",tr.pts,25,tr.txt);
+  if(!tr.dir||!(a>0)){A.status="flat";A.levels=a>0?levels(P,i):[];return A}
+  const d=tr.dir,L=d>0?"支撐":"壓力",Lr=d>0?"壓力":"支撐";let p,t;
+  /* 均線位置 */
+  const dist=d*(px-P.e20[i])/a,beyondMid=d*(px-P.e50[i])<0;
+  if(beyondMid){p=2;t=d>0?"跌破 EMA50，短線結構轉弱":"站上 EMA50，短線結構轉強"}
+  else if(dist<-0.5){p=7;t="回到 EMA50 附近"}
+  else if(dist<=1){p=10;t="回到 EMA20 附近，沒有追"+(d>0?"高":"空")}
+  else if(dist<=1.5){p=5;t="離 EMA20 稍遠"}
+  else{p=0;t="離均線太遠，屬於追"+(d>0?"高":"空")}
+  add("均線位置",p,10,t);
+  /* 費波納契 */
+  const F=fibAt(P,i,d);A.fib=F;let fp=0,ft;const rt=F.ret.toFixed(2);
+  if(F.range<2*a)ft="最近波段太小，無法判斷回撤";
+  else if(F.ret<0.236)ft=(d>0?"剛創波段新高":"剛創波段新低")+"，還沒回撤";
+  else if(F.ret>=0.5&&F.ret<=0.618){fp=15;ft=`在黃金回撤區 0.5–0.618（目前 ${rt}）`}
+  else if(F.ret>=0.382&&F.ret<=0.786){fp=8;ft=`在回撤區（目前 ${rt}）`}
+  else if(F.ret>0.786){fp=0;ft=`回撤超過 0.786（目前 ${rt}），這段波段可能失效`}
+  else{fp=3;ft=`回撤很淺（目前 ${rt}）`}
+  add("費波納契",fp,15,ft);
+  /* 支撐壓力 SNR */
+  const lv=levels(P,i);A.levels=lv;
+  const sup=lv.filter(x=>d*(px-x.price)>0).sort((x,y)=>d*(y.price-x.price));
+  const res=lv.filter(x=>d*(x.price-px)>0).sort((x,y)=>d*(x.price-y.price));
+  A.sup=sup.slice(0,2);A.res=res.slice(0,2);
+  const ns=sup[0];let sp=0,st;
+  if(ns&&d*(px-ns.price)<=1*a){sp=ns.touches>=2?15:9;st=`貼近${L} ${fmtP(ns.price)}（碰過 ${ns.touches} 次）`}
+  else if(ns&&d*(px-ns.price)<=2*a){sp=5;st=`離${L} ${fmtP(ns.price)} 還有一段`}
+  else st=`附近沒有明確${L}`;
+  add("支撐壓力",sp,15,st);
+  /* RSI */
+  const r=P.rsi[i],rp=P.rsi[i-1],rr=d>0?r:100-r,turn=d>0?r>rp:r<rp;
+  if(rr>=40&&rr<=62){p=turn?10:5;t=`RSI ${r.toFixed(0)}，${turn?"開始轉向":"還在整理"}`}
+  else if(rr>62&&rr<=70){p=4;t=`RSI ${r.toFixed(0)}，偏${d>0?"熱":"冷"}`}
+  else if(rr>70){p=0;t=`RSI ${r.toFixed(0)}，${d>0?"超買，不追多":"超賣，不追空"}`}
+  else{p=3;t=`RSI ${r.toFixed(0)}，動能還弱`}
+  add("RSI",p,10,t);
+  /* 量能 */
+  const good=d>0?bar.c>bar.o:bar.c<bar.o,vr=bar.v/P.vs[i];
+  p=good&&vr>=1.2?5:good?3:0;t=good?`K棒${d>0?"收紅":"收黑"}，量是均量 ${isFinite(vr)?vr.toFixed(1):"—"} 倍`:"K棒方向還沒配合";
+  add("量能",p,5,t);
+  /* 停損 */
+  let sw=d>0?Infinity:-Infinity;for(let k=Math.max(0,i-9);k<=i;k++)sw=d>0?Math.min(sw,P.c[k].l):Math.max(sw,P.c[k].h);
+  let base=sw;if(ns&&d*(px-ns.price)<=3*a)base=d>0?Math.min(sw,ns.price):Math.max(sw,ns.price);
+  let sl=base-d*0.3*a;if(d*(px-sl)<a)sl=px-d*a;
+  const risk=d*(px-sl);A.sl=sl;A.risk=risk;
+  /* 目標 */
+  A.tp1=px+d*risk;A.tp1src="1R";
+  const tg=res.find(x=>d*(x.price-px)>=1.5*risk&&d*(x.price-px)<=3*risk);
+  A.tp2=tg?tg.price:px+d*2*risk;A.tp2src=tg?`${Lr}位（碰過 ${tg.touches} 次）`:"2R";
+  A.tp3=px+d*3*risk;A.tp3src="3R";
+  if(F.range>=2*a){const e=F.ext(1.618);if(d*(e-A.tp2)>=0.5*risk&&d*(e-px)<=6*risk){A.tp3=e;A.tp3src="Fib 1.618 延伸"}}
+  if(d*(A.tp3-A.tp2)<0.5*risk){A.tp3=A.tp2+d*risk;A.tp3src="TP2＋1R"}
+  /* 獲利空間 */
+  const room=res.length?d*(res[0].price-px)/risk:Infinity;
+  if(room>=2){p=10;t=res.length?`前方第一個${Lr}在 ${fmtP(res[0].price)}，空間 ${room.toFixed(1)}R`:`前方沒有明顯${Lr}`}
+  else if(room>=1){p=5;t=`前方${Lr} ${fmtP(res[0].price)} 只有 ${room.toFixed(1)}R`}
+  else{p=0;t=`前方${Lr} ${fmtP(res[0].price)} 太近（${room.toFixed(1)}R）`}
+  add("獲利空間",p,10,t);
+  /* 資金費率 */
+  if(funding==null||!isFinite(funding)){p=5;t="沒有資金費率資料（不加不扣）"}
+  else{const f=funding*100,fs=f.toFixed(4)+"%";const crowd=d>0?funding:-funding;
+    if(crowd<=0.0001){p=10;t=`資金費率 ${fs}，${d>0?"做多":"做空"}不擁擠`}
+    else if(crowd<=0.0005){p=5;t=`資金費率 ${fs}，稍微偏${d>0?"多":"空"}`}
+    else{p=0;t=`資金費率 ${fs}，${d>0?"做多":"做空"}太擁擠`}}
+  add("資金費率",p,10,t);
+  A.wide=risk>3*a;if(A.wide){A.score-=10;A.checks.push({k:"停損距離",p:-10,max:0,t:"停損超過 3 倍 ATR，風險偏大，扣 10 分"})}
+  A.score=Math.max(0,Math.min(100,A.score));
+  A.status=A.score>=70?"go":A.score>=50?"watch":"no";
+  A.zone=[px-d*0.3*a,px];
+  return A}
+/* 回測：照同樣規則，TP1 平 1/3 移停損到進場價，TP2 再平 1/3 移停損到 TP1，剩下放 TP3；同一根K同時碰到停損和目標時算停損（保守） */
+function backtest(P,T,startAt=210,maxHold=100){const n=P.c.length-1;const trades=[];let i=startAt;
+  while(i<n-1){const A=analyze(P,T,i,null);if(A.status!=="go"){i++;continue}
+    const d=A.dir,e=A.price,R=A.risk;let sl=A.sl,stage=0,real=0,left=1,j=i+1;
+    for(;j<n&&j<=i+maxHold;j++){const b=P.c[j],adv=d>0?b.l:b.h,fav=d>0?b.h:b.l;
+      if(d*(adv-sl)<=0){real+=left*d*(sl-e)/R;left=0;break}
+      if(stage<1&&d*(fav-A.tp1)>=0){real+=d*(A.tp1-e)/R/3;left-=1/3;stage=1;sl=e}
+      if(stage<2&&d*(fav-A.tp2)>=0){real+=d*(A.tp2-e)/R/3;left-=1/3;stage=2;sl=A.tp1}
+      if(stage<3&&d*(fav-A.tp3)>=0){real+=d*(A.tp3-e)/R*left;left=0;stage=3;break}}
+    if(left>1e-9){const b=P.c[Math.min(j,n-1)];real+=left*d*(b.c-e)/R}
+    real-=0.001*e/R;trades.push({i,r:real,stage,dir:d});i=Math.min(j,n-1)+1}
+  const wins=trades.filter(x=>x.r>0).length,tot=trades.reduce((s,x)=>s+x.r,0);
+  return{n:trades.length,winRate:trades.length?wins/trades.length:0,avg:trades.length?tot/trades.length:0,total:tot,trades,bars:n-startAt}}
+/*CORE-END*/
+
+/* ===================== 掃描器 ===================== */
+const MOBILE=true;
+const MODES={swing:{name:"波段",trend:"1d",entry:"4h",tDt:864e5,eDt:144e5,every:900,txt:"4 小時K（看日線方向）"},
+             scalp:{name:"短線",trend:"1h",entry:"15m",tDt:36e5,eDt:9e5,every:300,txt:"15 分鐘K（看 1 小時方向）"}};
+const STABLE=new Set(["USDC","FDUSD","TUSD","DAI","USDE","BUSD","USDP","PYUSD","USD1","EUR","EURI","USDD"]);
+const $=id=>document.getElementById(id);
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const S={mode:"swing",minVol:20,maxN:150,cap:1000,risk:1,margin:20,auto:true,f:"go",d:"all",sort:"score",pins:["BTC","ETH"]};
+try{Object.assign(S,JSON.parse(localStorage.getItem("scanner-settings")||"{}"))}catch(e){}
+function saveS(){try{localStorage.setItem("scanner-settings",JSON.stringify(S))}catch(e){}}
+
+async function getJSON(url){
+  for(let t=0;t<3;t++){const ctl=new AbortController();const to=setTimeout(()=>ctl.abort(),15000);
+    try{const r=await fetch(url,{signal:ctl.signal});if(r.status===429||r.status===418){await sleep(2500*(t+1));continue}if(!r.ok)throw new Error("HTTP "+r.status);return await r.json()}
+    catch(e){if(t===2)throw e;await sleep(600)}finally{clearTimeout(to)}}
+  throw new Error("請求太頻繁")}
+const SOURCES={
+  bingx:{name:"BingX",
+    universe:async()=>{const j=await getJSON("https://open-api.bingx.com/openApi/swap/v2/quote/ticker");if(j.code!==0||!Array.isArray(j.data))throw new Error(j.msg||"bad");
+      return j.data.filter(x=>/-USDT$/.test(x.symbol)).map(x=>{const p=+x.lastPrice;const qv=+(x.quoteVolume||0)||(+x.volume||0)*p;return{sym:x.symbol,base:x.symbol.replace(/-USDT$/,""),cur:p,chg:+x.priceChangePercent,qv}})},
+    funding:async()=>{const j=await getJSON("https://open-api.bingx.com/openApi/swap/v2/quote/premiumIndex");const m={};(Array.isArray(j.data)?j.data:[]).forEach(x=>m[x.symbol]=+x.lastFundingRate);return m},
+    klines:async(sym,iv,lim)=>{const j=await getJSON(`https://open-api.bingx.com/openApi/swap/v3/quote/klines?symbol=${sym}&interval=${iv}&limit=${lim}`);if(j.code!==0||!Array.isArray(j.data))throw new Error(j.msg||"bad");return j.data.map(k=>({t:+k.time,o:+k.open,h:+k.high,l:+k.low,c:+k.close,v:+k.volume})).sort((a,b)=>a.t-b.t)}},
+  binance:{name:"Binance",
+    universe:async()=>{const j=await getJSON("https://fapi.binance.com/fapi/v1/ticker/24hr");if(!Array.isArray(j))throw new Error("bad");
+      return j.filter(x=>/USDT$/.test(x.symbol)).map(x=>({sym:x.symbol,base:x.symbol.replace(/USDT$/,""),cur:+x.lastPrice,chg:+x.priceChangePercent,qv:+x.quoteVolume}))},
+    funding:async()=>{const j=await getJSON("https://fapi.binance.com/fapi/v1/premiumIndex");const m={};(Array.isArray(j)?j:[]).forEach(x=>m[x.symbol]=+x.lastFundingRate);return m},
+    klines:async(sym,iv,lim)=>{const j=await getJSON(`https://fapi.binance.com/fapi/v1/klines?symbol=${sym}&interval=${iv}&limit=${lim}`);if(!Array.isArray(j))throw new Error("bad");return j.map(k=>({t:k[0],o:+k[1],h:+k[2],l:+k[3],c:+k[4],v:+k[5]}))}}
+};
+
+/* 示範資料（連不到交易所時） */
+function demoCandles(base,n,dt,seed){let s=seed;const rnd=()=>{s=(s*16807)%2147483647;return s/2147483647};let p=base;const sig=0.006*Math.sqrt(dt/36e5);const out=[];const now=Math.floor(Date.now()/dt)*dt;const ph=rnd()*6;
+  for(let i=0;i<n;i++){const drift=Math.sin(i/90+ph)*sig*0.35;const o=p;const ch=(rnd()-0.5)*2*sig+drift;const c=o*(1+ch);const h=Math.max(o,c)*(1+rnd()*sig*0.6),l=Math.min(o,c)*(1-rnd()*sig*0.6);out.push({t:now-(n-1-i)*dt,o,h,l,c,v:1000*(0.6+rnd()+Math.abs(ch)/sig)});p=c}return out}
+const DEMO_NAMES=["BTC","ETH","SOL","XRP","DOGE","BNB","ADA","LINK","AVAX","SUI","TON","DOT","LTC","BCH","NEAR","APT","ARB","OP","PEPE","WIF","TIA","INJ","SEI","FIL","ATOM","UNI","AAVE","ENA","ORDI","TRX"];
+
+let src=null,isDemo=false,rows=[],scanId=0,scanning=false,timer=null,nextAt=0,open=null,prevGo=new Set(),renderQ=false,lastScanAt=null;
+
+function setStatus(kind,msg,extra=""){$("statusbar").innerHTML=`<span><span class="dot ${kind}"></span>${msg}</span>${extra}<span id="cd"></span>`;tick()}
+function tick(){const el=$("cd");if(!el)return;if(scanning){el.textContent="";return}if(!S.auto||!nextAt){el.textContent="自動重掃已關閉";return}const s=Math.max(0,Math.round((nextAt-Date.now())/1000));el.textContent=`${Math.floor(s/60)} 分 ${String(s%60).padStart(2,"0")} 秒後重掃`}
+setInterval(tick,1000);
+
+async function pickSource(){for(const k of ["bingx","binance"]){try{const u=await SOURCES[k].universe();if(u.length)return{k,u}}catch(e){}}return null}
+
+async function scan(){
+  const my=++scanId;scanning=true;clearTimeout(timer);$("btnScan").textContent="停止掃描";
+  const M=MODES[S.mode];setStatus("warn","讀取合約清單中…");$("prog").style.width="2%";
+  let uni=null,fund={};
+  const got=await pickSource();
+  if(got){src=got.k;isDemo=false;uni=got.u;try{fund=await SOURCES[src].funding()}catch(e){}}
+  else{isDemo=true;src=null;uni=DEMO_NAMES.map((b,ix)=>({sym:b,base:b,cur:0,chg:0,qv:(DEMO_NAMES.length-ix)*4e7,demo:ix}))}
+  if(my!==scanId)return;
+  const total=uni.length;
+  const list=uni.filter(x=>!STABLE.has(x.base)&&x.qv>=S.minVol*1e6&&x.cur>=0).sort((a,b)=>b.qv-a.qv).slice(0,Math.max(1,S.maxN|0));
+  ["BTC",...S.pins].forEach(pb=>{if(!list.some(x=>x.base===pb)){const u=uni.find(x=>x.base===pb);if(u)list.unshift(u)}});
+  const keepOpen=open;
+  rows=list.map((x,ix)=>({...x,rank:ix+1,state:"pending",fr:fund[x.sym]}));
+  open=rows.some(r=>r.base===keepOpen)?keepOpen:null;
+  render();
+  let done=0;const N=rows.length;
+  setStatus("warn",`掃描中 0／${N}`,`<span>${isDemo?"示範資料":"來源："+SOURCES[src].name}・全部 ${total} 個合約，成交額達標 ${N} 個</span>`);
+  const work=async r=>{
+    if(my!==scanId)return;
+    try{let ec,tc;
+      if(isDemo){ec=demoCandles(50+r.demo*7,300,M.eDt,1000+r.demo*91);tc=demoCandles(50+r.demo*7,300,M.tDt,500+r.demo*37);r.cur=ec[ec.length-1].c;r.chg=(ec[ec.length-1].c/ec[ec.length-7].c-1)*100}
+      else{ec=await SOURCES[src].klines(r.sym,M.entry,300);await sleep(80);tc=await SOURCES[src].klines(r.sym,M.trend,300)}
+      if(ec.length<120){r.state="short";return}
+      const P=prep(ec,M.eDt),T=prep(tc,M.tDt);
+      r.P=P;r.T=T;r.A0=analyze(P,T,ec.length-2,r.fr);r.A=r.A0;r.cur=ec[ec.length-1].c;r.state="ok";r.bt=null}
+    catch(e){r.state="err"}
+    finally{done++;if(my===scanId){$("prog").style.width=(done/N*100)+"%";const el=$("statusbar").querySelector("span");if(el)el.innerHTML=`<span class="dot warn"></span>掃描中 ${done}／${N}`;queueRender()}}};
+  let idx=0;const workers=Array.from({length:isDemo?6:4},async()=>{while(idx<rows.length&&my===scanId){const r=rows[idx++];await work(r);if(!isDemo)await sleep(120)}});
+  await Promise.all(workers);
+  if(my!==scanId)return;
+  scanning=false;lastScanAt=new Date();$("btnScan").textContent="重新掃描";$("prog").style.width="0";
+  render();notifyNew();
+  if(!MOBILE){try{await paperStep()}catch(e){}}
+  const ok=rows.filter(r=>r.state==="ok").length,bad=rows.filter(r=>r.state==="err").length;
+  setStatus(isDemo?"err":"",isDemo?"連不到交易所，以下為示範資料":`掃描完成 ${ok} 個`+(bad?`（${bad} 個抓取失敗）`:""),`<span>${isDemo?"":"來源："+SOURCES[src].name+"・"}更新於 ${lastScanAt.toLocaleTimeString("zh-TW",{hour12:false})}</span>`);
+  schedule()}
+function stopScan(){scanId++;scanning=false;$("btnScan").textContent="重新掃描";$("prog").style.width="0";render();setStatus("warn","已停止掃描");schedule()}
+function schedule(){clearTimeout(timer);if(!S.auto){nextAt=0;tick();return}const ms=MODES[S.mode].every*1000;nextAt=Date.now()+ms;timer=setTimeout(scan,ms);tick()}
+
+/* ---------- 大盤濾網 ---------- */
+let MKT=null;
+function marketState(){const b=rows.find(r=>r.base==="BTC"&&r.state==="ok");if(!b)return null;const P=b.P,i=P.c.length-2,a=P.atr[i],j=Math.max(0,i-6);
+  const mv=P.c[i].c-P.c[j].c;return{dir:b.A0.dir,shock:mv<=-2*a?-1:mv>=2*a?1:0,mvPct:mv/P.c[j].c*100,txt:b.A0.checks[0].t}}
+function adjust(r,m){const A0=r.A0;if(!m||r.base==="BTC"||A0.status==="flat"){r.A=A0;return}
+  const A={...A0,checks:[...A0.checks]};let delta=0,t,block=false;
+  if(m.shock===-1&&A0.dir===1){block=true;delta=-15;t="BTC 正在急跌，暫停做多"}
+  else if(m.shock===1&&A0.dir===-1){block=true;delta=-15;t="BTC 正在急漲，暫停做空"}
+  else if(m.dir===0){delta=-5;t="BTC 方向不明，扣 5 分"}
+  else if(m.dir!==A0.dir){delta=-15;t=`逆大盤：BTC ${m.dir>0?"偏多":"偏空"}，扣 15 分`}
+  else t=`順大盤：BTC 也${m.dir>0?"偏多":"偏空"}`;
+  A.checks.push({k:"大盤濾網",p:delta,max:0,t});A.score=Math.max(0,Math.min(100,A0.score+delta));
+  A.status=A.score>=70?"go":A.score>=50?"watch":"no";if(block&&A.status==="go")A.status="watch";A.blocked=block;r.A=A}
+function applyMarket(){MKT=marketState();rows.forEach(r=>{if(r.state==="ok")adjust(r,MKT)})}
+
+/* ---------- 狀態 ---------- */
+function live(r){const A=r.A,d=A.dir;
+  if(A.status==="flat")return{k:"flat",t:"盤整"};
+  if(A.status==="go"){if(d*(r.cur-A.sl)<=0)return{k:"no",t:"已失效"};if(d*(r.cur-A.tp1)>=0)return{k:"watch",t:"已錯過"};if(d*(r.cur-A.price)/A.atr>0.5)return{k:"watch",t:"等回檔"};return{k:"go",t:"可進場"}}
+  if(A.status==="watch")return{k:"watch",t:"觀察"};return{k:"no",t:"不建議"}}
+const RANKST={go:0,watch:1,no:2,flat:3};
+
+function fmtVol(v){if(!isFinite(v))return"—";if(v>=1e8)return(v/1e8).toFixed(1)+" 億";if(v>=1e4)return Math.round(v/1e4).toLocaleString("en-US")+" 萬";return Math.round(v)}
+function pct(a,b){return(a-b)/b*100}
+function sgn(x){return(x>0?"+":"")+x.toFixed(2)+"%"}
+function qtyFmt(q){return q>=100?q.toFixed(0):q>=1?q.toFixed(2):q>=0.01?q.toFixed(4):q.toPrecision(3)}
+function esc(s){return String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]))}
+
+function visible(){
+  const q=($("q").value||"").trim().toUpperCase();
+  const pins=S.pins.map(b=>rows.find(r=>r.base===b)).filter(Boolean);
+  let v=rows.filter(r=>!S.pins.includes(r.base)&&(!q||r.base.includes(q)));
+  v=v.filter(r=>{if(r.state!=="ok")return S.f==="all";
+    if(S.d==="long"&&r.A.dir!==1)return false;if(S.d==="short"&&r.A.dir!==-1)return false;
+    if(S.f==="go")return r.A.status==="go";if(S.f==="watch")return r.A.status==="go"||r.A.status==="watch";return true});
+  const key={score:(a,b)=>(RANKST[a.A?a.A.status:"flat"]-RANKST[b.A?b.A.status:"flat"])||((b.A?b.A.score:-1)-(a.A?a.A.score:-1))||(b.qv-a.qv),
+    vol:(a,b)=>b.qv-a.qv,chg:(a,b)=>b.chg-a.chg,chgd:(a,b)=>a.chg-b.chg}[S.sort];
+  return pins.concat(v.sort(key))}
+
+function queueRender(){if(renderQ)return;renderQ=true;setTimeout(()=>{renderQ=false;render()},350)}
+function render(){
+  applyMarket();renderRisk();
+  $("banner").innerHTML=isDemo?`<div class="banner"><b>現在顯示的是示範資料，不是真實行情。</b><span>瀏覽器連不到 BingX 和 Binance 的公開行情。請確認網路正常，並且是直接用 Chrome 或 Edge 打開這個檔案；還是不行的話，把畫面截圖給 Claude。</span></div>`:"";
+  const ok=rows.filter(r=>r.state==="ok");
+  const goL=ok.filter(r=>r.A.status==="go"&&r.A.dir===1).length,goS=ok.filter(r=>r.A.status==="go"&&r.A.dir===-1).length;
+  const can=ok.filter(r=>r.A.status==="go"&&live(r).k==="go").length,wt=ok.filter(r=>r.A.status==="watch").length;
+  $("chips").innerHTML=`<span class="chip go">現在可進場 <b>${can}</b></span><span class="chip go">條件符合・做多 <b>${goL}</b></span><span class="chip short">條件符合・做空 <b>${goS}</b></span><span class="chip watch">觀察 <b>${wt}</b></span><span class="chip">已掃描 <b>${ok.length}</b></span>${MKT?`<span class="chip mkt">大盤 BTC <b class="${MKT.dir>0?"up":MKT.dir<0?"down":""}">${MKT.dir>0?"偏多":MKT.dir<0?"偏空":"方向不明"}</b>${MKT.shock?`<b class="${MKT.shock>0?"up":"down"}">${MKT.shock>0?"急漲中":"急跌中"}</b>`:""}</span>`:""}<span class="small" style="align-self:center">${MODES[S.mode].name}模式：${MODES[S.mode].txt}，訊號用已收盤K線</span>`;
+  const v=visible();const nPins=v.filter(r=>S.pins.includes(r.base)).length;
+  if(v.length===nPins&&nPins&&!scanning&&ok.length){v.push({base:"__none__",note:S.f==="go"?"其他幣目前沒有條件符合的。可以切到「觀察以上」或「全部」看看。":"沒有其他符合篩選條件的幣。"})}
+  if(MOBILE){renderMobile(v);return}
+  if(!v.length){const msg=scanning&&!ok.length?"掃描中，結果會陸續出現…":S.f==="go"?"目前沒有條件符合的幣。可以切到「觀察以上」或「全部」看看，或等下一次重掃。":"沒有符合篩選條件的幣。";
+    $("tbody").innerHTML=`<tr><td colspan="13" class="empty">${msg}</td></tr>`;return}
+  let rk=0;
+  $("tbody").innerHTML=v.map((r,ix)=>r.base==="__none__"?`<tr><td colspan="13" class="empty">${r.note}</td></tr>`:rowHTML(r,S.pins.includes(r.base)?0:++rk,ix===nPins-1)+(open===r.base&&r.state==="ok"?`<tr class="detail"><td colspan="13">${detailHTML(r)}</td></tr>`:"")).join("");
+  const o=v.find(r=>r.base===open&&r.state==="ok");if(o){drawChart($("cv-open"),o);if(!o.bt&&!o.btLoading&&!isDemo)loadBT(o)}
+}
+function renderMobile(v){
+  const ok=rows.filter(r=>r.state==="ok");let rk=0;
+  if(!v.length){$("mlist").innerHTML=`<div class="mc-empty">${scanning&&!ok.length?"掃描中，結果會陸續出現…":"沒有符合篩選條件的幣。"}</div>`;return}
+  $("mlist").innerHTML=v.map(r=>r.base==="__none__"?`<div class="mc-empty">${r.note}</div>`:mcardHTML(r,S.pins.includes(r.base)?0:++rk)).join("");
+  const o=v.find(r=>r.base===open&&r.state==="ok");if(o){drawChart($("cv-open"),o);if(!o.bt&&!o.btLoading&&!isDemo)loadBT(o)}}
+function mcardHTML(r,n){
+  const pin=n===0,rk=pin?'<span class="star">★</span>':n;
+  const chg=isFinite(r.chg)?`<b class="${r.chg>=0?"up":"down"}">${sgn(r.chg)}</b>`:"—";
+  if(r.state!=="ok"){const t=r.state==="pending"?"掃描中…":r.state==="short"?"上市太新，資料不足":"抓取失敗";
+    return`<div class="mc ${pin?"pin":""}"><div class="mc-main"><div class="mc-r1"><span class="rk">${rk}</span><span class="coin">${esc(r.base)}</span><span class="st flat">${t}</span></div></div></div>`}
+  const A=r.A,L=live(r),d=A.dir,show=d&&A.status!=="flat"&&A.status!=="no";
+  const dir=d>0?'<span class="pill long">做多</span>':d<0?'<span class="pill short">做空</span>':'<span class="pill flat">盤整</span>';
+  const lv=show?`<div class="mc-lv"><div><span>進場</span><b>${fmtP(A.price)}</b></div><div><span>停損</span><b class="sl">${fmtP(A.sl)}</b></div><div><span>TP1</span><b class="tp">${fmtP(A.tp1)}</b></div><div><span>TP2</span><b class="tp">${fmtP(A.tp2)}</b></div><div><span>TP3</span><b class="tp">${fmtP(A.tp3)}</b></div></div>`:"";
+  return`<div class="mc ${pin?"pin":""} ${L.k==="go"?"go":""}"><div class="mc-main" data-b="${esc(r.base)}" role="button" tabindex="0" aria-expanded="${open===r.base}">
+    <div class="mc-r1"><span class="rk">${rk}</span><span class="coin">${esc(r.base)}</span>${dir}<span class="scorebar ${A.status}"><i><b style="width:${A.score}%"></b></i>${A.score}</span><span class="st ${L.k}">${L.t}</span></div>
+    <div class="mc-r2"><span>現價 <b>${fmtP(r.cur)}</b></span><span>24h ${chg}</span><span>成交額 <b>${fmtVol(r.qv)}</b></span></div>
+    ${lv}</div>${open===r.base?detailHTML(r):""}</div>`}
+function rowHTML(r,n,last){
+  const pin=n===0,pc=pin?(" pin"+(last?" pin-end":"")):"",rkTxt=pin?"★":n;
+  const chg=isFinite(r.chg)?`<span class="${r.chg>=0?"up":"down"}">${sgn(r.chg)}</span>`:"—";
+  if(r.state!=="ok"){const t=r.state==="pending"?"掃描中…":r.state==="short"?"上市太新，資料不足":"抓取失敗";return`<tr class="row${pc}"><td class="rank">${rkTxt}</td><td><span class="coin">${esc(r.base)}</span></td><td>${fmtVol(r.qv)}</td><td>${chg}</td><td colspan="9" class="dim" style="text-align:left;font-family:var(--sans)">${t}</td></tr>`}
+  const A=r.A,L=live(r),d=A.dir,show=d&&A.status!=="flat"&&A.status!=="no";
+  const dir=d>0?'<span class="pill long">做多</span>':d<0?'<span class="pill short">做空</span>':'<span class="pill flat">盤整</span>';
+  return`<tr class="row${pc} ${open===r.base?"open":""}" data-b="${esc(r.base)}" tabindex="0"><td class="rank">${pin?'<span class="star" aria-label="固定關注">★</span>':n}</td><td><span class="coin">${esc(r.base)}</span></td><td>${fmtVol(r.qv)}</td><td>${chg}</td><td>${dir}</td>
+    <td><span class="scorebar ${A.status}"><i><b style="width:${A.score}%"></b></i>${A.score}</span></td><td><span class="st ${L.k}">${L.t}</span></td>
+    <td>${fmtP(r.cur)}</td><td>${show?fmtP(A.price):""}</td><td class="sl">${show?fmtP(A.sl):""}</td><td class="tp">${show?fmtP(A.tp1):""}</td><td class="tp">${show?fmtP(A.tp2):""}</td><td class="tp">${show?fmtP(A.tp3):""}</td></tr>`}
+
+function detailHTML(r){
+  const A=r.A,d=A.dir,L=live(r);
+  const verdict=A.status==="flat"?"<b>先不做。</b>大週期方向不明，等趨勢出來。":
+    L.t==="可進場"?`<b>可以考慮進場${d>0?"做多":"做空"}。</b>在進場區掛單，停損一定要一起設。`:
+    L.t==="等回檔"?"<b>條件符合，但價格跑掉了。</b>等回到進場區再掛單，不要追。":
+    L.t==="已錯過"?"<b>已經錯過。</b>現價已到 TP1，不要追。":
+    L.t==="已失效"?"<b>訊號已失效。</b>現價已碰到停損位置。":
+    A.status==="watch"?"<b>觀察中。</b>條件還差一點，點位僅供參考。":"<b>不建議進場。</b>條件不足，原因如下。";
+  const showLv=A.status!=="flat"&&A.sl!=null;
+  const lv=showLv?[["進場區",A.zone[0],A.zone[1],"var(--accent)","掛單區間"],["停損 SL",A.sl,null,"var(--short)",`1R ＝ ${Math.abs(pct(A.sl,A.price)).toFixed(2)}%`],
+    ["TP1",A.tp1,null,"var(--long)",A.tp1src+"，平 1/3，停損移到進場價"],["TP2",A.tp2,null,"var(--long)",A.tp2src+"，平 1/3"],["TP3",A.tp3,null,"var(--long)",A.tp3src+"，全出"]]
+    .map(([n,p,p2,c,note])=>`<tr><td><span class="lv-name"><i style="background:${c}"></i>${n}</span></td><td>${p2!=null?fmtP(Math.min(p,p2))+" – "+fmtP(Math.max(p,p2)):fmtP(p)}</td><td>${p2!=null?"":sgn(pct(p,A.price))}</td><td>${note}</td></tr>`).join(""):"";
+  const checks=A.checks.map(x=>{const w=x.max?Math.max(0,x.p)/x.max*100:0;return`<li><span class="k">${x.k}</span><span class="meter ${x.max&&x.p>=x.max?"full":""}"><i style="width:${w}%"></i></span><span class="p">${x.max?x.p+"/"+x.max:x.p}</span><span class="t">${esc(x.t)}</span></li>`}).join("");
+  const snr=showLv?`<div class="snr">${(A.sup||[]).map(x=>`<span class="${d>0?"s":"r"}">${d>0?"支撐":"壓力"} ${fmtP(x.price)}·${x.touches}次</span>`).join("")}${(A.res||[]).map(x=>`<span class="${d>0?"r":"s"}">${d>0?"壓力":"支撐"} ${fmtP(x.price)}·${x.touches}次</span>`).join("")}${A.fib&&A.fib.range>=2*A.atr?`<span>Fib 0.5–0.618：${fmtP(A.fib.lvl(0.5))} – ${fmtP(A.fib.lvl(0.618))}</span>`:""}</div>`:"";
+  let pos="";if(showLv){const riskUSD=S.cap*S.risk/100,qty=riskUSD/A.risk,notional=qty*A.price,margin=S.cap*S.margin/100,lev=Math.max(1,Math.ceil(notional/margin));
+    pos=`<div class="pos"><div><span>下單數量</span><b>${qtyFmt(qty)} ${esc(r.base)}</b></div><div><span>倉位價值</span><b>${notional.toFixed(0)} U</b></div><div><span>建議槓桿／保證金</span><b>${lev}x／${(notional/lev).toFixed(0)} U</b></div><div><span>打到停損約賠</span><b>${riskUSD.toFixed(1)} U</b></div></div>${lev>20?`<p class="warn-txt">需要 ${lev} 倍槓桿，太高了。建議提高保證金比例，或跳過這筆。</p>`:""}`}
+  const bt=r.bt;let btH;
+  if(isDemo)btH='<span class="small">示範資料不做回測。</span>';
+  else if(!bt)btH='<span class="small">正在抓更長的歷史資料計算回測…</span>';
+  else if(bt.err)btH='<span class="small">回測資料抓取失敗。</span>';
+  else btH=bt.n?`<div class="bt-row"><span>訊號 <b>${bt.n}</b> 筆</span><span>勝率 <b>${(bt.winRate*100).toFixed(0)}%</b></span><span>平均每筆 <b class="${bt.avg>0?"up":"down"}">${bt.avg>0?"+":""}${bt.avg.toFixed(2)}R</b></span><span>合計 <b class="${bt.total>0?"up":"down"}">${bt.total>0?"+":""}${bt.total.toFixed(1)}R</b></span></div>${bt.n<10?'<span class="small">樣本不到 10 筆，參考價值低。</span>':""}`:'<span class="small">這段期間沒有出現 70 分以上的訊號。</span>';
+  const fr=r.fr==null||!isFinite(r.fr)?"—":(r.fr*100).toFixed(4)+"%";
+  return`<div class="det">
+    <div class="det-col">
+      <p class="verdict ${L.k==="flat"?"":L.k}">${esc(r.base)}：${verdict}</p>
+      <canvas class="chart" id="cv-open" aria-label="${esc(r.base)} 近期K線與點位"></canvas>
+      <div class="legend"><span><i style="border-color:var(--accent)"></i>進場</span><span><i style="border-color:var(--short)"></i>停損</span><span><i style="border-color:var(--long)"></i>TP</span><span><i class="dash" style="border-color:var(--muted)"></i>支撐壓力</span><span><i class="band" style="background:var(--watch-soft);border:1px solid var(--watch)"></i>Fib 0.5–0.618</span><span>現價 ${fmtP(r.cur)}・資金費率 ${fr}</span></div>
+      ${showLv?`<table class="levels"><tbody>${lv}</tbody></table>`:""}
+      ${pos}
+    </div>
+    <div class="det-col">
+      ${snr}
+      <ul class="checks">${checks}</ul>
+      <div class="bt"><span class="small">同樣規則的歷史回測${bt&&bt.bars?`（最近約 ${spanTxt(bt.bars)}）`:""}</span>${btH}</div>
+    </div></div>`}
+function spanTxt(b){const days=b*MODES[S.mode].eDt/864e5;return days>=60?Math.round(days/30)+" 個月":Math.round(days)+" 天"}
+
+async function loadBT(r){r.btLoading=true;const M=MODES[S.mode];
+  try{const ec=await SOURCES[src].klines(r.sym,M.entry,1000);const tc=await SOURCES[src].klines(r.sym,M.trend,1000);
+    if(ec.length<260)r.bt={n:0,winRate:0,avg:0,total:0,bars:0};else r.bt=backtest(prep(ec,M.eDt),prep(tc,M.tDt))}
+  catch(e){r.bt={err:true}}r.btLoading=false;if(open===r.base)render()}
+
+function css(v){return getComputedStyle(document.documentElement).getPropertyValue(v).trim()}
+function drawChart(cv,r){
+  if(!cv)return;const dpr=window.devicePixelRatio||1;const W=cv.clientWidth,H=cv.clientHeight;if(!W)return;cv.width=W*dpr;cv.height=H*dpr;const g=cv.getContext("2d");g.scale(dpr,dpr);
+  const C=r.P.c,N=Math.min(100,C.length),bars=C.slice(-N),A=r.A;
+  let lo=Math.min(...bars.map(b=>b.l)),hi=Math.max(...bars.map(b=>b.h));
+  const lines=[];if(A.sl!=null&&A.status!=="flat")lines.push([A.price,css("--accent")],[A.sl,css("--short")],[A.tp1,css("--long")],[A.tp2,css("--long")],[A.tp3,css("--long")]);
+  const span=hi-lo;const keep=p=>p>lo-span*0.6&&p<hi+span*0.6;
+  lines.forEach(l=>{if(keep(l[0])){lo=Math.min(lo,l[0]);hi=Math.max(hi,l[0])}});
+  const pad=(hi-lo)*0.06;lo-=pad;hi+=pad;const pr=62,plotW=W-pr;const y=p=>H-(p-lo)/(hi-lo)*H;const bw=plotW/N;
+  g.font="10px "+css("--mono").split(",")[0];g.textBaseline="middle";
+  if(A.fib&&A.fib.range>=2*A.atr){const a=y(A.fib.lvl(0.5)),b=y(A.fib.lvl(0.618));g.fillStyle=css("--watch-soft");g.fillRect(0,Math.min(a,b),plotW,Math.abs(b-a))}
+  g.setLineDash([3,4]);g.strokeStyle=css("--muted");g.globalAlpha=.55;g.lineWidth=1;
+  (A.levels||[]).filter(x=>x.touches>=2).forEach(x=>{if(x.price>lo&&x.price<hi){const yy=Math.round(y(x.price))+.5;g.beginPath();g.moveTo(0,yy);g.lineTo(plotW,yy);g.stroke()}});g.globalAlpha=1;g.setLineDash([]);
+  bars.forEach((b,k)=>{const x=k*bw+bw/2;g.strokeStyle=g.fillStyle=b.c>=b.o?css("--long"):css("--short");g.beginPath();g.moveTo(Math.round(x)+.5,y(b.h));g.lineTo(Math.round(x)+.5,y(b.l));g.stroke();g.fillRect(x-bw*0.32,y(Math.max(b.o,b.c)),Math.max(1,bw*0.64),Math.max(1,Math.abs(y(b.o)-y(b.c))))});
+  const labels=[];lines.forEach(([p,col])=>{if(!keep(p))return;const yy=Math.round(y(p))+.5;g.strokeStyle=col;g.lineWidth=1.2;g.beginPath();g.moveTo(plotW*0.55,yy);g.lineTo(plotW,yy);g.stroke();labels.push([yy,p,col])});
+  labels.sort((a,b)=>a[0]-b[0]);let last=-99;labels.forEach(l=>{let yy=Math.max(l[0],last+12);yy=Math.min(Math.max(yy,6),H-6);g.fillStyle=l[2];g.fillText(fmtP(l[1]),plotW+4,yy);last=yy});
+  const cy=y(r.cur);if(cy>0&&cy<H){g.fillStyle=css("--ink");g.beginPath();g.arc(plotW-2,cy,3,0,7);g.fill()}}
+
+function notifyNew(){const now=new Set(rows.filter(r=>r.state==="ok"&&r.A.status==="go"&&live(r).k==="go").map(r=>r.base));
+  const fresh=[...now].filter(b=>!prevGo.has(b));prevGo=now;document.title=now.size?`(${now.size}) 合約全幣掃描`:"合約全幣掃描";
+  if(!fresh.length||isDemo)return;
+  try{if("Notification"in window&&Notification.permission==="granted"){
+    const top=fresh.map(b=>rows.find(r=>r.base===b)).sort((a,b)=>b.A.score-a.A.score).slice(0,5);
+    top.forEach(r=>new Notification(`${r.base} ${r.A.dir>0?"做多":"做空"}訊號（${r.A.score} 分）`,{body:`進場 ${fmtP(r.A.price)}｜停損 ${fmtP(r.A.sl)}｜TP1 ${fmtP(r.A.tp1)}｜TP2 ${fmtP(r.A.tp2)}`}));
+    if(fresh.length>5)new Notification(`另外還有 ${fresh.length-5} 個幣出現訊號`,{body:"打開掃描器查看"})}}catch(e){}}
+
+/* ---------- 虛擬單 ---------- */
+const P15=9e5;
+let PAPER={trades:[],auto:true,risk:{maxOpen:5,maxSame:3,dayLoss:3,streak:3,ack:null}};
+try{const x=JSON.parse(localStorage.getItem("scanner-paper")||"null");if(x&&Array.isArray(x.trades)){const rk=Object.assign({},PAPER.risk,x.risk||{});PAPER=Object.assign(PAPER,x);PAPER.risk=rk}}catch(e){}
+function riskState(){const RK=PAPER.risk,today=new Date().toDateString();const closed=PAPER.trades.filter(t=>t.status==="closed").sort((a,b)=>b.tEnd-a.tEnd);
+  const dayR=closed.filter(t=>new Date(t.tEnd).toDateString()===today).reduce((s,t)=>s+t.real,0);
+  let streak=0;for(const t of closed){if(t.real<0)streak++;else break}
+  const dayStop=dayR<=-RK.dayLoss,streakStop=streak>=RK.streak&&(!closed[0]||RK.ack!==closed[0].id);
+  return{dayR,streak,dayStop,streakStop,paused:dayStop||streakStop,lastId:closed[0]&&closed[0].id}}
+function renderRisk(){const el=$("riskBanner");if(!el||MOBILE)return;const st=riskState(),unit=S.cap*S.risk/100;
+  if(st.dayStop)el.innerHTML=`<div class="risk-banner"><span><b>今天已虧 ${Math.abs(st.dayR).toFixed(2)}R（約 ${(Math.abs(st.dayR)*unit).toFixed(1)} U），達到每日上限。</b>今天暫停新的虛擬單，你自己今天也不要再開新單，明天再繼續。</span></div>`;
+  else if(st.streakStop)el.innerHTML=`<div class="risk-banner"><span><b>已經連續虧損 ${st.streak} 筆。</b>暫停新的虛擬單。先離開盤面休息，不要想著馬上賺回來。</span><button class="btn" type="button" id="btnAck">我休息過了，繼續</button></div>`;
+  else el.innerHTML="";
+  const b=$("btnAck");if(b)b.onclick=()=>{PAPER.risk.ack=st.lastId;savePaper();renderRisk();renderPaper()}}
+function savePaper(){try{localStorage.setItem("scanner-paper",JSON.stringify(PAPER))}catch(e){}}
+function stepTrade(tr,b){
+  const d=tr.dir,adv=d>0?b.l:b.h,fav=d>0?b.h:b.l;
+  if(d*(adv-tr.sl)<=0){tr.real+=tr.left*d*(tr.sl-tr.e)/tr.R;tr.left=0;return tr.stage===0?"停損":tr.stage===1?"TP1 後保本出場":"TP2 後出場"}
+  if(tr.stage<1&&d*(fav-tr.tp1)>=0){tr.real+=d*(tr.tp1-tr.e)/tr.R/3;tr.left-=1/3;tr.stage=1;tr.sl=tr.e}
+  if(tr.stage<2&&d*(fav-tr.tp2)>=0){tr.real+=d*(tr.tp2-tr.e)/tr.R/3;tr.left-=1/3;tr.stage=2;tr.sl=tr.tp1}
+  if(tr.stage<3&&d*(fav-tr.tp3)>=0){tr.real+=d*(tr.tp3-tr.e)/tr.R*tr.left;tr.left=0;tr.stage=3;return"TP3 全部達成"}
+  return null}
+async function paperUpdate(){
+  const now=Date.now();
+  for(const tr of PAPER.trades.filter(t=>t.status==="open")){
+    const S2=SOURCES[tr.src]||SOURCES[src];if(!S2)continue;
+    try{const lim=Math.min(1000,Math.ceil((now-tr.lastT)/P15)+2);const k=await S2.klines(tr.sym,"15m",lim);
+      for(const b of k){if(b.t<=tr.lastT||b.t+P15>now)continue;tr.lastT=b.t;tr.last=b.c;
+        const out=stepTrade(tr,b);if(out){tr.status="closed";tr.outcome=out;tr.tEnd=b.t+P15;break}
+        if(b.t+P15>=tr.maxEnd){tr.real+=tr.left*tr.dir*(b.c-tr.e)/tr.R;tr.left=0;tr.status="closed";tr.outcome="超時平倉";tr.tEnd=b.t+P15;break}}
+      if(tr.status==="closed")tr.real-=0.001*tr.e/tr.R;
+      const k2=k[k.length-1];if(k2&&tr.status==="open")tr.last=k2.c;
+      await sleep(120)}catch(e){}}
+  savePaper()}
+function paperOpen(){
+  if(!PAPER.auto||isDemo||!src)return;
+  if(riskState().paused)return;
+  const RK=PAPER.risk,openT=PAPER.trades.filter(t=>t.status==="open");
+  const openSet=new Set(openT.map(t=>t.base));const sameCnt={1:openT.filter(t=>t.dir===1).length,"-1":openT.filter(t=>t.dir===-1).length};
+  const cands=rows.filter(r=>r.state==="ok"&&r.A.status==="go"&&live(r).k==="go"&&!openSet.has(r.base)).sort((a,b)=>b.A.score-a.A.score);
+  const now=Date.now();
+  for(const r of cands){if(openSet.size>=RK.maxOpen)break;const A=r.A,d=A.dir,e=r.cur,R=d*(e-A.sl);
+    if(!(R>0)||d*(A.tp1-e)<=0||sameCnt[d]>=RK.maxSame)continue;sameCnt[d]++;
+    PAPER.trades.unshift({id:now+"-"+r.base,base:r.base,sym:r.sym,src,mode:S.mode,dir:d,score:A.score,t0:now,e,sl:A.sl,sl0:A.sl,tp1:A.tp1,tp2:A.tp2,tp3:A.tp3,R,stage:0,left:1,real:0,
+      lastT:Math.floor(now/P15)*P15,maxEnd:now+100*MODES[S.mode].eDt,status:"open",last:e});openSet.add(r.base)}
+  if(PAPER.trades.length>500)PAPER.trades.length=500;
+  savePaper()}
+async function paperStep(){if(isDemo||!src)return;await paperUpdate();paperOpen();renderPaper()}
+function floatR(t){const cur=(rows.find(r=>r.base===t.base&&r.state==="ok")||{}).cur??t.last;return t.real+t.left*t.dir*(cur-t.e)/t.R}
+function paperStats(){const c=PAPER.trades.filter(t=>t.status==="closed");const tot=c.reduce((s,t)=>s+t.real,0);
+  return{open:PAPER.trades.length-c.length,n:c.length,win:c.filter(t=>t.real>0).length,tot,avg:c.length?tot/c.length:0}}
+function tFmt(ms){const d=new Date(ms);return`${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`}
+function rTxt(x){return(x>0?"+":"")+x.toFixed(2)+"R"}
+function renderPaper(){
+  const st=paperStats(),unit=S.cap*S.risk/100;
+  $("pChips").innerHTML=`<span class="chip">進行中 <b>${st.open}</b></span><span class="chip">已結束 <b>${st.n}</b></span><span class="chip go">勝率 <b>${st.n?Math.round(st.win/st.n*100)+"%":"—"}</b></span><span class="chip ${st.avg>=0?"go":"short"}">平均每筆 <b>${st.n?rTxt(st.avg):"—"}</b></span><span class="chip ${st.tot>=0?"go":"short"}">合計 <b>${st.n?rTxt(st.tot):"—"}</b></span><span class="chip">今天 <b class="${riskState().dayR>=0?"up":"down"}">${rTxt(riskState().dayR)}</b></span><span class="chip">換算損益 <b>${st.n?(st.tot*unit>=0?"+":"")+(st.tot*unit).toFixed(1)+" U":"—"}</b></span><span class="small" style="align-self:center">換算方式：每筆最多賠本金 ${S.risk}%（${unit.toFixed(1)} U）</span>`;
+  $("btnPaper").setAttribute("aria-pressed",PAPER.auto);$("btnPaper").textContent=PAPER.auto?"自動下虛擬單：開":"自動下虛擬單：關";
+  if(!PAPER.trades.length){$("pBody").innerHTML=`<tr><td colspan="11" class="empty">還沒有虛擬單。掃描到「可進場」的幣時會自動建立。</td></tr>`;return}
+  $("pBody").innerHTML=PAPER.trades.slice(0,200).map(t=>{const op=t.status==="open";const r=op?floatR(t):t.real;
+    const stTxt=op?(t.stage===0?"進行中":`進行中・已到 TP${t.stage}`):t.outcome;
+    const cls=r>0.02?"out-win":r<-0.02?"out-loss":"out-be";
+    return`<tr><td>${tFmt(t.t0)}</td><td><span class="coin">${esc(t.base)}</span> <span class="small">${t.mode==="swing"?"波段":"短線"}</span></td><td>${t.dir>0?'<span class="pill long">做多</span>':'<span class="pill short">做空</span>'}</td><td>${t.score}</td><td>${fmtP(t.e)}</td><td class="sl">${fmtP(t.sl0)}</td><td class="tp">${fmtP(t.tp1)}</td><td class="tp">${fmtP(t.tp2)}</td><td class="tp">${fmtP(t.tp3)}</td><td style="font-family:var(--sans)">${stTxt}</td><td class="${cls}">${rTxt(r)}${op?' <span class="small">浮動</span>':""}</td></tr>`}).join("")}
+function paperText(){const st=paperStats();const L=[`合約全幣掃描｜虛擬單紀錄（匯出於 ${tFmt(Date.now())}）`,`風控：同時最多 ${PAPER.risk.maxOpen} 張、同方向 ${PAPER.risk.maxSame} 張、每日最多虧 ${PAPER.risk.dayLoss}R、連虧 ${PAPER.risk.streak} 筆暫停`,`已結束 ${st.n} 筆、進行中 ${st.open} 筆｜勝率 ${st.n?Math.round(st.win/st.n*100):0}%｜平均 ${rTxt(st.avg)}｜合計 ${rTxt(st.tot)}`,""];
+  PAPER.trades.slice().reverse().forEach(t=>L.push(`${tFmt(t.t0)} ${t.base} ${t.mode==="swing"?"波段":"短線"} ${t.dir>0?"多":"空"} ${t.score}分｜進場 ${fmtP(t.e)} SL ${fmtP(t.sl0)} TP ${fmtP(t.tp1)}/${fmtP(t.tp2)}/${fmtP(t.tp3)}｜${t.status==="open"?"進行中（浮動 "+rTxt(floatR(t))+"）":t.outcome+" "+rTxt(t.real)+"（"+tFmt(t.tEnd)+"）"}`));
+  return L.join("\n")}
+function syncRisk(){const RK=PAPER.risk;$("rkOpen").value=RK.maxOpen;$("rkSame").value=RK.maxSame;$("rkDay").value=RK.dayLoss;$("rkStreak").value=RK.streak}
+[["rkOpen","maxOpen",1],["rkSame","maxSame",1],["rkDay","dayLoss",0.5],["rkStreak","streak",1]].forEach(([id,k,min])=>$(id).addEventListener("change",()=>{const v=parseFloat($(id).value);if(v>=min){PAPER.risk[k]=k==="dayLoss"?v:Math.round(v);savePaper();renderRisk();renderPaper()}else syncRisk()}));
+function pToast(m){const t=$("pToast");t.textContent=m;t.hidden=false;setTimeout(()=>t.hidden=true,3000)}
+$("btnPaper").onclick=()=>{PAPER.auto=!PAPER.auto;savePaper();renderPaper()};
+$("btnCopyPaper").onclick=()=>{const txt=paperText();try{navigator.clipboard.writeText(txt).then(()=>pToast("已複製，直接貼給 Claude"),()=>pToast("複製失敗，請改用截圖"))}catch(e){pToast("複製失敗，請改用截圖")}};
+let clearArm=null;$("btnClearPaper").onclick=()=>{const b=$("btnClearPaper");if(!clearArm){b.textContent="確定清除？再按一次";clearArm=setTimeout(()=>{clearArm=null;b.textContent="清除紀錄"},3000);return}clearTimeout(clearArm);clearArm=null;b.textContent="清除紀錄";PAPER.trades=[];savePaper();renderPaper()};
+
+/* ---------- 控制 ---------- */
+function syncUI(){
+  document.querySelectorAll("[data-mode]").forEach(b=>b.setAttribute("aria-pressed",b.dataset.mode===S.mode));
+  document.querySelectorAll("[data-f]").forEach(b=>b.setAttribute("aria-pressed",b.dataset.f===S.f));
+  document.querySelectorAll("[data-d]").forEach(b=>b.setAttribute("aria-pressed",b.dataset.d===S.d));
+  $("sortSel").value=S.sort;$("inPins").value=S.pins.join(",");$("inVol").value=S.minVol;$("inMax").value=S.maxN;$("inCap").value=S.cap;$("inRisk").value=S.risk;$("inMargin").value=S.margin;
+  $("btnAuto").setAttribute("aria-pressed",S.auto);$("btnAuto").textContent=S.auto?"自動重掃：開":"自動重掃：關";
+  try{if("Notification"in window&&Notification.permission==="granted"){$("btnNotify").textContent="訊號通知：已開啟";$("btnNotify").setAttribute("aria-pressed","true")}}catch(e){}}
+document.querySelectorAll("[data-mode]").forEach(b=>b.onclick=()=>{if(S.mode===b.dataset.mode)return;S.mode=b.dataset.mode;saveS();syncUI();prevGo=new Set();open=null;scan()});
+document.querySelectorAll("[data-f]").forEach(b=>b.onclick=()=>{S.f=b.dataset.f;saveS();syncUI();render()});
+document.querySelectorAll("[data-d]").forEach(b=>b.onclick=()=>{S.d=b.dataset.d;saveS();syncUI();render()});
+$("sortSel").onchange=()=>{S.sort=$("sortSel").value;saveS();render()};
+$("q").oninput=()=>render();
+$("inPins").addEventListener("change",()=>{const v=$("inPins").value.toUpperCase().split(/[,，\s]+/).map(x=>x.trim().replace(/[-_]?USDT.*$/,"")).filter(Boolean);S.pins=[...new Set(v)].slice(0,10);saveS();syncUI();if(!scanning)scan()});
+[["inCap","cap"],["inRisk","risk"],["inMargin","margin"]].forEach(([id,k])=>$(id).addEventListener("change",()=>{const v=parseFloat($(id).value);if(v>0){S[k]=v;saveS();render();renderPaper()}else $(id).value=S[k]}));
+[["inVol","minVol"],["inMax","maxN"]].forEach(([id,k])=>$(id).addEventListener("change",()=>{const v=parseFloat($(id).value);if(v>=0){S[k]=v;saveS();if(!scanning)scan()}else $(id).value=S[k]}));
+$("btnScan").onclick=()=>scanning?stopScan():scan();
+$("btnAuto").onclick=()=>{S.auto=!S.auto;saveS();syncUI();if(!scanning)schedule()};
+$("btnNotify").onclick=async()=>{try{if(!("Notification"in window)){$("btnNotify").textContent="這個瀏覽器不支援通知";return}const p=await Notification.requestPermission();$("btnNotify").textContent=p==="granted"?"訊號通知：已開啟":"通知被封鎖了";if(p==="granted")$("btnNotify").setAttribute("aria-pressed","true")}catch(e){$("btnNotify").textContent="無法開啟通知"}};
+const toggle=tr=>{if(!tr||!tr.dataset.b)return;const b=tr.dataset.b;const r=rows.find(x=>x.base===b);if(!r||r.state!=="ok")return;open=open===b?null:b;render()};
+$("tbody").addEventListener("click",e=>toggle(e.target.closest("tr.row")));
+$("tbody").addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();toggle(e.target.closest("tr.row"))}});
+let rz;window.addEventListener("resize",()=>{clearTimeout(rz);rz=setTimeout(()=>{const o=rows.find(r=>r.base===open&&r.state==="ok");if(o)drawChart($("cv-open"),o)},150)});
+try{matchMedia("(prefers-color-scheme: dark)").addEventListener("change",()=>{const o=rows.find(r=>r.base===open&&r.state==="ok");if(o)drawChart($("cv-open"),o)})}catch(e){}
+if(MOBILE){document.body.classList.add("m");$("btnSet").hidden=false;$("paper").hidden=true;$("mlist").hidden=false;
+  $("btnSet").onclick=()=>{const o=document.body.classList.toggle("setopen");$("btnSet").setAttribute("aria-expanded",o);$("btnSet").textContent=o?"收起設定":"設定"};
+  const mt=e=>{const el=e.target.closest(".mc-main");if(!el||!el.dataset.b)return;const r=rows.find(x=>x.base===el.dataset.b);if(!r||r.state!=="ok")return;open=open===r.base?null:r.base;render();if(open){const c=el.closest(".mc");if(c)c.scrollIntoView({block:"start",behavior:"smooth"})}};
+  $("mlist").addEventListener("click",mt);$("mlist").addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();mt(e)}})}
+syncUI();syncRisk();renderRisk();renderPaper();scan();
+</script>
+</body>
+</html>
