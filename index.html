@@ -7,27 +7,20 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="合約掃描">
-<meta name="theme-color" content="#0C121D">
+<meta name="theme-color" content="#060A12">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=JetBrains+Mono:wght@400;500;700&display=swap">
 <style>
 /* Layout: 篩選器 — 頂部控制列＋掃描進度，下方是全部合約的排行表，點一列展開詳細訊號卡 */
 :root{
-  --bg:#EEF1F6; --paper:#FFFFFF; --ink:#101A2B; --muted:#5A687E; --line:#D9E0EA; --sunk:#F5F7FA;
-  --accent:#3346C4; --accent-soft:#E3E7FB;
-  --long:#0B8A66; --long-soft:#DDF3EC; --short:#CF3E33; --short-soft:#FBE3E0; --watch:#A86A0C; --watch-soft:#F8EBD2;
+  --bg:#060A12; --paper:#0D1422; --ink:#E8F0FF; --muted:#7D8BA6; --line:#1B2740; --sunk:#0A101C;
+  --accent:#5B8CFF; --accent2:#00E5FF; --accent-soft:#16224A;
+  --long:#22E3A1; --long-soft:#0E2E26; --short:#FF4D6D; --short-soft:#3A1220; --watch:#FFB547; --watch-soft:#33250F;
+  --grad:linear-gradient(135deg,#5B8CFF 0%,#00E5FF 100%);
   --sans:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;
-  --mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;
-  color-scheme:light;
+  --mono:"JetBrains Mono","IBM Plex Mono",ui-monospace,Consolas,monospace;
+  color-scheme:dark;
 }
-@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
-  --bg:#0C121D; --paper:#141C2A; --ink:#E5ECF6; --muted:#8C9AB0; --line:#253246; --sunk:#101826;
-  --accent:#8E9BFF; --accent-soft:#232C52;
-  --long:#3ACB9B; --long-soft:#123328; --short:#FF7C70; --short-soft:#3A1D1B; --watch:#E9B24E; --watch-soft:#352816; color-scheme:dark}}
-:root[data-theme="dark"]{
-  --bg:#0C121D; --paper:#141C2A; --ink:#E5ECF6; --muted:#8C9AB0; --line:#253246; --sunk:#101826;
-  --accent:#8E9BFF; --accent-soft:#232C52;
-  --long:#3ACB9B; --long-soft:#123328; --short:#FF7C70; --short-soft:#3A1D1B; --watch:#E9B24E; --watch-soft:#352816; color-scheme:dark}
 *{box-sizing:border-box}
 html{font-size:15px}
 body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.6;padding-inline:16px;padding-block:0 48px}
@@ -186,6 +179,52 @@ body.m .chips>*{flex:none;white-space:nowrap}
 .mc .det{grid-template-columns:1fr;padding:12px;border-top:1px solid var(--line);background:var(--sunk);position:static;max-width:none}
 .mc-empty{padding:28px 16px;text-align:center;color:var(--muted);background:var(--paper);border:1px solid var(--line);border-radius:14px}
 @media (max-width:480px){.levels td:nth-child(4){display:none}.pos{grid-template-columns:repeat(2,minmax(0,1fr))}.fld input{width:4.2em}.filters input[type=search]{width:100%}}
+
+/* ===== 駕駛艙風格 ===== */
+body{background:radial-gradient(1100px 520px at 0% -10%,rgba(91,140,255,.20),transparent 60%),radial-gradient(900px 420px at 100% 0%,rgba(0,229,255,.12),transparent 60%),repeating-linear-gradient(0deg,rgba(255,255,255,.022) 0 1px,transparent 1px 32px),var(--bg)}
+.top{background:rgba(6,10,18,.78);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);border-bottom-color:rgba(91,140,255,.22)}
+.brand h1{background:linear-gradient(90deg,#E8F0FF 0%,#8FB4FF 55%,#00E5FF 100%);-webkit-background-clip:text;background-clip:text;color:transparent;letter-spacing:.06em}
+.mark{border-color:var(--accent2);box-shadow:0 0 14px rgba(0,229,255,.35),inset 0 0 8px rgba(0,229,255,.2)}
+.mark i{background:var(--accent2)}
+.btn{background:rgba(255,255,255,.03);border-color:var(--line);transition:border-color .2s,box-shadow .2s}
+.btn:hover{border-color:rgba(91,140,255,.55)}
+.btn.primary{background:var(--grad);border-color:transparent;color:#04101E;font-weight:700;box-shadow:0 0 22px -4px rgba(0,229,255,.55)}
+.btn[aria-pressed="true"]{border-color:var(--accent2);color:var(--accent2);box-shadow:0 0 12px -4px rgba(0,229,255,.6)}
+.seg{background:rgba(255,255,255,.03);border-color:var(--line)}
+.seg button[aria-pressed="true"]{background:var(--grad);color:#04101E;font-weight:700}
+.fld input,.filters input,.filters select,.risk-set input{background:rgba(255,255,255,.04)!important;border-color:var(--line)!important;color:var(--ink)}
+.progress i{background:var(--grad);box-shadow:0 0 10px rgba(0,229,255,.7)}
+.tbl-wrap,.filters,.paper,details.sec,.mc,.chip,.mc-empty{background:linear-gradient(180deg,rgba(255,255,255,.035),rgba(255,255,255,0) 60%),var(--paper);border-color:var(--line)}
+.chip b{font-family:var(--mono)}
+.chip.go b{text-shadow:0 0 10px rgba(34,227,161,.6)}
+.list th{background:#0B1220;color:#6F7FA0;letter-spacing:.08em}
+.list tr.row:hover>td{background:rgba(91,140,255,.07)}
+.list tr.row.open>td{background:rgba(91,140,255,.12)}
+.list tr.pin>td{background:rgba(255,181,71,.05)}
+.coin{letter-spacing:.03em}
+.pill{border:1px solid transparent}
+.pill.long{background:rgba(34,227,161,.12);border-color:rgba(34,227,161,.38);color:var(--long)}
+.pill.short{background:rgba(255,77,109,.12);border-color:rgba(255,77,109,.38);color:var(--short)}
+.st.go{text-shadow:0 0 10px rgba(34,227,161,.55)}
+.ring{--c:#3A4A6A;--v:0;width:36px;height:36px;border-radius:50%;background:conic-gradient(var(--c) calc(var(--v)*1%),#1B2740 0);display:inline-grid;place-items:center;flex:none;vertical-align:middle}
+.ring b{width:28px;height:28px;border-radius:50%;background:var(--paper);display:grid;place-items:center;font-family:var(--mono);font-size:.74rem;font-weight:700;color:var(--ink)}
+.ring.go{--c:var(--long);filter:drop-shadow(0 0 6px rgba(34,227,161,.55))}
+.ring.watch{--c:var(--watch)}
+.mc{border-radius:16px}
+.mc.go{border-color:rgba(34,227,161,.6);box-shadow:0 0 0 1px rgba(34,227,161,.18),0 10px 34px -12px rgba(34,227,161,.55)}
+.mc.pin{border-color:rgba(255,181,71,.45)}
+.mc-lv{background:rgba(0,0,0,.25);border:1px solid var(--line)}
+.mc-lv b.sl{text-shadow:0 0 8px rgba(255,77,109,.35)}
+.mc-lv b.tp{text-shadow:0 0 8px rgba(34,227,161,.3)}
+.verdict{background:rgba(255,255,255,.03)}
+.verdict.go{background:rgba(34,227,161,.10);border:1px solid rgba(34,227,161,.35)}
+.verdict.watch{background:rgba(255,181,71,.08);border:1px solid rgba(255,181,71,.3)}
+canvas.chart{background:#070C16;border-color:var(--line)}
+.meter{background:#1B2740}
+.meter i{background:var(--grad)}
+.meter.full i{background:var(--long);box-shadow:0 0 8px rgba(34,227,161,.6)}
+.banner{background:rgba(255,181,71,.08)}
+.risk-banner{background:rgba(255,77,109,.10)}
 </style>
 </head>
 <body>
@@ -572,7 +611,7 @@ function mcardHTML(r,n){
   const dir=d>0?'<span class="pill long">做多</span>':d<0?'<span class="pill short">做空</span>':'<span class="pill flat">盤整</span>';
   const lv=show?`<div class="mc-lv"><div><span>進場</span><b>${fmtP(A.price)}</b></div><div><span>停損</span><b class="sl">${fmtP(A.sl)}</b></div><div><span>TP1</span><b class="tp">${fmtP(A.tp1)}</b></div><div><span>TP2</span><b class="tp">${fmtP(A.tp2)}</b></div><div><span>TP3</span><b class="tp">${fmtP(A.tp3)}</b></div></div>`:"";
   return`<div class="mc ${pin?"pin":""} ${L.k==="go"?"go":""}"><div class="mc-main" data-b="${esc(r.base)}" role="button" tabindex="0" aria-expanded="${open===r.base}">
-    <div class="mc-r1"><span class="rk">${rk}</span><span class="coin">${esc(r.base)}</span>${dir}<span class="scorebar ${A.status}"><i><b style="width:${A.score}%"></b></i>${A.score}</span><span class="st ${L.k}">${L.t}</span></div>
+    <div class="mc-r1"><span class="rk">${rk}</span><span class="coin">${esc(r.base)}</span>${dir}<span class="ring ${A.status}" style="--v:${A.score}"><b>${A.score}</b></span><span class="st ${L.k}">${L.t}</span></div>
     <div class="mc-r2"><span>現價 <b>${fmtP(r.cur)}</b></span><span>24h ${chg}</span><span>成交額 <b>${fmtVol(r.qv)}</b></span></div>
     ${lv}</div>${open===r.base?detailHTML(r):""}</div>`}
 function rowHTML(r,n,last){
@@ -582,7 +621,7 @@ function rowHTML(r,n,last){
   const A=r.A,L=live(r),d=A.dir,show=d&&A.status!=="flat"&&A.status!=="no";
   const dir=d>0?'<span class="pill long">做多</span>':d<0?'<span class="pill short">做空</span>':'<span class="pill flat">盤整</span>';
   return`<tr class="row${pc} ${open===r.base?"open":""}" data-b="${esc(r.base)}" tabindex="0"><td class="rank">${pin?'<span class="star" aria-label="固定關注">★</span>':n}</td><td><span class="coin">${esc(r.base)}</span></td><td>${fmtVol(r.qv)}</td><td>${chg}</td><td>${dir}</td>
-    <td><span class="scorebar ${A.status}"><i><b style="width:${A.score}%"></b></i>${A.score}</span></td><td><span class="st ${L.k}">${L.t}</span></td>
+    <td><span class="ring ${A.status}" style="--v:${A.score}"><b>${A.score}</b></span></td><td><span class="st ${L.k}">${L.t}</span></td>
     <td>${fmtP(r.cur)}</td><td>${show?fmtP(A.price):""}</td><td class="sl">${show?fmtP(A.sl):""}</td><td class="tp">${show?fmtP(A.tp1):""}</td><td class="tp">${show?fmtP(A.tp2):""}</td><td class="tp">${show?fmtP(A.tp3):""}</td></tr>`}
 
 function detailHTML(r){
@@ -637,6 +676,7 @@ function drawChart(cv,r){
   lines.forEach(l=>{if(keep(l[0])){lo=Math.min(lo,l[0]);hi=Math.max(hi,l[0])}});
   const pad=(hi-lo)*0.06;lo-=pad;hi+=pad;const pr=62,plotW=W-pr;const y=p=>H-(p-lo)/(hi-lo)*H;const bw=plotW/N;
   g.font="10px "+css("--mono").split(",")[0];g.textBaseline="middle";
+  g.strokeStyle="rgba(125,139,166,.12)";g.lineWidth=1;for(let k=1;k<5;k++){const yy=Math.round(H*k/5)+.5;g.beginPath();g.moveTo(0,yy);g.lineTo(plotW,yy);g.stroke()}
   if(A.fib&&A.fib.range>=2*A.atr){const a=y(A.fib.lvl(0.5)),b=y(A.fib.lvl(0.618));g.fillStyle=css("--watch-soft");g.fillRect(0,Math.min(a,b),plotW,Math.abs(b-a))}
   g.setLineDash([3,4]);g.strokeStyle=css("--muted");g.globalAlpha=.55;g.lineWidth=1;
   (A.levels||[]).filter(x=>x.touches>=2).forEach(x=>{if(x.price>lo&&x.price<hi){const yy=Math.round(y(x.price))+.5;g.beginPath();g.moveTo(0,yy);g.lineTo(plotW,yy);g.stroke()}});g.globalAlpha=1;g.setLineDash([]);
