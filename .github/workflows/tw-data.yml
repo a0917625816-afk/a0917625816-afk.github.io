@@ -29,7 +29,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add tw/data.json
+          git add tw/data.json tw/dt-history.json
           if git diff --cached --quiet; then echo "沒有變更"; exit 0; fi
           git commit -m "更新台股資料 $(TZ=Asia/Taipei date '+%Y-%m-%d %H:%M')"
           git pull --rebase origin main

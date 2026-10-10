@@ -156,6 +156,21 @@ footer{font-size:.85rem;color:var(--muted);display:flex;flex-direction:column;ga
 .pivots span{font-size:.7rem;color:var(--muted)}
 .pivots b{font-size:.9rem}
 @media (max-width:420px){.plan .row{grid-template-columns:repeat(2,minmax(0,1fr))}.tabs button{font-size:.9rem}}
+.sc{background:#fff;border-radius:18px;padding:14px 16px;display:flex;flex-direction:column;gap:10px;box-shadow:0 1px 2px rgba(15,30,70,.06),0 8px 24px -12px rgba(15,30,70,.18)}
+.sc h3{font-size:1.1rem;font-weight:900}
+.sc .sub{font-size:.82rem;color:var(--muted)}
+.sc-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.sc-grid div{background:var(--sunk);border-radius:12px;padding:8px 10px;display:flex;flex-direction:column}
+.sc-grid span{font-size:.74rem;color:var(--muted)}
+.sc-grid b{font-size:1.15rem;font-weight:900}
+.sc-tbl{width:100%;border-collapse:collapse;font-size:.88rem}
+.sc-tbl th{text-align:left;color:var(--muted);font-weight:500;font-size:.76rem;padding:4px 6px;border-bottom:1px solid var(--line)}
+.sc-tbl td{padding:6px;border-bottom:1px dotted var(--line)}
+.sc-tbl td:not(:first-child),.sc-tbl th:not(:first-child){text-align:right}
+.sc-list{display:flex;flex-direction:column;gap:6px;font-size:.9rem}
+.sc-list .it{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap;border-bottom:1px dotted var(--line);padding-bottom:6px}
+.sc-list .it b{min-width:4.5em}
+.sc details summary{cursor:pointer;font-weight:700;color:var(--navy)}
 /* ===== 質感：私人理財報告 ===== */
 :root{--gold:#B8913A;--gold-soft:#F6EFDD;--serif:"Noto Serif TC","Songti TC","PMingLiU",serif;--shadow:0 1px 2px rgba(15,30,70,.06),0 8px 24px -12px rgba(15,30,70,.18)}
 body{background:linear-gradient(180deg,#EEF1F7 0,#F5F6F9 320px,#F5F6F9 100%)}
@@ -507,8 +522,7 @@ function dtAnalyze(s){const c=toC(s.bars),n=c.length;if(n<25)return null;const i
   add("短線趨勢",tr,15,bias===1?(tr===15?"站上 5 日線和月線":"站上月線"):bias===-1?(tr===15?"跌破 5 日線和月線":"跌破月線"):"沒有明確方向");
   const yi=value/1e8;add("成交金額",yi>=20?10:yi>=5?7:3,10,`今天成交 ${yi>=1?yi.toFixed(1)+" 億元":Math.round(value/1e4)+" 萬元"}`+(yi>=20?"，流動性很好":yi<5?"，流動性普通":""));
   const P=(b.h+b.l+b.c)/3;R.piv={S2:P-rng,S1:2*P-b.h,P,R1:2*P-b.l,R2:P+rng};R.H=b.h;R.L=b.l;
-  let e=rUp(b.h+tickOf(b.h)),sl=rDn(Math.max(P,e-0.6*a));if(e-sl<2*tickOf(e))sl=rDn(e-0.4*a);let r=e-sl;R.long={e,sl,t1:rUp(e+r),t2:rUp(e+2*r),r};
-  e=rDn(b.l-tickOf(b.l));sl=rUp(Math.min(P,e+0.6*a));if(sl-e<2*tickOf(e))sl=rUp(e+0.4*a);r=sl-e;R.short={e,sl,t1:rDn(e-r),t2:rDn(e-2*r),r};
+  if(bias){const d=bias,e=d>0?rDn(P):rUp(P),sl=d>0?rDn(e-a):rUp(e+a),r=+Math.abs(e-sl).toFixed(2);R.plan={dir:d,e,sl,t1:d>0?rUp(e+r):rDn(e-r),t2:d>0?rUp(e+2*r):rDn(e-2*r),r}}
   return R}
 function compute(){
   MKT=DATA.index?market(DATA.index.bars):null;
@@ -555,7 +569,7 @@ function spark(cv,closes,ref){if(!cv)return;const dpr=window.devicePixelRatio||1
   g.beginPath();v.forEach((p,k)=>k?g.lineTo(x(k),y(p)):g.moveTo(x(k),y(p)));g.strokeStyle=col;g.lineWidth=2;g.lineJoin="round";g.stroke();
   g.fillStyle=col;g.beginPath();g.arc(x(v.length-1),y(v[v.length-1]),3.2,0,7);g.fill()}
 function drawDt(cv,s){if(!cv)return;const dpr=window.devicePixelRatio||1,W=cv.clientWidth,H=cv.clientHeight;if(!W)return;cv.width=W*dpr;cv.height=H*dpr;const g=cv.getContext("2d");g.scale(dpr,dpr);
-  const c=s.c,N=c.length;const lines=[[s.long.e,"#D62839"],[s.short.e,"#13804B"],[s.piv.P,"#B8913A"]];
+  const c=s.c,N=c.length;const o=s.plan;const lines=o?[[o.e,"#1E3A8A"],[o.sl,o.dir>0?"#13804B":"#D62839"],[o.t1,o.dir>0?"#D62839":"#13804B"],[o.t2,o.dir>0?"#D62839":"#13804B"]]:[[s.piv.P,"#B8913A"]];
   let lo=Math.min(...c.map(b=>b.l)),hi=Math.max(...c.map(b=>b.h));lines.forEach(([p])=>{lo=Math.min(lo,p);hi=Math.max(hi,p)});const pad=(hi-lo)*.06;lo-=pad;hi+=pad;
   const pw=W-58,y=p=>H-(p-lo)/(hi-lo)*H,bw=pw/N;
   c.forEach((b,k)=>{const x=k*bw+bw/2,up=b.c>=b.o;g.strokeStyle=g.fillStyle=up?"#D62839":"#13804B";g.beginPath();g.moveTo(Math.round(x)+.5,y(b.h));g.lineTo(Math.round(x)+.5,y(b.l));g.stroke();g.fillRect(x-bw*.33,y(Math.max(b.o,b.c)),Math.max(1,bw*.66),Math.max(1,Math.abs(y(b.o)-y(b.c))))});
@@ -566,13 +580,43 @@ function afterRender(){
   if(DATA&&DATA.index)spark($("mspark"),DATA.index.bars.map(b=>b[4]),MKT?MKT.m60:null);
   document.querySelectorAll("canvas[data-spark]").forEach(cv=>{const s=LIST.find(x=>x.code===cv.dataset.spark);if(s)spark(cv,s.c.map(b=>b.c),s.T?s.T.m60:null)});const s=LIST.find(x=>x.code===openCode);if(s&&s.T)drawChart($("cv-"+s.code),s)}
 
+function evalSide(o,dir,bar){const{e,sl,t1,t2,r}=o;if(!(r>0))return{st:"none",txt:"資料不足"};
+  const trig=dir>0?bar.l<=e:bar.h>=e;if(!trig)return{st:"none",txt:dir>0?"沒有回檔到買進價，沒成交":"沒有反彈到賣出價，沒成交"};
+  const hitSL=dir>0?bar.l<=sl:bar.h>=sl,hitT1=dir>0?bar.h>=t1:bar.l<=t1,hitT2=dir>0?bar.h>=t2:bar.l<=t2,mv=dir*(bar.c-e)/r;let R,txt;
+  if(hitSL&&hitT1){R=-1;txt="同一天碰到停損和目標，保守算停損"}else if(hitSL){R=-1;txt="打到停損"}
+  else if(hitT1){R=hitT2?1.5:0.5+0.5*Math.max(0,Math.min(2,mv));txt=hitT2?"達到目標二":"達到目標一，剩下收盤出場"}else{R=mv;txt="沒到目標也沒停損，收盤出場"}
+  R-=0.0045*e/r;return{st:"trade",R,txt}}
+let DTBT=null,HIST=null;
+function dtBacktest(){if(DTBT||!DATA||!DATA.dt)return DTBT;const src=DATA.dt.list;const dates=[...new Set(src.flatMap(s=>s.bars.map(b=>b[0])))].sort();const res=[];let days=0;
+  for(const D of dates.slice(24,-1)){const cands=[];
+    for(const s of src){const k=s.bars.findIndex(b=>b[0]===D);if(k<24||k>=s.bars.length-1)continue;const pl=dtAnalyze({...s,value:0,bars:s.bars.slice(0,k+1)});if(pl&&pl.plan&&pl.score>=90)cands.push([pl,s.bars[k+1]])}
+    if(!cands.length)continue;days++;cands.sort((a,b)=>b[0].score-a[0].score);
+    for(const[pl,nb]of cands.slice(0,20)){const bar={o:nb[1],h:nb[2],l:nb[3],c:nb[4]};res.push({score:pl.score,bias:pl.bias,side:pl.plan.dir,...evalSide(pl.plan,pl.plan.dir,bar)})}}
+  DTBT={res,days,from:dates[24],to:dates[dates.length-2]};return DTBT}
+function stat(rs){const tr=rs.filter(x=>x.st==="trade"),w=tr.filter(x=>x.R>0).length,tot=tr.reduce((a,x)=>a+x.R,0);return{n:rs.length,t:tr.length,gap:rs.filter(x=>x.st==="gap").length,win:tr.length?w/tr.length:0,avg:tr.length?tot/tr.length:0,tot}}
+const rT=x=>(x>0?"+":"")+x.toFixed(2)+"R";
+function statGrid(st){const unit=ST.cap*(ST.dtRisk||0.5)/100;return`<div class="sc-grid"><div><span>計畫筆數</span><b>${st.n}</b></div><div><span>有進場</span><b>${st.t}（${st.n?Math.round(st.t/st.n*100):0}%）</b></div><div><span>勝率</span><b>${st.t?Math.round(st.win*100)+"%":"—"}</b></div><div><span>平均每筆</span><b class="${st.avg>0?"up":st.avg<0?"down":""}">${st.t?rT(st.avg):"—"}</b></div><div><span>合計</span><b class="${st.tot>0?"up":st.tot<0?"down":""}">${st.t?rT(st.tot):"—"}</b></div><div><span>換算損益</span><b class="${st.tot>0?"up":st.tot<0?"down":""}">${st.t?(st.tot>=0?"+":"-")+money(Math.abs(st.tot*unit)):"—"}</b></div></div>`}
+function breakdown(rs){const rows=[["做多",rs.filter(x=>x.side===1)],["做空",rs.filter(x=>x.side===-1)],["分數 95 以上",rs.filter(x=>x.score>=95)],["分數 90～94",rs.filter(x=>x.score>=90&&x.score<95)]];
+  return`<table class="sc-tbl"><thead><tr><th>分類</th><th>進場</th><th>勝率</th><th>平均</th></tr></thead><tbody>${rows.map(([k,r])=>{const st=stat(r);return`<tr><td>${k}</td><td>${st.t}</td><td>${st.t?Math.round(st.win*100)+"%":"—"}</td><td class="${st.avg>0?"up":st.avg<0?"down":""}">${st.t?rT(st.avg):"—"}</td></tr>`}).join("")}</tbody></table>`}
+function scorecardHTML(){
+  let fwd;const done=HIST&&HIST.days?HIST.days.filter(d=>d.results):[];const waiting=HIST&&HIST.days?HIST.days.filter(d=>!d.results):[];
+  if(!done.length)fwd=`<p class="sub">${waiting.length?`已經存下 ${waiting.map(d=>d.date.slice(5).replace("-","/")).join("、")} 的計畫，下一個交易日收盤後會自動對答案，第一筆成績就會出現在這裡。`:"從下一次收盤更新開始記錄。"}</p>`;
+  else{const all=done.flatMap(d=>d.results);const st=stat(all);
+    const recent=done.slice(-5).reverse().map(d=>{const tr=d.results.filter(x=>x.st==="trade");const sum=tr.reduce((a,x)=>a+x.R,0);
+      return`<details><summary>${(d.evalOn||"").slice(5).replace("-","/")} 交易日：進場 ${tr.length} 筆，合計 <span class="${sum>0?"up":sum<0?"down":""}">${rT(sum)}</span></summary><div class="sc-list">${tr.length?tr.map(x=>`<div class="it"><b>${esc(x.name)}</b><span class="${x.side>0?"up":"down"}">${x.side>0?"做多":"做空"}</span><span class="${x.R>0?"up":"down"}">${rT(x.R)}</span><span class="sub">${x.txt}</span></div>`).join(""):'<span class="sub">這天的計畫都沒有觸發。</span>'}</div></details>`}).join("");
+    fwd=`<p class="sub">從 ${done[0].date.slice(5).replace("-","/")} 開始，共 ${done.length} 個交易日，每天前 20 檔照計畫做的結果。</p>${statGrid(st)}${breakdown(all)}${recent}`}
+  const bt=dtBacktest();const btH=bt&&bt.res.length?`${statGrid(stat(bt.res))}${breakdown(bt.res)}<p class="sub">期間 ${bt.from.slice(5).replace("-","/")}～${bt.to.slice(5).replace("-","/")}，共 ${bt.days} 天。用今天的熱門股往回推算，會漏掉當時熱門、現在不熱門的股票，結果可能偏樂觀，僅供參考。</p>`:'<p class="sub">資料不足，無法回測。</p>';
+  return`<section class="sc"><h3>當沖成績單</h3>
+    <p class="sub">用日K估算：隔天價格有回到計畫的買賣價才算成交；同一天同時碰到停損和目標，一律算停損（偏保守）；到目標一平一半、停損移到進場價，沒出場的收盤平倉，已扣手續費和證交稅約 0.45%。R 是「每股風險」的倍數，+1R 代表賺到一倍停損距離。</p>
+    <h3 style="font-size:1rem">真實紀錄（每天事前存下的計畫）</h3>${fwd}
+    <details><summary>往回測：最近約 30 個交易日（估算）</summary>${btH}</details></section>`}
 function renderDT(){
   const q=($("q").value||"").trim().toUpperCase();
   const head=`<div class="dt-warn"><b>這一頁是給有當沖經驗的人用的。</b><span>當沖要盯盤、反應要快，賠錢也很快，還要先跟券商申請當沖資格。沒有經驗請不要做，也不要把這頁給長輩照著做。</span></div>
   <details class="dt-rules"><summary>當沖紀律（第一次用請先看）</summary><ul>
    <li>下面是<b>明天</b>的計畫，用今天收盤的資料算出來的。盤中請用券商 App 看即時價格。</li>
-   <li>開盤前 5 分鐘先不要動，等價格<b>真的突破</b>（做多）或<b>跌破</b>（做空）計畫價再進場。</li>
-   <li>開盤就跳空超過計畫價很多，<b>不要追</b>，這檔今天就放掉。</li>
+   <li>做法是<b>拉回買、反彈賣</b>：開盤前就用<b>限價單</b>掛在計畫的買進價（做多）或賣出價（做空），價格有回到這裡才成交。</li>
+   <li>沒有回到計畫價就<b>不要追</b>，今天這檔就放掉。追價是當沖最常見的虧錢原因。</li>
    <li>進場同時就要設好停損，碰到停損價立刻出場，不要凹。</li>
    <li>到目標一先平一半，剩下的停損移到進場價；<b>13:25 以前一定全部平倉</b>。</li>
    <li>一天最多做 2～3 筆，當天虧到本金的 2% 就收工。</li>
@@ -580,29 +624,33 @@ function renderDT(){
    <li>成本：手續費買賣各 0.1425%（有折扣更低）加當沖證交稅 0.15%，大約要漲跌 0.45% 才打平。</li>
   </ul></details>
   <div class="dt-set"><label for="inDtRisk">當沖每筆最多賠（本金 ${money(ST.cap)} 的）%<input id="inDtRisk" inputmode="decimal" value="${ST.dtRisk||0.5}"></label></div>`;
-  if(!DT.length){$("list").innerHTML=head+`<div class="empty">當沖資料還沒準備好，下一次收盤後更新就會出現。</div>`;bindDt();afterRender();return}
-  const v=(q?DT.filter(s=>s.code.includes(q)||s.name.toUpperCase().includes(q)):DT.slice(0,20));
-  $("list").innerHTML=head+`<p class="when">從今天成交金額最大的 ${DT.length} 檔裡，挑出最適合明天當沖的 ${q?v.length:Math.min(20,DT.length)} 檔（已排除 ETF、10 元以下和處置股）</p>`+(v.length?v.map(dtCardHTML).join(""):`<div class="empty">找不到這檔，可能不在今天成交金額前 150 名。</div>`);
+  const sc=scorecardHTML();
+  if(!DT.length){$("list").innerHTML=head+sc+`<div class="empty">當沖資料還沒準備好，下一次收盤後更新就會出現。</div>`;bindDt();afterRender();return}
+  const picks=DT.filter(s=>s.plan&&s.score>=90).slice(0,20);
+  const v=q?DT.filter(s=>s.code.includes(q)||s.name.toUpperCase().includes(q)):picks;
+  $("list").innerHTML=head+sc+(q?"":`<p class="when">從今天成交金額最大的 ${DT.length} 檔裡，只挑方向明確、分數 90 以上的（已排除 ETF、10 元以下和處置股）</p>`)+(v.length?v.map(dtCardHTML).join(""):q?`<div class="empty">找不到這檔，可能不在今天成交金額前 150 名。</div>`:`<div class="empty">明天沒有夠好的當沖機會。<br>沒有好機會就不做，這也是紀律。</div>`);
   bindDt();afterRender()}
 function bindDt(){const i=$("inDtRisk");if(i)i.onchange=()=>{const v=parseFloat(i.value);if(v>0&&v<=5){ST.dtRisk=v;save();renderDT()}else i.value=ST.dtRisk||0.5}}
 function dtCardHTML(s){
-  const L=s.long,S=s.short,bias=s.bias;const riskMoney=ST.cap*(ST.dtRisk||0.5)/100;
+  const riskMoney=ST.cap*(ST.dtRisk||0.5)/100,o=s.plan,pv=s.piv;
   const sh=r=>{const n=Math.floor(riskMoney/r);if(n<=0)return"—";const lots=Math.floor(n/1000),odd=n%1000;return lots?`${lots} 張`+(odd?` ${odd} 股`:""):`${odd} 股`};
-  const side=(k,o,on)=>`<div class="side ${k} ${on?"":"off"}"><span class="hd">${k==="l"?`做多：明天突破 ${fmt(o.e)} 元買進`:`做空：明天跌破 ${fmt(o.e)} 元先賣`}${on?"":"（方向不順，僅參考）"}</span>
-    <div class="row"><div><span>進場</span><b>${fmt(o.e)}</b></div><div><span>停損</span><b class="${k==="l"?"down":"up"}">${fmt(o.sl)}</b></div><div><span>目標一</span><b class="${k==="l"?"up":"down"}">${fmt(o.t1)}</b></div><div><span>目標二</span><b class="${k==="l"?"up":"down"}">${fmt(o.t2)}</b></div></div>
-    <span class="when">每股風險 ${fmt(o.r)} 元，建議最多 ${sh(o.r)}（萬一停損約賠 ${money(Math.min(riskMoney,Math.floor(riskMoney/o.r)*o.r))}）</span></div>`;
-  const bb=bias===1?'<span class="badge long">偏多：做多為主</span>':bias===-1?'<span class="badge short">偏空：做空為主</span>':'<span class="badge both">多空都可能</span>';
-  const pv=s.piv;
+  let plan="";
+  if(o){const L=o.dir>0;plan=`<div class="plan"><div class="side ${L?"l":"s"}"><span class="hd">${L?`做多：明天掛 ${fmt(o.e)} 元買進`:`做空：明天掛 ${fmt(o.e)} 元先賣`}</span>
+    <div class="row"><div><span>${L?"買進":"賣出"}（限價）</span><b>${fmt(o.e)}</b></div><div><span>停損</span><b class="${L?"down":"up"}">${fmt(o.sl)}</b></div><div><span>目標一（平一半）</span><b class="${L?"up":"down"}">${fmt(o.t1)}</b></div><div><span>目標二</span><b class="${L?"up":"down"}">${fmt(o.t2)}</b></div></div>
+    <span class="when">${L?"等價格拉回":"等價格反彈"}到 ${fmt(o.e)} 元才成交，沒到就不做。每股風險 ${fmt(o.r)} 元，建議最多 ${sh(o.r)}（萬一停損約賠 ${money(Math.floor(riskMoney/o.r)*o.r)}）</span></div></div>`}
+  else plan=`<p class="plain">今天收盤多空不明，沒有當沖計畫。</p>`;
+  const bb=s.bias===1?'<span class="badge long">偏多：拉回買</span>':s.bias===-1?'<span class="badge short">偏空：反彈賣</span>':'<span class="badge both">方向不明</span>';
+  const pri=o&&s.score>=95?'<span class="badge buy">優先</span>':"";
   return`<article class="card"><div class="c-main" data-dt="${s.code}" role="button" tabindex="0" aria-expanded="${openCode==="dt"+s.code}">
     <div class="c-r1"><div class="nm"><b>${esc(s.name)}</b><span>${s.code}・${s.market}・當沖分數 ${s.score}</span></div>
       <div class="px"><b class="${cls(s.chg)}">${fmt(s.px)}</b><span class="${cls(s.chg)}">${arrow(s.chg)} ${fmt(Math.abs(s.chg))}（${pctTxt(s.pct)}）</span></div></div>
-    <div class="badges">${bb}<span class="badge info">量 ${s.vr.toFixed(1)} 倍</span><span class="badge info">震盪 ${s.atrPct.toFixed(1)}%</span>${Math.abs(s.pct)>=9.4?`<span class="badge" style="background:#FFF4E5;color:#9A4A00;border-color:#F0C27A">今天${s.pct>0?"漲停":"跌停"}，明天容易跳空，開盤別追</span>`:""}</div>
-    <div class="plan">${bias>=0?side("l",L,true):""}${bias<=0?side("s",S,true):""}${bias===1?side("s",S,false):""}${bias===-1?side("l",L,false):""}</div>
+    <div class="badges">${pri}${bb}<span class="badge info">量 ${s.vr.toFixed(1)} 倍</span><span class="badge info">震盪 ${s.atrPct.toFixed(1)}%</span>${Math.abs(s.pct)>=9.4?`<span class="badge" style="background:#FFF4E5;color:#9A4A00;border-color:#F0C27A">今天${s.pct>0?"漲停":"跌停"}，明天容易跳空</span>`:""}</div>
+    ${plan}
     <span class="more">${openCode==="dt"+s.code?"收起 ▲":"看關鍵價位、選股原因 ▼"}</span></div>
     ${openCode==="dt"+s.code?`<div class="det">
       <canvas class="chart" id="cv-dt${s.code}" aria-label="${esc(s.name)} 近三個月走勢"></canvas>
       <div><h3>明天的關鍵價位</h3><div class="pivots"><div><span>支撐二</span><b class="down">${fmt(pv.S2)}</b></div><div><span>支撐一</span><b class="down">${fmt(pv.S1)}</b></div><div><span>樞紐</span><b>${fmt(pv.P)}</b></div><div><span>壓力一</span><b class="up">${fmt(pv.R1)}</b></div><div><span>壓力二</span><b class="up">${fmt(pv.R2)}</b></div></div>
-      <p class="when" style="margin-top:6px">今天最高 ${fmt(s.H)}、最低 ${fmt(s.L)}。價格在樞紐之上偏多、之下偏空；碰到壓力或支撐容易拉回或反彈。</p></div>
+      <p class="when" style="margin-top:6px">今天最高 ${fmt(s.H)}、最低 ${fmt(s.L)}。計畫的買賣價就是樞紐點：強勢股拉回到樞紐常有支撐，弱勢股反彈到樞紐常有壓力。</p></div>
       <div><h3>為什麼選它</h3><ul class="checks">${s.checks.map(x=>`<li class="${x.ok?"ok":"bad"}"><span class="mk">${x.ok?"✓":"✗"}</span><span><span class="k">${x.k}</span>${esc(x.t)}</span></li>`).join("")}</ul></div>
     </div>`:""}</article>`}
 function cardHTML(s){
@@ -687,7 +735,8 @@ function alertBox(f,msg){let p=f.querySelector(".ferr");if(!p){p=document.create
 let rz;window.addEventListener("resize",()=>{clearTimeout(rz);rz=setTimeout(afterRender,150)});
 
 async function load(){
-  try{const r=await fetch("data.json?t="+Math.floor(Date.now()/6e5),{cache:"no-store"});if(!r.ok)throw new Error("HTTP "+r.status);DATA=await r.json();compute();render()}
+  try{const r=await fetch("data.json?t="+Math.floor(Date.now()/6e5),{cache:"no-store"});if(!r.ok)throw new Error("HTTP "+r.status);DATA=await r.json();DTBT=null;compute();render();
+    try{const h=await fetch("dt-history.json?t="+Math.floor(Date.now()/6e5),{cache:"no-store"});if(h.ok){HIST=await h.json();if(ST.tab==="dt")render()}}catch(e){}}
   catch(e){if(!DATA){$("mkt").innerHTML=`<div class="err"><b>資料還沒準備好。</b>第一次使用要等系統抓完資料（大約 5 分鐘），請稍後重新整理。如果一直這樣，請告訴管理的人。</div>`;$("list").innerHTML=""}}}
 render();load();setInterval(load,30*60*1000);
 document.addEventListener("visibilitychange",()=>{if(!document.hidden)load()});
