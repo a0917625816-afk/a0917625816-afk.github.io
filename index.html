@@ -500,6 +500,9 @@ function setStatus(kind,msg,extra=""){$("statusbar").innerHTML=`<span><span clas
 function tick(){const el=$("cd");if(!el)return;if(scanning){el.textContent="";return}if(!S.auto||!nextAt){el.textContent="自動重掃已關閉";return}const s=Math.max(0,Math.round((nextAt-Date.now())/1000));el.textContent=`${Math.floor(s/60)} 分 ${String(s%60).padStart(2,"0")} 秒後重掃`}
 setInterval(tick,1000);
 
+let bxNote="";
+async function loadBingx(){try{const r=await fetch("https://a0917625816-afk.github.io/bingx.json?t="+Math.floor(Date.now()/3e5),{cache:"no-store"});if(!r.ok)return null;const j=await r.json();
+  return{set:new Set(j.symbols.map(x=>x.base)),n:j.symbols.length,funding:j.funding||{},fresh:Date.now()-Date.parse(j.updated)<3*36e5}}catch(e){return null}}
 async function pickSource(){for(const k of ["bingx","binance"]){try{const u=await SOURCES[k].universe();if(u.length)return{k,u}}catch(e){}}return null}
 
 async function scan(){
@@ -507,7 +510,12 @@ async function scan(){
   const M=MODES[S.mode];setStatus("warn","讀取合約清單中…");$("prog").style.width="2%";
   let uni=null,fund={};
   const got=await pickSource();
-  if(got){src=got.k;isDemo=false;uni=got.u;try{fund=await SOURCES[src].funding()}catch(e){}}
+  bxNote="";
+  if(got){src=got.k;isDemo=false;uni=got.u;try{fund=await SOURCES[src].funding()}catch(e){}
+    if(src==="binance"){const bx=await loadBingx();
+      if(bx){const on=b=>bx.set.has(b)||bx.set.has(b.replace(/^1000+/,""));uni=uni.filter(x=>on(x.base));bxNote=`・只列 BingX 有的合約（BingX 共 ${bx.n} 個）`;
+        if(bx.fresh)uni.forEach(x=>{const f=bx.funding[x.base]??bx.funding[x.base.replace(/^1000+/,"")];if(f!=null&&isFinite(f))fund[x.sym]=f});}
+      else bxNote="・BingX 清單暫時讀不到，先列 Binance 全部合約"}}
   else{isDemo=true;src=null;uni=DEMO_NAMES.map((b,ix)=>({sym:b,base:b,cur:0,chg:0,qv:(DEMO_NAMES.length-ix)*4e7,demo:ix}))}
   if(my!==scanId)return;
   const total=uni.length;
@@ -536,7 +544,7 @@ async function scan(){
   render();notifyNew();
   if(!MOBILE){try{await paperStep()}catch(e){}}
   const ok=rows.filter(r=>r.state==="ok").length,bad=rows.filter(r=>r.state==="err").length;
-  setStatus(isDemo?"err":"",isDemo?"連不到交易所，以下為示範資料":`掃描完成 ${ok} 個`+(bad?`（${bad} 個抓取失敗）`:""),`<span>${isDemo?"":"來源："+SOURCES[src].name+"・"}更新於 ${lastScanAt.toLocaleTimeString("zh-TW",{hour12:false})}</span>`);
+  setStatus(isDemo?"err":"",isDemo?"連不到交易所，以下為示範資料":`掃描完成 ${ok} 個`+(bad?`（${bad} 個抓取失敗）`:""),`<span>${isDemo?"":"價格來源："+SOURCES[src].name+bxNote+"・"}更新於 ${lastScanAt.toLocaleTimeString("zh-TW",{hour12:false})}</span>`);
   schedule()}
 function stopScan(){scanId++;scanning=false;$("btnScan").textContent="重新掃描";$("prog").style.width="0";render();setStatus("warn","已停止掃描");schedule()}
 function schedule(){clearTimeout(timer);if(!S.auto){nextAt=0;tick();return}const ms=MODES[S.mode].every*1000;nextAt=Date.now()+ms;timer=setTimeout(scan,ms);tick()}
