@@ -46,7 +46,7 @@ button{cursor:pointer}
 .up{color:var(--up)}.down{color:var(--down)}.flat{color:var(--muted)}
 .when{font-size:.8rem;color:var(--muted)}
 
-.tabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.tabs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
 .tabs button{border:2px solid var(--line);background:var(--paper);border-radius:14px;padding:10px 4px;font-size:1rem;font-weight:700;min-height:56px;line-height:1.3}
 .tabs button small{display:block;font-size:.72rem;font-weight:500;color:var(--muted)}
 .tabs button[aria-selected="true"]{border-color:var(--navy);background:var(--navy);color:#fff}
@@ -128,6 +128,34 @@ details.help ul{margin:0;padding-left:1.2em;display:flex;flex-direction:column;g
 footer{font-size:.85rem;color:var(--muted);display:flex;flex-direction:column;gap:4px;border-top:1px solid var(--line);padding-top:14px}
 @media (max-width:420px){.nums b{font-size:1.05rem}.px b{font-size:1.3rem}.nm b{font-size:1.2rem}}
 
+/* 當沖 */
+.dt-warn{background:#FFF4E5;border:2px solid #F0C27A;border-radius:18px;padding:14px 16px;display:flex;flex-direction:column;gap:6px}
+.dt-warn b{color:#9A4A00}
+.dt-rules{background:#fff;border-radius:18px;padding:12px 16px}
+.dt-rules summary{cursor:pointer;font-weight:900}
+.dt-rules ul{margin:8px 0 4px;padding-left:1.2em;display:flex;flex-direction:column;gap:4px;font-size:.95rem}
+.dt-set{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;font-size:.92rem;color:var(--muted)}
+.dt-set input{width:5.5em;border:2px solid var(--line);border-radius:10px;padding:6px 10px;font-size:1rem;text-align:right}
+.badge.long{background:var(--up-soft);color:var(--up);border-color:rgba(214,40,57,.35)}
+.badge.short{background:var(--down-soft);color:var(--down);border-color:rgba(19,128,75,.35)}
+.badge.both{background:var(--navy-soft);color:var(--navy)}
+.badge.info{background:var(--sunk);color:var(--muted);border-color:var(--line);font-weight:500}
+.plan{display:flex;flex-direction:column;gap:8px}
+.plan .side{border-radius:14px;padding:10px 12px;display:flex;flex-direction:column;gap:4px}
+.plan .side.l{background:#FFF3F4;border:1px solid #F5C7CC}
+.plan .side.s{background:#EFF8F2;border:1px solid #BFE2CD}
+.plan .side.off{opacity:.55}
+.plan .hd{font-weight:900;font-size:1rem}
+.plan .side.l .hd{color:var(--up)}.plan .side.s .hd{color:var(--down)}
+.plan .row{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+.plan .row div{display:flex;flex-direction:column;min-width:0}
+.plan .row span{font-size:.72rem;color:var(--muted)}
+.plan .row b{font-size:1.02rem;font-weight:900;font-family:var(--serif,inherit)}
+.pivots{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:4px;background:var(--sunk);border-radius:12px;padding:8px}
+.pivots div{display:flex;flex-direction:column;align-items:center}
+.pivots span{font-size:.7rem;color:var(--muted)}
+.pivots b{font-size:.9rem}
+@media (max-width:420px){.plan .row{grid-template-columns:repeat(2,minmax(0,1fr))}.tabs button{font-size:.9rem}}
 /* ===== 質感：私人理財報告 ===== */
 :root{--gold:#B8913A;--gold-soft:#F6EFDD;--serif:"Noto Serif TC","Songti TC","PMingLiU",serif;--shadow:0 1px 2px rgba(15,30,70,.06),0 8px 24px -12px rgba(15,30,70,.18)}
 body{background:linear-gradient(180deg,#EEF1F7 0,#F5F6F9 320px,#F5F6F9 100%)}
@@ -193,9 +221,10 @@ footer{border-top:1px solid #DCCB9C}
   <section class="mkt" id="mkt"><span class="lbl">正在讀取資料…</span></section>
 
   <div class="tabs" role="tablist" aria-label="分頁">
-    <button type="button" role="tab" data-tab="pick">今天可注意<small>適合買的股票</small></button>
-    <button type="button" role="tab" data-tab="mine">我的股票<small>持有與關注</small></button>
+    <button type="button" role="tab" data-tab="pick">今日推薦<small>適合買的</small></button>
+    <button type="button" role="tab" data-tab="mine">我的股票<small>持有關注</small></button>
     <button type="button" role="tab" data-tab="all">全部股票<small>看每一檔</small></button>
+    <button type="button" role="tab" data-tab="dt">當沖<small>明天計畫</small></button>
   </div>
   <div class="search"><input type="search" id="q" placeholder="輸入股票代號或名稱，例如 2330 或 台積電" aria-label="搜尋股票"></div>
 
@@ -461,8 +490,29 @@ function holdAdvice(s,h){const T=s.T;const px=s.px,pl=(px-h.cost)*h.shares,pct=(
   else{k="good";adv=`趨勢正常，可以續抱。收盤跌破 ${fmt(T.m60)} 元（季線）要注意。`}
   return{k,adv,pl,pct}}
 
+/* ---------- 當沖 ---------- */
+const tickOf=p=>p<10?0.01:p<50?0.05:p<100?0.1:p<500?0.5:p<1000?1:5;
+const rUp=p=>{const t=tickOf(p);return +(Math.ceil(p/t-1e-9)*t).toFixed(2)},rDn=p=>{const t=tickOf(p);return +(Math.floor(p/t+1e-9)*t).toFixed(2)};
+let DT=[];
+function dtAnalyze(s){const c=toC(s.bars),n=c.length;if(n<25)return null;const i=n-1,b=c[i],cl=c.map(x=>x.c);
+  const ma5=sma(cl,5)[i],ma20=sma(cl,20)[i],a=atr(c,14)[i],vAvg=sma(c.map(x=>x.v),20)[i-1],vr=b.v/vAvg;
+  const atrPct=a/b.c*100,rng=b.h-b.l,pos=rng>0?(b.c-b.l)/rng:0.5,chg=(b.c/c[i-1].c-1)*100,value=s.value||b.v*1000*b.c;
+  const bias=b.c>ma20&&pos>=0.6&&chg>0?1:b.c<ma20&&pos<=0.4&&chg<0?-1:0;
+  const R={...s,name:String(s.name||"").replace(/\*+$/,""),c,px:b.c,chg:b.c-c[i-1].c,pct:chg,date:b.d,bias,vr,atrPct,pos,value,checks:[],score:0};
+  const add=(k,p,max,t)=>{R.checks.push({k,p,max,ok:p>=max*0.6,t});R.score+=p};
+  add("成交量",vr>=2?25:vr>=1.5?18:vr>=1?10:3,25,vr>=1.5?`今天爆量，是平常的 ${vr.toFixed(1)} 倍`:vr>=1?`量和平常差不多（${vr.toFixed(1)} 倍）`:`量縮（只有平常的 ${vr.toFixed(1)} 倍），當沖容易沒行情`);
+  add("波動大小",atrPct>=2.5&&atrPct<=6?25:(atrPct>=1.8&&atrPct<8)?15:5,25,`平均一天上下震盪約 ${atrPct.toFixed(1)}%`+(atrPct<1.8?"，太小不好賺":atrPct>8?"，太大風險高":atrPct>=2.5&&atrPct<=6?"，適合當沖":""));
+  add("收盤強弱",(bias===1&&pos>=0.8)||(bias===-1&&pos<=0.2)?25:bias?15:5,25,bias===1?(pos>=0.8?"收在今天最高價附近，買盤強":"收盤偏強"):bias===-1?(pos<=0.2?"收在今天最低價附近，賣壓重":"收盤偏弱"):"收盤在中間，多空不明");
+  const tr=bias===1?(b.c>ma5&&b.c>ma20?15:b.c>ma20?8:0):bias===-1?(b.c<ma5&&b.c<ma20?15:b.c<ma20?8:0):5;
+  add("短線趨勢",tr,15,bias===1?(tr===15?"站上 5 日線和月線":"站上月線"):bias===-1?(tr===15?"跌破 5 日線和月線":"跌破月線"):"沒有明確方向");
+  const yi=value/1e8;add("成交金額",yi>=20?10:yi>=5?7:3,10,`今天成交 ${yi>=1?yi.toFixed(1)+" 億元":Math.round(value/1e4)+" 萬元"}`+(yi>=20?"，流動性很好":yi<5?"，流動性普通":""));
+  const P=(b.h+b.l+b.c)/3;R.piv={S2:P-rng,S1:2*P-b.h,P,R1:2*P-b.l,R2:P+rng};R.H=b.h;R.L=b.l;
+  let e=rUp(b.h+tickOf(b.h)),sl=rDn(Math.max(P,e-0.6*a));if(e-sl<2*tickOf(e))sl=rDn(e-0.4*a);let r=e-sl;R.long={e,sl,t1:rUp(e+r),t2:rUp(e+2*r),r};
+  e=rDn(b.l-tickOf(b.l));sl=rUp(Math.min(P,e+0.6*a));if(sl-e<2*tickOf(e))sl=rUp(e+0.4*a);r=sl-e;R.short={e,sl,t1:rDn(e-r),t2:rDn(e-2*r),r};
+  return R}
 function compute(){
   MKT=DATA.index?market(DATA.index.bars):null;
+  DT=DATA.dt&&DATA.dt.list?DATA.dt.list.map(dtAnalyze).filter(Boolean).sort((a,b)=>b.score-a.score):[];
   LIST=DATA.stocks.map(s=>{const c=toC(s.bars);const n=c.length;const o={...s,c,px:n?c[n-1].c:null,chg:n>1?c[n-1].c-c[n-2].c:0,pct:n>1?(c[n-1].c/c[n-2].c-1)*100:0,date:n?c[n-1].d:""};
     o.T=tech(c,MKT);o.F=fund(s);o.D=decide(o);return o})}
 
@@ -486,6 +536,7 @@ function render(){
   $("btnSize").textContent=ST.huge?"字變小":"字放大";document.documentElement.classList.toggle("huge",ST.huge);
   renderMkt();
   if(!DATA)return;
+  if(ST.tab==="dt"){renderDT();return}
   const v=visible(),q=($("q").value||"").trim();
   let head="";
   if(!q&&ST.tab==="pick"){
@@ -503,10 +554,57 @@ function spark(cv,closes,ref){if(!cv)return;const dpr=window.devicePixelRatio||1
   g.beginPath();v.forEach((p,k)=>k?g.lineTo(x(k),y(p)):g.moveTo(x(k),y(p)));g.lineTo(x(v.length-1),H);g.lineTo(x(0),H);g.closePath();g.fillStyle=gr;g.fill();
   g.beginPath();v.forEach((p,k)=>k?g.lineTo(x(k),y(p)):g.moveTo(x(k),y(p)));g.strokeStyle=col;g.lineWidth=2;g.lineJoin="round";g.stroke();
   g.fillStyle=col;g.beginPath();g.arc(x(v.length-1),y(v[v.length-1]),3.2,0,7);g.fill()}
+function drawDt(cv,s){if(!cv)return;const dpr=window.devicePixelRatio||1,W=cv.clientWidth,H=cv.clientHeight;if(!W)return;cv.width=W*dpr;cv.height=H*dpr;const g=cv.getContext("2d");g.scale(dpr,dpr);
+  const c=s.c,N=c.length;const lines=[[s.long.e,"#D62839"],[s.short.e,"#13804B"],[s.piv.P,"#B8913A"]];
+  let lo=Math.min(...c.map(b=>b.l)),hi=Math.max(...c.map(b=>b.h));lines.forEach(([p])=>{lo=Math.min(lo,p);hi=Math.max(hi,p)});const pad=(hi-lo)*.06;lo-=pad;hi+=pad;
+  const pw=W-58,y=p=>H-(p-lo)/(hi-lo)*H,bw=pw/N;
+  c.forEach((b,k)=>{const x=k*bw+bw/2,up=b.c>=b.o;g.strokeStyle=g.fillStyle=up?"#D62839":"#13804B";g.beginPath();g.moveTo(Math.round(x)+.5,y(b.h));g.lineTo(Math.round(x)+.5,y(b.l));g.stroke();g.fillRect(x-bw*.33,y(Math.max(b.o,b.c)),Math.max(1,bw*.66),Math.max(1,Math.abs(y(b.o)-y(b.c))))});
+  g.font="12px "+getComputedStyle(document.body).fontFamily;g.textBaseline="middle";let last=-99;
+  lines.slice().sort((a,b)=>y(a[0])-y(b[0])).forEach(([p,col])=>{const yy=Math.round(y(p))+.5;g.strokeStyle=col;g.setLineDash([5,4]);g.lineWidth=1.5;g.beginPath();g.moveTo(pw*.55,yy);g.lineTo(pw,yy);g.stroke();g.setLineDash([]);let ly=Math.max(yy,last+14);g.fillStyle=col;g.fillText(fmt(p),pw+4,ly);last=ly})}
 function afterRender(){
+  if(openCode&&String(openCode).startsWith("dt")){const s=DT.find(x=>"dt"+x.code===openCode);if(s)drawDt($("cv-"+openCode),s)}
   if(DATA&&DATA.index)spark($("mspark"),DATA.index.bars.map(b=>b[4]),MKT?MKT.m60:null);
   document.querySelectorAll("canvas[data-spark]").forEach(cv=>{const s=LIST.find(x=>x.code===cv.dataset.spark);if(s)spark(cv,s.c.map(b=>b.c),s.T?s.T.m60:null)});const s=LIST.find(x=>x.code===openCode);if(s&&s.T)drawChart($("cv-"+s.code),s)}
 
+function renderDT(){
+  const q=($("q").value||"").trim().toUpperCase();
+  const head=`<div class="dt-warn"><b>這一頁是給有當沖經驗的人用的。</b><span>當沖要盯盤、反應要快，賠錢也很快，還要先跟券商申請當沖資格。沒有經驗請不要做，也不要把這頁給長輩照著做。</span></div>
+  <details class="dt-rules"><summary>當沖紀律（第一次用請先看）</summary><ul>
+   <li>下面是<b>明天</b>的計畫，用今天收盤的資料算出來的。盤中請用券商 App 看即時價格。</li>
+   <li>開盤前 5 分鐘先不要動，等價格<b>真的突破</b>（做多）或<b>跌破</b>（做空）計畫價再進場。</li>
+   <li>開盤就跳空超過計畫價很多，<b>不要追</b>，這檔今天就放掉。</li>
+   <li>進場同時就要設好停損，碰到停損價立刻出場，不要凹。</li>
+   <li>到目標一先平一半，剩下的停損移到進場價；<b>13:25 以前一定全部平倉</b>。</li>
+   <li>一天最多做 2～3 筆，當天虧到本金的 2% 就收工。</li>
+   <li>做空（先賣後買）需要券商資格；部分股票平盤以下不能先賣。</li>
+   <li>成本：手續費買賣各 0.1425%（有折扣更低）加當沖證交稅 0.15%，大約要漲跌 0.45% 才打平。</li>
+  </ul></details>
+  <div class="dt-set"><label for="inDtRisk">當沖每筆最多賠（本金 ${money(ST.cap)} 的）%<input id="inDtRisk" inputmode="decimal" value="${ST.dtRisk||0.5}"></label></div>`;
+  if(!DT.length){$("list").innerHTML=head+`<div class="empty">當沖資料還沒準備好，下一次收盤後更新就會出現。</div>`;bindDt();afterRender();return}
+  const v=(q?DT.filter(s=>s.code.includes(q)||s.name.toUpperCase().includes(q)):DT.slice(0,20));
+  $("list").innerHTML=head+`<p class="when">從今天成交金額最大的 ${DT.length} 檔裡，挑出最適合明天當沖的 ${q?v.length:Math.min(20,DT.length)} 檔（已排除 ETF、10 元以下和處置股）</p>`+(v.length?v.map(dtCardHTML).join(""):`<div class="empty">找不到這檔，可能不在今天成交金額前 150 名。</div>`);
+  bindDt();afterRender()}
+function bindDt(){const i=$("inDtRisk");if(i)i.onchange=()=>{const v=parseFloat(i.value);if(v>0&&v<=5){ST.dtRisk=v;save();renderDT()}else i.value=ST.dtRisk||0.5}}
+function dtCardHTML(s){
+  const L=s.long,S=s.short,bias=s.bias;const riskMoney=ST.cap*(ST.dtRisk||0.5)/100;
+  const sh=r=>{const n=Math.floor(riskMoney/r);if(n<=0)return"—";const lots=Math.floor(n/1000),odd=n%1000;return lots?`${lots} 張`+(odd?` ${odd} 股`:""):`${odd} 股`};
+  const side=(k,o,on)=>`<div class="side ${k} ${on?"":"off"}"><span class="hd">${k==="l"?`做多：明天突破 ${fmt(o.e)} 元買進`:`做空：明天跌破 ${fmt(o.e)} 元先賣`}${on?"":"（方向不順，僅參考）"}</span>
+    <div class="row"><div><span>進場</span><b>${fmt(o.e)}</b></div><div><span>停損</span><b class="${k==="l"?"down":"up"}">${fmt(o.sl)}</b></div><div><span>目標一</span><b class="${k==="l"?"up":"down"}">${fmt(o.t1)}</b></div><div><span>目標二</span><b class="${k==="l"?"up":"down"}">${fmt(o.t2)}</b></div></div>
+    <span class="when">每股風險 ${fmt(o.r)} 元，建議最多 ${sh(o.r)}（萬一停損約賠 ${money(Math.min(riskMoney,Math.floor(riskMoney/o.r)*o.r))}）</span></div>`;
+  const bb=bias===1?'<span class="badge long">偏多：做多為主</span>':bias===-1?'<span class="badge short">偏空：做空為主</span>':'<span class="badge both">多空都可能</span>';
+  const pv=s.piv;
+  return`<article class="card"><div class="c-main" data-dt="${s.code}" role="button" tabindex="0" aria-expanded="${openCode==="dt"+s.code}">
+    <div class="c-r1"><div class="nm"><b>${esc(s.name)}</b><span>${s.code}・${s.market}・當沖分數 ${s.score}</span></div>
+      <div class="px"><b class="${cls(s.chg)}">${fmt(s.px)}</b><span class="${cls(s.chg)}">${arrow(s.chg)} ${fmt(Math.abs(s.chg))}（${pctTxt(s.pct)}）</span></div></div>
+    <div class="badges">${bb}<span class="badge info">量 ${s.vr.toFixed(1)} 倍</span><span class="badge info">震盪 ${s.atrPct.toFixed(1)}%</span>${Math.abs(s.pct)>=9.4?`<span class="badge" style="background:#FFF4E5;color:#9A4A00;border-color:#F0C27A">今天${s.pct>0?"漲停":"跌停"}，明天容易跳空，開盤別追</span>`:""}</div>
+    <div class="plan">${bias>=0?side("l",L,true):""}${bias<=0?side("s",S,true):""}${bias===1?side("s",S,false):""}${bias===-1?side("l",L,false):""}</div>
+    <span class="more">${openCode==="dt"+s.code?"收起 ▲":"看關鍵價位、選股原因 ▼"}</span></div>
+    ${openCode==="dt"+s.code?`<div class="det">
+      <canvas class="chart" id="cv-dt${s.code}" aria-label="${esc(s.name)} 近三個月走勢"></canvas>
+      <div><h3>明天的關鍵價位</h3><div class="pivots"><div><span>支撐二</span><b class="down">${fmt(pv.S2)}</b></div><div><span>支撐一</span><b class="down">${fmt(pv.S1)}</b></div><div><span>樞紐</span><b>${fmt(pv.P)}</b></div><div><span>壓力一</span><b class="up">${fmt(pv.R1)}</b></div><div><span>壓力二</span><b class="up">${fmt(pv.R2)}</b></div></div>
+      <p class="when" style="margin-top:6px">今天最高 ${fmt(s.H)}、最低 ${fmt(s.L)}。價格在樞紐之上偏多、之下偏空；碰到壓力或支撐容易拉回或反彈。</p></div>
+      <div><h3>為什麼選它</h3><ul class="checks">${s.checks.map(x=>`<li class="${x.ok?"ok":"bad"}"><span class="mk">${x.ok?"✓":"✗"}</span><span><span class="k">${x.k}</span>${esc(x.t)}</span></li>`).join("")}</ul></div>
+    </div>`:""}</article>`}
 function cardHTML(s){
   const D=s.D,T=s.T,F=s.F,h=ST.hold[s.code];
   const fb=F&&F.grade?`<span class="badge ${GRADE[F.grade][0]}">${GRADE[F.grade][1]}</span>`:F&&F.etf&&s.dy!=null?`<span class="badge f-mid">ETF・殖利率 ${s.dy.toFixed(1)}%</span>`:"";
@@ -575,7 +673,9 @@ $("list").addEventListener("click",e=>{
     else if(a==="cancel"){formCode=null;render()}
     return}
   if(e.target.closest("form"))return;
-  const m=e.target.closest(".c-main");if(!m)return;const code=m.dataset.code;openCode=openCode===code?null:code;formCode=null;render();
+  const m=e.target.closest(".c-main");if(!m)return;if(e.target.closest("details,input,label"))return;
+  if(m.dataset.dt){const k="dt"+m.dataset.dt;openCode=openCode===k?null:k;render();return}
+  const code=m.dataset.code;openCode=openCode===code?null:code;formCode=null;render();
   if(openCode){const el=document.querySelector(`[data-code="${code}"]`);if(el)el.scrollIntoView({block:"start",behavior:"smooth"})}});
 $("list").addEventListener("keydown",e=>{if((e.key==="Enter"||e.key===" ")&&e.target.classList.contains("c-main")){e.preventDefault();e.target.click()}});
 $("list").addEventListener("submit",e=>{const f=e.target.closest("form[data-form]");if(!f)return;e.preventDefault();const code=f.dataset.form;
