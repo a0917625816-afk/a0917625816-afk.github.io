@@ -7,9 +7,9 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="台股小幫手">
-<meta name="theme-color" content="#1E3A8A">
+<meta name="theme-color" content="#0F1E46">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Noto+Serif+TC:wght@600;700;900&display=swap">
 <style>
 /* Layout: 長輩看盤 — 大字、淺色、紅漲綠跌；頂部大盤卡，分頁（今日可注意／我的股票／全部），每檔一張卡，點開看詳細 */
 :root{
@@ -127,12 +127,64 @@ details.help ul{margin:0;padding-left:1.2em;display:flex;flex-direction:column;g
 .set input{width:7em;border:2px solid var(--line);border-radius:10px;padding:6px 10px;font-size:1rem;text-align:right}
 footer{font-size:.85rem;color:var(--muted);display:flex;flex-direction:column;gap:4px;border-top:1px solid var(--line);padding-top:14px}
 @media (max-width:420px){.nums b{font-size:1.05rem}.px b{font-size:1.3rem}.nm b{font-size:1.2rem}}
+
+/* ===== 質感：私人理財報告 ===== */
+:root{--gold:#B8913A;--gold-soft:#F6EFDD;--serif:"Noto Serif TC","Songti TC","PMingLiU",serif;--shadow:0 1px 2px rgba(15,30,70,.06),0 8px 24px -12px rgba(15,30,70,.18)}
+body{background:linear-gradient(180deg,#EEF1F7 0,#F5F6F9 320px,#F5F6F9 100%)}
+.top{background:linear-gradient(120deg,#0F1E46 0%,#1B3170 60%,#22408C 100%);padding:12px 14px 14px;box-shadow:0 2px 0 var(--gold),0 6px 18px -8px rgba(15,30,70,.5)}
+.top-in{gap:12px}
+.seal{width:40px;height:40px;border-radius:10px;background:#C8102E;color:#FFF6E0;display:grid;place-items:center;font-family:var(--serif);font-weight:900;font-size:1.15rem;box-shadow:inset 0 0 0 2px rgba(255,246,224,.55);flex:none;transform:rotate(-4deg)}
+.top h1{font-family:var(--serif);font-weight:900;font-size:1.3rem;letter-spacing:.12em}
+.top .sub{color:#E9D8A6;opacity:1;letter-spacing:.06em}
+.top .sz{border-color:rgba(233,216,166,.7);color:#F3E6BE}
+.mkt{border:0;border-radius:22px;box-shadow:var(--shadow);padding:18px 20px 16px;position:relative;overflow:hidden}
+.mkt::before{content:"";position:absolute;inset:0 0 auto 0;height:4px;background:linear-gradient(90deg,var(--gold),#E6CF8E,var(--gold))}
+.mkt .lbl{letter-spacing:.08em}
+.mkt .big{font-family:var(--serif);font-size:2.3rem;letter-spacing:.01em}
+.mkt .say{border-radius:14px}
+canvas.mspark{display:block;width:100%;height:64px;margin-top:2px}
+.tabs{background:#E3E8F1;border-radius:18px;padding:5px;gap:5px}
+.tabs button{border:0;background:transparent;border-radius:14px;color:#334155}
+.tabs button[aria-selected="true"]{background:#fff;color:var(--navy);box-shadow:0 2px 8px -2px rgba(15,30,70,.25)}
+.tabs button[aria-selected="true"] small{color:var(--gold)}
+.search input{border:0;box-shadow:var(--shadow);border-radius:16px;padding:12px 16px}
+.card{border:0;border-radius:22px;box-shadow:var(--shadow)}
+.card.buy{box-shadow:0 0 0 2px rgba(214,40,57,.35),0 12px 28px -14px rgba(214,40,57,.45)}
+.card.buy .c-main{background:linear-gradient(180deg,#FFF5F5 0,#fff 120px)}
+.nm b{font-family:var(--serif);font-weight:900;font-size:1.4rem;letter-spacing:.04em}
+.px b{font-family:var(--serif);font-weight:900;font-size:1.5rem}
+canvas.spark{display:block;width:100%;height:46px}
+.badge{border-radius:10px;letter-spacing:.04em}
+.badge.buy{background:linear-gradient(135deg,#E0313F,#B81D2C);box-shadow:0 4px 10px -4px rgba(214,40,57,.6)}
+.badge.f-good{background:var(--gold-soft);color:#7A5A12;border-color:rgba(184,145,58,.45)}
+.badge.hold{background:#FFF8E6;color:#7A5A00;border-color:#E9D49A}
+.nums div{background:#fff;border:1px solid #E7EBF2;border-radius:14px;box-shadow:inset 0 -2px 0 #F1F3F8}
+.nums span{letter-spacing:.04em}
+.nums b{font-family:var(--serif);font-size:1.22rem}
+.more{color:var(--gold);letter-spacing:.04em}
+.det{background:#FAFBFD;border-top:1px solid #E7EBF2}
+.det h3{font-family:var(--serif);font-weight:900;letter-spacing:.06em;display:flex;align-items:center;gap:8px}
+.det h3::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--gold)}
+canvas.chart{border:0;box-shadow:var(--shadow);border-radius:16px}
+.score-box,.fund div{background:#fff;border:1px solid #E7EBF2;border-radius:16px}
+.score-box b{font-family:var(--serif)}
+.fund b{font-family:var(--serif)}
+.checks .ok .mk{background:#FDECEE;color:#C8102E}
+.pos{background:linear-gradient(135deg,#EEF2FB,#F7F3E7);border:1px solid #E5DCC0}
+.btn{border-radius:16px}
+.btn.solid{background:linear-gradient(135deg,#1B3170,#0F1E46);border-color:#0F1E46;box-shadow:0 6px 14px -8px rgba(15,30,70,.7)}
+.hold-box{border:1px solid rgba(0,0,0,.05)}
+.hold-box .pl{font-family:var(--serif)}
+.empty{border:0;box-shadow:var(--shadow);background:#fff}
+details.help{border:0;box-shadow:var(--shadow);border-radius:20px}
+details.help summary{font-family:var(--serif);font-weight:900;letter-spacing:.04em}
+footer{border-top:1px solid #DCCB9C}
 </style>
 </head>
 <body>
 <header class="top">
   <div class="top-in">
-    <div><h1>台股小幫手</h1><div class="sub">每天收盤後自動更新</div></div>
+    <span class="seal" aria-hidden="true">股</span><div><h1>台股小幫手</h1><div class="sub">每天收盤後自動更新</div></div>
     <button class="sz" type="button" id="btnSize">字放大</button>
   </div>
 </header>
@@ -158,6 +210,7 @@ footer{font-size:.85rem;color:var(--muted);display:flex;flex-direction:column;ga
         <li><b>公司體質</b>：看公司本身。每月營收有沒有成長、本益比貴不貴、殖利率高不高、股價淨值比。ETF 沒有這一項。</li>
       </ul>
       <p><b>技術面 75 分以上、而且公司體質好</b>（ETF 只看技術面）才會顯示「可以分批買進」，每天通常只有幾檔。走勢好但體質普通或偏弱，會提醒你觀望或少量就好。</p>
+      <p><b>小走勢圖</b>：每張卡片上的線是近三個月的收盤價，紅色代表這段期間上漲、綠色代表下跌；金色虛線是季線。</p>
       <p><b>建議買進價</b>：今天收盤附近的價格區間，建議分 2～3 次買，不要一次買完。</p>
       <p><b>跌破就賣（停損價）</b>：收盤跌破這個價格，代表看錯了，建議賣出，避免越賠越多。</p>
       <p><b>目標價一、二</b>：漲到目標一可以先賣一部分入袋，剩下的等目標二。</p>
@@ -419,7 +472,7 @@ function renderMkt(){const el=$("mkt");
   const upd=new Date(DATA.updated);const when=`資料時間：${(DATA.lastDate||"").replace(/-/g,"/")} 收盤｜更新於 ${upd.toLocaleString("zh-TW",{month:"numeric",day:"numeric",hour:"2-digit",minute:"2-digit",hour12:false})}`;
   if(!MKT){el.innerHTML=`<span class="lbl">加權指數</span><span class="when">${when}</span>`;return}
   el.innerHTML=`<span class="lbl">加權指數（大盤）</span><span class="big ${cls(MKT.chg)}">${fmt(MKT.px)}</span><span class="chg ${cls(MKT.chg)}">${arrow(MKT.chg)} ${fmt(Math.abs(MKT.chg))}（${pctTxt(MKT.pct)}）</span>
-    <span class="say ${MKT.ok?"good":"bad"}">${MKT.strong?"大盤在季線上、趨勢向上，環境不錯。":MKT.ok?"大盤在季線上，但力道普通。":"大盤跌破季線，買股票要更小心，資金不要放太多。"}</span><span class="when">${when}</span>`}
+    <canvas class="mspark" id="mspark" aria-label="大盤近三個月走勢"></canvas><span class="say ${MKT.ok?"good":"bad"}">${MKT.strong?"大盤在季線上、趨勢向上，環境不錯。":MKT.ok?"大盤在季線上，但力道普通。":"大盤跌破季線，買股票要更小心，資金不要放太多。"}</span><span class="when">${when}</span>`}
 
 function visible(){const q=($("q").value||"").trim().toUpperCase();
   let v=LIST;if(q)return v.filter(s=>s.code.includes(q)||s.name.toUpperCase().includes(q));
@@ -439,10 +492,20 @@ function render(){
     if(!v.length){const w=LIST.filter(s=>s.D.key==="watch").sort((a,b)=>b.T.score-a.T.score).slice(0,5);
       $("list").innerHTML=`<div class="empty">今天沒有特別好的買點。<br>休息也是一種操作，不用急著買。</div>`+(w.length?`<h3 style="margin-top:6px">接近買點、可以先觀察的</h3>`+w.map(cardHTML).join(""):"");afterRender();return}
     head=`<p class="when">${v.length} 檔符合條件，分數高的排前面</p>`}
-  if(!q&&ST.tab==="mine"&&!v.length){$("list").innerHTML=`<div class="empty">還沒有你的股票。<br>到「全部股票」點一檔，按「加入關注」或「我有買這檔」。</div>`;return}
-  if(!v.length){$("list").innerHTML=`<div class="empty">找不到這檔股票。目前只收錄常見的上市櫃股票和 ETF，想加入其他股票請告訴管理的人。</div>`;return}
+  if(!q&&ST.tab==="mine"&&!v.length){$("list").innerHTML=`<div class="empty">還沒有你的股票。<br>到「全部股票」點一檔，按「加入關注」或「我有買這檔」。</div>`;afterRender();return}
+  if(!v.length){$("list").innerHTML=`<div class="empty">找不到這檔股票。目前只收錄常見的上市櫃股票和 ETF，想加入其他股票請告訴管理的人。</div>`;afterRender();return}
   $("list").innerHTML=head+v.map(cardHTML).join("");afterRender()}
-function afterRender(){const s=LIST.find(x=>x.code===openCode);if(s&&s.T)drawChart($("cv-"+s.code),s)}
+function spark(cv,closes,ref){if(!cv)return;const dpr=window.devicePixelRatio||1,W=cv.clientWidth,H=cv.clientHeight;if(!W)return;cv.width=W*dpr;cv.height=H*dpr;const g=cv.getContext("2d");g.scale(dpr,dpr);
+  const v=closes.slice(-60);if(v.length<2)return;let lo=Math.min(...v),hi=Math.max(...v);if(ref!=null&&isFinite(ref)){lo=Math.min(lo,ref);hi=Math.max(hi,ref)}const pad=(hi-lo)*0.12||1;lo-=pad;hi+=pad;
+  const x=k=>k/(v.length-1)*(W-8)+2,y=p=>H-3-(p-lo)/(hi-lo)*(H-6);const up=v[v.length-1]>=v[0],col=up?"#D62839":"#13804B";
+  if(ref!=null&&isFinite(ref)){g.strokeStyle="rgba(184,145,58,.55)";g.setLineDash([4,4]);g.lineWidth=1;g.beginPath();g.moveTo(0,Math.round(y(ref))+.5);g.lineTo(W,Math.round(y(ref))+.5);g.stroke();g.setLineDash([])}
+  const gr=g.createLinearGradient(0,0,0,H);gr.addColorStop(0,up?"rgba(214,40,57,.18)":"rgba(19,128,75,.18)");gr.addColorStop(1,"rgba(255,255,255,0)");
+  g.beginPath();v.forEach((p,k)=>k?g.lineTo(x(k),y(p)):g.moveTo(x(k),y(p)));g.lineTo(x(v.length-1),H);g.lineTo(x(0),H);g.closePath();g.fillStyle=gr;g.fill();
+  g.beginPath();v.forEach((p,k)=>k?g.lineTo(x(k),y(p)):g.moveTo(x(k),y(p)));g.strokeStyle=col;g.lineWidth=2;g.lineJoin="round";g.stroke();
+  g.fillStyle=col;g.beginPath();g.arc(x(v.length-1),y(v[v.length-1]),3.2,0,7);g.fill()}
+function afterRender(){
+  if(DATA&&DATA.index)spark($("mspark"),DATA.index.bars.map(b=>b[4]),MKT?MKT.m60:null);
+  document.querySelectorAll("canvas[data-spark]").forEach(cv=>{const s=LIST.find(x=>x.code===cv.dataset.spark);if(s)spark(cv,s.c.map(b=>b.c),s.T?s.T.m60:null)});const s=LIST.find(x=>x.code===openCode);if(s&&s.T)drawChart($("cv-"+s.code),s)}
 
 function cardHTML(s){
   const D=s.D,T=s.T,F=s.F,h=ST.hold[s.code];
@@ -454,6 +517,7 @@ function cardHTML(s){
   return`<article class="card ${D.key==="buy"?"buy":""}"><div class="c-main" data-code="${s.code}" role="button" tabindex="0" aria-expanded="${openCode===s.code}">
     <div class="c-r1"><div class="nm"><b>${esc(s.name)}</b><span>${s.code}${s.market?"・"+s.market:""}${DATA.lastDate&&s.date&&s.date!==DATA.lastDate?`・${s.date.slice(5).replace("-","/")} 的價格`:""}</span></div>
       <div class="px"><b class="${cls(s.chg)}">${fmt(s.px)}</b><span class="${cls(s.chg)}">${arrow(s.chg)} ${fmt(Math.abs(s.chg))}（${pctTxt(s.pct)}）</span></div></div>
+    ${openCode===s.code?"":`<canvas class="spark" data-spark="${s.code}" aria-label="${esc(s.name)} 近三個月走勢"></canvas>`}
     <div class="badges"><span class="badge ${D.key}">建議：${D.txt}</span>${fb}${hb}</div>
     <p class="plain">${esc(D.plain)}</p>${nums}${hold}
     <span class="more">${openCode===s.code?"收起 ▲":"看詳細原因、圖表 ▼"}</span></div>${openCode===s.code?detailHTML(s):""}</article>`}
