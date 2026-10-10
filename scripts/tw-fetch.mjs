@@ -1,5 +1,6 @@
 // 台股資料更新：每個交易日收盤後由 GitHub Actions 執行，產生 tw/data.json
 import fs from "node:fs/promises";
+import { signals, extras } from "./tw-extra.mjs";
 
 const UA = { "User-Agent": "Mozilla/5.0 (tw-helper; +https://a0917625816-afk.github.io/tw/)", "Accept": "application/json" };
 const sleep = ms => new Promise(r => setTimeout(r, ms));
@@ -88,6 +89,10 @@ for (const [code, fallbackName] of list) {
   } catch (e) { out.failed.push(code); console.log("失敗", code, e.message); }
   await sleep(350);
 }
+// 回調／反彈訊號與額外資料（失敗不影響主資料）
+try { const sg = signals(out.stocks); out.sigStats = sg.stats; out.stocks.forEach(s => { if (sg.now[s.code]) s.sig = sg.now[s.code]; }); console.log("訊號", Object.keys(sg.now).length, JSON.stringify(sg.stats)); } catch (e) { console.log("訊號失敗", e.message); }
+try { out.meta = { sources: await extras(out) }; console.log("額外資料", JSON.stringify(out.meta.sources)); } catch (e) { out.meta = { sources: { extras: "fail " + e.message } }; console.log("額外資料失敗", e.message); }
+
 // 當沖候選：全市場成交金額前 150 名（排除 ETF、權證、低價股、處置股）
 const punish = new Set();
 try { (await getJSON("https://openapi.twse.com.tw/v1/announcement/punish")).forEach(x => { const c = String(pick(x, "Code", "證券代號") || "").trim(); if (c) punish.add(c); }); console.log("處置股", punish.size); } catch (e) { console.log("處置股清單失敗", e.message); }
