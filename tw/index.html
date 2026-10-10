@@ -171,6 +171,26 @@ footer{font-size:.85rem;color:var(--muted);display:flex;flex-direction:column;ga
 .sc-list .it{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap;border-bottom:1px dotted var(--line);padding-bottom:6px}
 .sc-list .it b{min-width:4.5em}
 .sc details summary{cursor:pointer;font-weight:700;color:var(--navy)}
+.badge.heat{background:#FFF1DE;color:#9A4A00;border-color:#F0C27A}
+.badge.cool{background:#E8EEFC;color:#1E3A8A;border-color:#BFCDF2}
+.badge.ex{background:#F3ECFB;color:#5B2A86;border-color:#D9C6EE}
+.badge.inst{background:#fff;color:#334155;border-color:var(--line)}
+.badge.rev{background:#FDF6E3;color:#7A5A12;border-color:#E7D39A}
+.sigline{border-radius:12px;padding:8px 12px;font-size:.95rem;line-height:1.55}
+.sigline.heat{background:#FFF6EA;border:1px solid #F3D2A0}
+.sigline.cool{background:#EEF3FD;border:1px solid #CCD8F4}
+.xblock{background:#fff;border-radius:18px;padding:12px 16px;box-shadow:0 1px 2px rgba(15,30,70,.06),0 8px 24px -12px rgba(15,30,70,.18)}
+.xblock summary{cursor:pointer;font-weight:900;font-size:1.05rem;padding:4px 0}
+.xblock .in{display:flex;flex-direction:column;gap:6px;margin-top:8px}
+.xrow{display:flex;justify-content:space-between;gap:10px;align-items:baseline;border-bottom:1px dotted var(--line);padding:6px 0;font-size:.95rem}
+.xrow:last-child{border-bottom:0}
+.xrow .nm2{font-weight:700}
+.xrow .sub{font-size:.8rem;color:var(--muted)}
+.xrow button{border:0;background:none;padding:0;text-align:left;font:inherit;color:inherit;cursor:pointer}
+.sec-cols{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.sec-cols h4{margin:0 0 4px;font-size:.9rem}
+.infobox{background:var(--sunk);border-radius:14px;padding:10px 12px;font-size:.95rem;display:flex;flex-direction:column;gap:4px}
+.infobox .sub{font-size:.8rem;color:var(--muted)}
 /* ===== 質感：私人理財報告 ===== */
 :root{--gold:#B8913A;--gold-soft:#F6EFDD;--serif:"Noto Serif TC","Songti TC","PMingLiU",serif;--shadow:0 1px 2px rgba(15,30,70,.06),0 8px 24px -12px rgba(15,30,70,.18)}
 body{background:linear-gradient(180deg,#EEF1F7 0,#F5F6F9 320px,#F5F6F9 100%)}
@@ -254,6 +274,7 @@ footer{border-top:1px solid #DCCB9C}
         <li><b>公司體質</b>：看公司本身。每月營收有沒有成長、本益比貴不貴、殖利率高不高、股價淨值比。ETF 沒有這一項。</li>
       </ul>
       <p><b>技術面 75 分以上、而且公司體質好</b>（ETF 只看技術面）才會顯示「可以分批買進」，每天通常只有幾檔。走勢好但體質普通或偏弱，會提醒你觀望或少量就好。</p>
+      <p><b>其他標籤</b>：「短線過熱・可能回檔」「跌深・可能反彈」是用過熱或超賣的條件判斷，點開會寫原因和歷史機率；「除息」是近 30 天內要除息；「外資／投信連買」是連續 3 天以上買超；「營收創近三年新高」是最新月營收比過去三年每個月都高。</p>
       <p><b>小走勢圖</b>：每張卡片上的線是近三個月的收盤價，紅色代表這段期間上漲、綠色代表下跌；金色虛線是季線。</p>
       <p><b>建議買進價</b>：今天收盤附近的價格區間，建議分 2～3 次買，不要一次買完。</p>
       <p><b>跌破就賣（停損價）</b>：收盤跌破這個價格，代表看錯了，建議賣出，避免越賠越多。</p>
@@ -501,6 +522,7 @@ function holdAdvice(s,h){const T=s.T;const px=s.px,pl=(px-h.cost)*h.shares,pct=(
   if(!T){k="mid";adv="資料不足，暫時無法判斷。"}
   else if(T.down){k="bad";adv=`趨勢轉弱（跌破月線、季線），建議減碼或停損。`}
   else if(px<T.m20){k="mid";adv=`短線回檔，先續抱觀察。收盤跌破季線 ${fmt(T.m60)} 元再考慮賣。`}
+  else if(s.sig&&s.sig.type==="heat"&&pct>0){k="good";adv=`短線過熱，可能拉回到 ${fmt(s.sig.to)} 元附近。可以先賣一部分，把獲利放進口袋。`}
   else if(pct>=20&&T.K>80){k="good";adv="已經漲了不少，KD 也很高，可以先賣一部分，把獲利放進口袋。"}
   else{k="good";adv=`趨勢正常，可以續抱。收盤跌破 ${fmt(T.m60)} 元（季線）要注意。`}
   return{k,adv,pl,pct}}
@@ -559,6 +581,7 @@ function render(){
     head=`<p class="when">${v.length} 檔符合條件，分數高的排前面</p>`}
   if(!q&&ST.tab==="mine"&&!v.length){$("list").innerHTML=`<div class="empty">還沒有你的股票。<br>到「全部股票」點一檔，按「加入關注」或「我有買這檔」。</div>`;afterRender();return}
   if(!v.length){$("list").innerHTML=`<div class="empty">找不到這檔股票。目前只收錄常見的上市櫃股票和 ETF，想加入其他股票請告訴管理的人。</div>`;afterRender();return}
+  if(!q&&ST.tab==="all")head=allExtrasHTML();
   $("list").innerHTML=head+v.map(cardHTML).join("");afterRender()}
 function spark(cv,closes,ref){if(!cv)return;const dpr=window.devicePixelRatio||1,W=cv.clientWidth,H=cv.clientHeight;if(!W)return;cv.width=W*dpr;cv.height=H*dpr;const g=cv.getContext("2d");g.scale(dpr,dpr);
   const v=closes.slice(-60);if(v.length<2)return;let lo=Math.min(...v),hi=Math.max(...v);if(ref!=null&&isFinite(ref)){lo=Math.min(lo,ref);hi=Math.max(hi,ref)}const pad=(hi-lo)*0.12||1;lo-=pad;hi+=pad;
@@ -653,6 +676,38 @@ function dtCardHTML(s){
       <p class="when" style="margin-top:6px">今天最高 ${fmt(s.H)}、最低 ${fmt(s.L)}。計畫的買賣價就是樞紐點：強勢股拉回到樞紐常有支撐，弱勢股反彈到樞紐常有壓力。</p></div>
       <div><h3>為什麼選它</h3><ul class="checks">${s.checks.map(x=>`<li class="${x.ok?"ok":"bad"}"><span class="mk">${x.ok?"✓":"✗"}</span><span><span class="k">${x.k}</span>${esc(x.t)}</span></li>`).join("")}</ul></div>
     </div>`:""}</article>`}
+const IND={"01":"水泥","02":"食品","03":"塑膠","04":"紡織","05":"電機機械","06":"電器電纜","08":"玻璃陶瓷","09":"造紙","10":"鋼鐵","11":"橡膠","12":"汽車","14":"建材營造","15":"航運","16":"觀光餐旅","17":"金融保險","18":"貿易百貨","20":"其他","21":"化學","22":"生技醫療","23":"油電燃氣","24":"半導體","25":"電腦及週邊","26":"光電","27":"通信網路","28":"電子零組件","29":"電子通路","30":"資訊服務","31":"其他電子","32":"文化創意","33":"農業科技","34":"電子商務","35":"綠能環保","36":"數位雲端","37":"運動休閒","38":"居家生活"};
+const indName=s=>s.ind?(IND[String(s.ind).padStart(2,"0")]||s.ind):"";
+const dd=iso=>{const [y,m,d]=String(iso).split("-");return`${+m}/${+d}`};
+const daysTo=iso=>Math.round((Date.parse(iso+"T00:00:00+08:00")-Date.parse(new Date().toISOString().slice(0,10)+"T00:00:00+08:00"))/864e5);
+function exSoon(s){if(!s.exdiv)return null;const n=daysTo(s.exdiv.date);return n>=0&&n<=30?n:null}
+function extraBadges(s){let b="";
+  if(s.sig)b+=s.sig.type==="heat"?'<span class="badge heat">短線過熱・可能回檔</span>':'<span class="badge cool">跌深・可能反彈</span>';
+  const n=exSoon(s);if(n!=null){const x=s.exdiv;b+=`<span class="badge ex">${dd(x.date)} 除${x.type||"息"}${x.cash?" "+x.cash+" 元":x.type==="息"?"（金額待公告）":""}</span>`}
+  if(s.inst){const i=s.inst;if(Math.abs(i.fS)>=3)b+=`<span class="badge inst">外資連${i.fS>0?"買":"賣"} ${Math.abs(i.fS)} 天</span>`;if(Math.abs(i.tS)>=3)b+=`<span class="badge inst">投信連${i.tS>0?"買":"賣"} ${Math.abs(i.tS)} 天</span>`}
+  if(s.revHigh)b+='<span class="badge rev">營收創近三年新高</span>';
+  return b}
+function sigLine(s){if(!s.sig)return"";const g=s.sig;
+  return g.type==="heat"?`<p class="sigline heat">短線過熱，可能拉回到 <b>${fmt(g.to)}</b> 元附近。持有的人可以先賣一部分，想買的人等拉回再說。</p>`
+   :`<p class="sigline cool">跌深了，可能反彈到 <b>${fmt(g.to)}</b> 元附近。但趨勢還沒轉好之前，不要一次買太多。</p>`}
+function sigDetail(s){const g=s.sig,st=DATA.sigStats;if(!g||!st)return"";const a=g.type==="heat"?st.heat:st.cool,b=g.type==="heat"?st.heatBase:st.coolBase;
+  return`<div><h3>${g.type==="heat"?"為什麼說可能回檔":"為什麼說可能反彈"}</h3><ul class="checks">${g.reasons.map(t=>`<li class="${g.type==="heat"?"bad":"ok"}"><span class="mk">!</span><span>${esc(t)}</span></li>`).join("")}</ul>
+   <p class="when" style="margin-top:6px">${a&&b&&a.n?`過去一年這 ${DATA.stocks.length} 檔股票，亮這個燈之後 5 天內${g.type==="heat"?"往下跌一段":"往上彈一段"}（約 1.5 倍日均波動）的機率是 <b>${a.p}%</b>，平常是 ${b.p}%。這是機率，不是保證。`:""}</p></div>`}
+function instDetail(s){const i=s.inst;if(!i)return s.market==="上櫃"?`<div class="infobox"><b>法人動向</b><span class="sub">上櫃股票暫時沒有法人資料。</span></div>`:"";
+  const z=v=>v==null?"—":`<b class="${v>0?"up":v<0?"down":""}">${v>0?"買超 ":v<0?"賣超 ":""}${Math.abs(v).toLocaleString("zh-TW")} 張</b>`;
+  return`<div class="infobox"><b>法人動向（${dd(i.d)}）</b><span>外資 ${z(i.f)}　投信 ${z(i.t)}　自營商 ${z(i.dl)}</span><span class="sub">近 5 天合計：外資 ${i.f5>0?"買超":"賣超"} ${Math.abs(i.f5).toLocaleString("zh-TW")} 張、投信 ${i.t5>0?"買超":"賣超"} ${Math.abs(i.t5).toLocaleString("zh-TW")} 張${Math.abs(i.fS)>=2?`；外資連${i.fS>0?"買":"賣"} ${Math.abs(i.fS)} 天`:""}${Math.abs(i.tS)>=2?`；投信連${i.tS>0?"買":"賣"} ${Math.abs(i.tS)} 天`:""}</span></div>`}
+function exDetail(s){const x=s.exdiv;if(!x)return"";const n=daysTo(x.date);if(n<0)return"";
+  return`<div class="infobox"><b>除${x.type||"權息"}：${dd(x.date)}（${n===0?"今天":n+" 天後"}）</b><span>${x.cash?`每股配現金 ${x.cash} 元`:x.type==="息"?"配息金額還沒公告":""}${x.cash&&x.stock?"、":""}${x.stock?`配股 ${x.stock}`:""}${x.cash&&s.px?`，以現在股價算殖利率約 ${(x.cash/s.px*100).toFixed(2)}%`:""}</span><span class="sub">要在除息日的前一個交易日收盤前買進並持有，才領得到。</span></div>`}
+function allExtrasHTML(){
+  const sec=DATA.sectors||[];let h="";
+  if(sec.length){const top=sec.slice(0,5),bot=sec.slice(-5).reverse();const row=x=>`<div class="xrow"><span class="nm2">${esc(x.name.replace(/類?指數$/,"").replace(/類$/,""))}</span><span class="${x.pct>0?"up":x.pct<0?"down":""}">${x.pct!=null?pctTxt(x.pct):"—"}${x.p5!=null?`<span class="sub">（5 日 ${pctTxt(x.p5)}）</span>`:""}</span></div>`;
+    h+=`<details class="xblock"><summary>今天類股強弱</summary><div class="in"><div class="sec-cols"><div><h4 class="up">最強</h4>${top.map(row).join("")}</div><div><h4 class="down">最弱</h4>${bot.map(row).join("")}</div></div><span class="when">類股資料來自證交所類股指數。</span></div></details>`}
+  const ex=(DATA.exdivAll||[]).filter(x=>{const n=daysTo(x.date);return n>=0&&n<=30});
+  if(ex.length)h+=`<details class="xblock"><summary>近期除權息（30 天內，${ex.length} 檔）</summary><div class="in">${ex.map(x=>{const s=LIST.find(y=>y.code===x.code);return`<div class="xrow"><button type="button" data-goto="${x.code}"><span class="nm2">${esc(s?s.name:x.code)}</span> <span class="sub">${x.code}</span></button><span>${dd(x.date)} 除${x.type||"息"}${x.cash?`・現金 ${x.cash} 元`:x.type==="息"?"・金額待公告":""}${x.cash&&s?`<span class="sub">（殖利率 ${(x.cash/s.px*100).toFixed(1)}%）</span>`:""}</span></div>`}).join("")}</div></details>`;
+  const heat=LIST.filter(s=>s.sig&&s.sig.type==="heat"),cool=LIST.filter(s=>s.sig&&s.sig.type==="cool");
+  if(heat.length||cool.length){const it=s=>`<div class="xrow"><button type="button" data-goto="${s.code}"><span class="nm2">${esc(s.name)}</span> <span class="sub">${s.code}</span></button><span class="sub">${s.sig.type==="heat"?"可能拉回到":"可能反彈到"} ${fmt(s.sig.to)}</span></div>`;
+    h+=`<details class="xblock"><summary>短線過熱 ${heat.length} 檔・跌深 ${cool.length} 檔</summary><div class="in">${heat.length?`<h4 style="margin:4px 0 0">過熱、可能回檔</h4>${heat.map(it).join("")}`:""}${cool.length?`<h4 style="margin:8px 0 0">跌深、可能反彈</h4>${cool.map(it).join("")}`:""}</div></details>`}
+  return h}
 function cardHTML(s){
   const D=s.D,T=s.T,F=s.F,h=ST.hold[s.code];
   const fb=F&&F.grade?`<span class="badge ${GRADE[F.grade][0]}">${GRADE[F.grade][1]}</span>`:F&&F.etf&&s.dy!=null?`<span class="badge f-mid">ETF・殖利率 ${s.dy.toFixed(1)}%</span>`:"";
@@ -661,11 +716,11 @@ function cardHTML(s){
   const nums=showLv?`<div class="nums"><div class="b-buy"><span>建議買進價</span><b>${fmt(T.zone[0])}～${fmt(T.zone[1])}</b></div><div class="b-sl"><span>跌破就賣（停損）</span><b>${fmt(T.sl)}</b></div><div class="b-tp"><span>目標價一</span><b>${fmt(T.tp1)}</b></div><div class="b-tp"><span>目標價二</span><b>${fmt(T.tp2)}</b></div></div>`:"";
   let hold="";if(h){const a=holdAdvice(s,h);hold=`<div class="hold-box ${a.k}"><span>我的持股：${h.shares.toLocaleString("zh-TW")} 股，成本 ${fmt(h.cost)} 元</span><span class="pl ${cls(a.pl)}">${a.pl>=0?"賺":"賠"} ${money(Math.abs(a.pl))}（${pctTxt(a.pct)}）</span><span class="adv">${a.adv}</span></div>`}
   return`<article class="card ${D.key==="buy"?"buy":""}"><div class="c-main" data-code="${s.code}" role="button" tabindex="0" aria-expanded="${openCode===s.code}">
-    <div class="c-r1"><div class="nm"><b>${esc(s.name)}</b><span>${s.code}${s.market?"・"+s.market:""}${DATA.lastDate&&s.date&&s.date!==DATA.lastDate?`・${s.date.slice(5).replace("-","/")} 的價格`:""}</span></div>
+    <div class="c-r1"><div class="nm"><b>${esc(s.name)}</b><span>${s.code}${s.market?"・"+s.market:""}${indName(s)?"・"+indName(s):""}${DATA.lastDate&&s.date&&s.date!==DATA.lastDate?`・${s.date.slice(5).replace("-","/")} 的價格`:""}</span></div>
       <div class="px"><b class="${cls(s.chg)}">${fmt(s.px)}</b><span class="${cls(s.chg)}">${arrow(s.chg)} ${fmt(Math.abs(s.chg))}（${pctTxt(s.pct)}）</span></div></div>
     ${openCode===s.code?"":`<canvas class="spark" data-spark="${s.code}" aria-label="${esc(s.name)} 近三個月走勢"></canvas>`}
-    <div class="badges"><span class="badge ${D.key}">建議：${D.txt}</span>${fb}${hb}</div>
-    <p class="plain">${esc(D.plain)}</p>${nums}${hold}
+    <div class="badges"><span class="badge ${D.key}">建議：${D.txt}</span>${fb}${hb}${extraBadges(s)}</div>
+    <p class="plain">${esc(D.plain)}</p>${sigLine(s)}${nums}${hold}
     <span class="more">${openCode===s.code?"收起 ▲":"看詳細原因、圖表 ▼"}</span></div>${openCode===s.code?detailHTML(s):""}</article>`}
 
 function detailHTML(s){
@@ -686,6 +741,9 @@ function detailHTML(s){
     <div><h3>技術面（走勢）</h3><ul class="checks">${tChecks}</ul></div>
     ${fChecks?`<div><h3>公司體質</h3><ul class="checks">${fChecks}</ul></div>`:""}
     ${(D.key==="buy"||D.key==="watch")?`<div class="nums"><div class="b-tp"><span>目標價三（最遠）</span><b>${fmt(T.tp3)}</b></div><div><span>月線／季線</span><b>${fmt(T.m20)}／${fmt(T.m60)}</b></div></div>`:""}
+    ${sigDetail(s)}
+    ${exDetail(s)}
+    ${instDetail(s)}
     ${pos}
     ${actsHTML(s)}
   </div>`}
@@ -713,6 +771,7 @@ document.querySelectorAll("[data-tab]").forEach(b=>b.onclick=()=>{ST.tab=b.datas
 $("q").oninput=()=>{openCode=null;render()};
 $("btnSize").onclick=()=>{ST.huge=!ST.huge;save();render()};
 $("list").addEventListener("click",e=>{
+  const go=e.target.closest("[data-goto]");if(go){openCode=go.dataset.goto;formCode=null;render();const el=document.querySelector(`[data-code="${openCode}"]`);if(el)el.scrollIntoView({block:"start",behavior:"smooth"});return}
   const act=e.target.closest("[data-act]");
   if(act){const code=act.dataset.code,a=act.dataset.act;
     if(a==="fav"){ST.fav=ST.fav.includes(code)?ST.fav.filter(x=>x!==code):[...ST.fav,code];save();render()}
