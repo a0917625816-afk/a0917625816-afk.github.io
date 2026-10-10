@@ -12,7 +12,7 @@ async function getJSON(url, tries = 3) {
 }
 const num = v => { if (v == null) return null; const n = parseFloat(String(v).replace(/,/g, "")); return isFinite(n) ? n : null; };
 const pick = (o, ...keys) => { for (const k of keys) { const hit = Object.keys(o).find(x => x.replace(/\s/g, "").includes(k)); if (hit != null && o[hit] !== "" && o[hit] != null) return o[hit]; } return null; };
-const rocToISO = s => { const m = String(s || "").match(/(\d{2,4})\D+(\d{1,2})\D+(\d{1,2})/); if (!m) return null; let y = +m[1]; if (y < 1911) y += 1911; return `${y}-${String(m[2]).padStart(2, "0")}-${String(m[3]).padStart(2, "0")}`; };
+const rocToISO = v => { const s = String(v || "").trim(); const m = s.match(/^(\d{3})(\d{2})(\d{2})$/) || s.match(/^(\d{4})(\d{2})(\d{2})$/) || s.match(/(\d{2,4})\D+(\d{1,2})\D+(\d{1,2})/); if (!m) return null; let y = +m[1]; if (y < 1911) y += 1911; return `${y}-${String(m[2]).padStart(2, "0")}-${String(m[3]).padStart(2, "0")}`; };
 
 function kd(c) { const K = []; let k = 50, d = 50; const D = []; for (let i = 0; i < c.length; i++) { let lo = Infinity, hi = -Infinity; for (let j = Math.max(0, i - 8); j <= i; j++) { lo = Math.min(lo, c[j].l); hi = Math.max(hi, c[j].h); } const rsv = hi > lo ? (c[i].c - lo) / (hi - lo) * 100 : 50; k = k * 2 / 3 + rsv / 3; d = d * 2 / 3 + k / 3; K.push(k); D.push(d); } return { K, D }; }
 
@@ -80,7 +80,7 @@ export async function extras(out) {
         const code = String(pick(x, "股票代號", "Code") || "").trim(), date = rocToISO(pick(x, "除權除息日期", "Date")); if (!code || !date) return;
         exdiv[code] = { date, type: String(pick(x, "除權息", "Exdividend") || "").trim(), cash: num(pick(x, "現金股利", "CashDividend")), stock: num(pick(x, "無償配股率", "StockDividendRatio")) };
       });
-      log.exdiv = `ok ${rows.length} (${url.includes("openapi") ? "openapi" : "rwd"})`; if (rows.length) break;
+      log.exdiv = `ok ${rows.length}，對到日期 ${Object.keys(exdiv).length} (${url.includes("openapi") ? "openapi" : "rwd"})`; if (rows[0]) log.exdivSample = JSON.stringify(rows[0]).slice(0, 400); if (Object.keys(exdiv).length) break;
     } catch (e) { log.exdiv = "fail " + e.message; }
   }
   // 三大法人（上市，最近 10 個交易日）
