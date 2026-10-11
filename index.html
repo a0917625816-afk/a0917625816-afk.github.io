@@ -295,11 +295,11 @@ canvas.chart{background:#070C16;border-color:var(--line)}
 
   <section class="paper" id="paper">
     <h2>虛擬單測試</h2>
-    <p class="lead">開啟後，每次掃描到「可進場」的幣，而且分數達到下面設定的門檻（預設 85 分），才會用當下真實價格自動下一張虛擬單（遵守風控上限，分數高的優先），之後每 15 分鐘K檢查一次有沒有打到停損或 TP：TP1 平 1/3 後停損移到進場價、TP2 再平 1/3、剩下放到 TP3，並扣約 0.1% 手續費。紀錄存在這台電腦的瀏覽器裡。頁面關掉期間的價格變化，下次打開會自動補算，但關掉期間出現的新訊號會漏掉。</p>
+    <p class="lead">開啟後，每次掃描到「可進場」的幣，而且分數達到下面設定的門檻（預設 80 分），才會用當下真實價格自動下一張虛擬單（遵守風控上限，分數高的優先），之後每 15 分鐘K檢查一次有沒有打到停損或 TP：TP1 平 1/3 後停損移到進場價、TP2 再平 1/3、剩下放到 TP3，並扣約 0.1% 手續費。紀錄存在這台電腦的瀏覽器裡。頁面關掉期間的價格變化，下次打開會自動補算，但關掉期間出現的新訊號會漏掉。</p>
     <div class="chips" id="pChips"></div>
     <div class="risk-set">
       <b style="color:var(--ink)">風控上限</b>
-      <label for="rkMin">分數至少 <input id="rkMin" inputmode="numeric" value="85"> 分才下單</label>
+      <label for="rkMin">分數至少 <input id="rkMin" inputmode="numeric" value="80"> 分才下單</label>
       <label for="rkOpen">同時最多持倉 <input id="rkOpen" inputmode="numeric" value="5"> 張</label>
       <label for="rkSame">同方向最多 <input id="rkSame" inputmode="numeric" value="3"> 張</label>
       <label for="rkDay">每天最多虧 <input id="rkDay" inputmode="decimal" value="3"> R</label>
@@ -704,7 +704,7 @@ function notifyNew(){const now=new Set(rows.filter(r=>r.state==="ok"&&r.A.status
 
 /* ---------- 虛擬單 ---------- */
 const P15=9e5;
-let PAPER={trades:[],auto:true,risk:{maxOpen:5,maxSame:3,dayLoss:3,streak:3,ack:null,minScore:85}};
+let PAPER={trades:[],auto:true,risk:{maxOpen:5,maxSame:3,dayLoss:3,streak:3,ack:null,minScore:80}};
 try{const x=JSON.parse(localStorage.getItem("scanner-paper")||"null");if(x&&Array.isArray(x.trades)){const rk=Object.assign({},PAPER.risk,x.risk||{});PAPER=Object.assign(PAPER,x);PAPER.risk=rk}}catch(e){}
 function riskState(){const RK=PAPER.risk,today=new Date().toDateString();const closed=PAPER.trades.filter(t=>t.status==="closed").sort((a,b)=>b.tEnd-a.tEnd);
   const dayR=closed.filter(t=>new Date(t.tEnd).toDateString()===today).reduce((s,t)=>s+t.real,0);
@@ -716,6 +716,7 @@ function renderRisk(){const el=$("riskBanner");if(!el||MOBILE)return;const st=ri
   else if(st.streakStop)el.innerHTML=`<div class="risk-banner"><span><b>已經連續虧損 ${st.streak} 筆。</b>暫停新的虛擬單。先離開盤面休息，不要想著馬上賺回來。</span><button class="btn" type="button" id="btnAck">我休息過了，繼續</button></div>`;
   else el.innerHTML="";
   const b=$("btnAck");if(b)b.onclick=()=>{PAPER.risk.ack=st.lastId;savePaper();renderRisk();renderPaper()}}
+if(!PAPER.risk.v80){PAPER.risk.minScore=80;PAPER.risk.v80=1}
 function savePaper(){try{localStorage.setItem("scanner-paper",JSON.stringify(PAPER))}catch(e){}}
 function stepTrade(tr,b){
   const d=tr.dir,adv=d>0?b.l:b.h,fav=d>0?b.h:b.l;
@@ -741,7 +742,7 @@ function paperOpen(){
   if(riskState().paused)return;
   const RK=PAPER.risk,openT=PAPER.trades.filter(t=>t.status==="open");
   const openSet=new Set(openT.map(t=>t.base));const sameCnt={1:openT.filter(t=>t.dir===1).length,"-1":openT.filter(t=>t.dir===-1).length};
-  const cands=rows.filter(r=>r.state==="ok"&&r.A.status==="go"&&r.A.score>=(RK.minScore||85)&&live(r).k==="go"&&!openSet.has(r.base)).sort((a,b)=>b.A.score-a.A.score);
+  const cands=rows.filter(r=>r.state==="ok"&&r.A.status==="go"&&r.A.score>=(RK.minScore||80)&&live(r).k==="go"&&!openSet.has(r.base)).sort((a,b)=>b.A.score-a.A.score);
   const now=Date.now();
   for(const r of cands){if(openSet.size>=RK.maxOpen)break;const A=r.A,d=A.dir,e=r.cur,R=d*(e-A.sl);
     if(!(R>0)||d*(A.tp1-e)<=0||sameCnt[d]>=RK.maxSame)continue;sameCnt[d]++;
@@ -764,10 +765,10 @@ function renderPaper(){
     const stTxt=op?(t.stage===0?"進行中":`進行中・已到 TP${t.stage}`):t.outcome;
     const cls=r>0.02?"out-win":r<-0.02?"out-loss":"out-be";
     return`<tr><td>${tFmt(t.t0)}</td><td><span class="coin">${esc(t.base)}</span> <span class="small">${t.mode==="swing"?"波段":"短線"}</span></td><td>${t.dir>0?'<span class="pill long">做多</span>':'<span class="pill short">做空</span>'}</td><td>${t.score}</td><td>${fmtP(t.e)}</td><td class="sl">${fmtP(t.sl0)}</td><td class="tp">${fmtP(t.tp1)}</td><td class="tp">${fmtP(t.tp2)}</td><td class="tp">${fmtP(t.tp3)}</td><td style="font-family:var(--sans)">${stTxt}</td><td class="${cls}">${rTxt(r)}${op?' <span class="small">浮動</span>':""}</td></tr>`}).join("")}
-function paperText(){const st=paperStats();const L=[`合約全幣掃描｜虛擬單紀錄（匯出於 ${tFmt(Date.now())}）`,`風控：分數 ${PAPER.risk.minScore||85} 分以上才下單、同時最多 ${PAPER.risk.maxOpen} 張、同方向 ${PAPER.risk.maxSame} 張、每日最多虧 ${PAPER.risk.dayLoss}R、連虧 ${PAPER.risk.streak} 筆暫停`,`已結束 ${st.n} 筆、進行中 ${st.open} 筆｜勝率 ${st.n?Math.round(st.win/st.n*100):0}%｜平均 ${rTxt(st.avg)}｜合計 ${rTxt(st.tot)}`,""];
+function paperText(){const st=paperStats();const L=[`合約全幣掃描｜虛擬單紀錄（匯出於 ${tFmt(Date.now())}）`,`風控：分數 ${PAPER.risk.minScore||80} 分以上才下單、同時最多 ${PAPER.risk.maxOpen} 張、同方向 ${PAPER.risk.maxSame} 張、每日最多虧 ${PAPER.risk.dayLoss}R、連虧 ${PAPER.risk.streak} 筆暫停`,`已結束 ${st.n} 筆、進行中 ${st.open} 筆｜勝率 ${st.n?Math.round(st.win/st.n*100):0}%｜平均 ${rTxt(st.avg)}｜合計 ${rTxt(st.tot)}`,""];
   PAPER.trades.slice().reverse().forEach(t=>L.push(`${tFmt(t.t0)} ${t.base} ${t.mode==="swing"?"波段":"短線"} ${t.dir>0?"多":"空"} ${t.score}分｜進場 ${fmtP(t.e)} SL ${fmtP(t.sl0)} TP ${fmtP(t.tp1)}/${fmtP(t.tp2)}/${fmtP(t.tp3)}｜${t.status==="open"?"進行中（浮動 "+rTxt(floatR(t))+"）":t.outcome+" "+rTxt(t.real)+"（"+tFmt(t.tEnd)+"）"}`));
   return L.join("\n")}
-function syncRisk(){const RK=PAPER.risk;$("rkMin").value=RK.minScore||85;$("rkOpen").value=RK.maxOpen;$("rkSame").value=RK.maxSame;$("rkDay").value=RK.dayLoss;$("rkStreak").value=RK.streak}
+function syncRisk(){const RK=PAPER.risk;$("rkMin").value=RK.minScore||80;$("rkOpen").value=RK.maxOpen;$("rkSame").value=RK.maxSame;$("rkDay").value=RK.dayLoss;$("rkStreak").value=RK.streak}
 [["rkMin","minScore",50],["rkOpen","maxOpen",1],["rkSame","maxSame",1],["rkDay","dayLoss",0.5],["rkStreak","streak",1]].forEach(([id,k,min])=>$(id).addEventListener("change",()=>{const v=parseFloat($(id).value);if(v>=min){PAPER.risk[k]=k==="dayLoss"?v:Math.round(v);savePaper();renderRisk();renderPaper()}else syncRisk()}));
 function pToast(m){const t=$("pToast");t.textContent=m;t.hidden=false;setTimeout(()=>t.hidden=true,3000)}
 $("btnPaper").onclick=()=>{PAPER.auto=!PAPER.auto;savePaper();renderPaper()};
