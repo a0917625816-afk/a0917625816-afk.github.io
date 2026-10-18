@@ -5,7 +5,7 @@ import { ema, atr } from "../scripts/ta-core.mjs";
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const UA = { "User-Agent": "Mozilla/5.0 (strategy-lab)", "Accept": "application/json" };
 const DT = { "15m": 9e5, "1d": 864e5 };
-const YEARS = { "15m": +(process.env.Y15 || 1.5), "1d": 2 };
+const YEARS = { "15m": +(process.env.Y15 || 1.25), "1d": 2 };
 const COST = 0.0014, SPLIT = 0.65, N_COINS = +(process.env.N_COINS || 40);
 const EXCLUDE = new Set("MU MUU SKHYNIX TSM SOXL SNDK SNXX QQQ SPY NVDA TSLA AAPL AMZN META GOOGL MSFT COIN MSTR HOOD XAU XAG WDC AMD INTC CRCL PAXG XAUT USDC FDUSD USDE".split(" "));
 async function getJSON(url) { for (let t = 0; t < 4; t++) { try { const r = await fetch(url, { headers: UA }); if (r.status === 429) { await sleep(3000 * (t + 1)); continue; } if (!r.ok) throw new Error("HTTP " + r.status); return await r.json(); } catch (e) { if (t === 3) throw e; await sleep(1500 * (t + 1)); } } }
@@ -30,7 +30,7 @@ if (!Object.keys(data).length) {
     if (Object.keys(data).length >= N_COINS) break;
     try { const d1 = await klines(s.base, "1d"); if (d1.length < 400) continue; const m = await klines(s.base, "15m"); if (m.length < 20000) continue; data[s.base] = { "1d": d1, "15m": m }; console.log("OK", s.base, m.length); } catch (e) { console.log("失敗", s.base, e.message); }
   }
-  await fs.mkdir("lab/.cache", { recursive: true }); await fs.writeFile("lab/.cache/data3.json", JSON.stringify(data));
+  if (!process.env.CI) { try { await fs.mkdir("lab/.cache", { recursive: true }); await fs.writeFile("lab/.cache/data3.json", JSON.stringify(data)); } catch (e) { console.log("快取略過", e.message); } }
 }
 const coins = Object.keys(data); console.log("幣種", coins.length);
 
@@ -128,7 +128,7 @@ const P = [
 const t0 = Math.min(...coins.map(cn => data[cn]["15m"][0].t)) + 10 * 864e5, t1 = Math.max(...coins.map(cn => data[cn]["15m"].at(-1).t));
 const cut = t0 + SPLIT * (t1 - t0);
 const res = [];
-for (const p of P) { const tr = coins.flatMap(cn => runCoin(cn, p)); res.push({ p, IS: portfolio(tr, 5, 0.01, t0, cut), OOS: portfolio(tr, 5, 0.01, cut, Infinity), ALL: portfolio(tr, 5, 0.01, t0, Infinity) }); }
+let pi = 0; for (const p of P) { if (++pi % 20 === 0) console.log("進度", pi, "/", P.length, Math.round(process.memoryUsage().heapUsed / 1e6) + "MB"); const tr = coins.flatMap(cn => runCoin(cn, p)); res.push({ p, IS: portfolio(tr, 5, 0.01, t0, cut), OOS: portfolio(tr, 5, 0.01, cut, Infinity), ALL: portfolio(tr, 5, 0.01, t0, Infinity) }); }
 
 const fmtD = t => new Date(t).toISOString().slice(0, 10);
 const nm = p => p.fam === "ORB" ? `開盤區間 ${p.sess === "asia" ? "亞洲08:00" : "美股開盤"} ${p.mins}分 停損${p.stop === "range" ? "區間另一端" : "區間中間"} ${p.tgt ? "目標" + p.tgt + "R" : "收盤出"}` : p.fam === "DON" ? `通道突破 ${p.N / 4}小時 停損${p.k}ATR ${p.trail ? "移動停損" : "收盤出"}` : `日內動能 ${p.H + 8}點(台灣) 漲跌>${p.th * 100}% `;

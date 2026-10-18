@@ -22,7 +22,7 @@ jobs:
         with:
           node-version: '20'
       - name: 回測
-        run: node lab/run3.mjs
+        run: node --max-old-space-size=6000 lab/run3.mjs
       - name: 存檔
         run: |
           git config user.name "github-actions[bot]"
