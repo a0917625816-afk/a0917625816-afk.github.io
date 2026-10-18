@@ -28,7 +28,7 @@ if (!Object.keys(data).length) {
   const cands = bx.symbols.filter(x => !EXCLUDE.has(x.base) && !/NCCO|USD$|^\d/.test(x.base)).sort((a, b) => b.qv - a.qv);
   for (const s of [{ base: "BTC" }, ...cands.filter(x => x.base !== "BTC")]) {
     if (Object.keys(data).length >= N_COINS) break;
-    try { const d1 = await klines(s.base, "1d"); if (d1.length < 400) continue; const m = await klines(s.base, "15m"); if (m.length < 20000) continue; data[s.base] = { "1d": d1, "15m": m }; console.log("OK", s.base, m.length); } catch (e) { console.log("失敗", s.base, e.message); }
+    try { const d1 = await klines(s.base, "1d"); if (d1.length < 400) continue; const m = await klines(s.base, "15m"); console.log(s.base, "15m 根數", m.length, m[0] && new Date(m[0].t).toISOString()); if (m.length < 8000) continue; data[s.base] = { "1d": d1, "15m": m }; console.log("OK", s.base, m.length); } catch (e) { console.log("失敗", s.base, e.message); }
   }
   if (!process.env.CI) { try { await fs.mkdir("lab/.cache", { recursive: true }); await fs.writeFile("lab/.cache/data3.json", JSON.stringify(data)); } catch (e) { console.log("快取略過", e.message); } }
 }
