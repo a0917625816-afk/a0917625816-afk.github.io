@@ -21,16 +21,31 @@ async function klines(base, iv) {
   return [...map.values()].sort((a, b) => a.t - b.t).slice(0, -1);
 }
 
+// 15 分 K 改用 Binance 公開歷史檔（data.binance.vision，2 年），日K 由 15 分 K 合成
+import { execFileSync } from "node:child_process";
+const MONTHS = +(process.env.MONTHS || 24);
+async function binance15(base) {
+  const sym = base + "USDT", out = []; const now = new Date();
+  for (let k = MONTHS; k >= 1; k--) {
+    const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - k, 1)), ym = d.toISOString().slice(0, 7);
+    const url = `https://data.binance.vision/data/futures/um/monthly/klines/${sym}/15m/${sym}-15m-${ym}.zip`;
+    const r = await fetch(url); if (r.status === 404) continue; if (!r.ok) throw new Error("HTTP " + r.status);
+    const f = `/tmp/k-${sym}.zip`; await fs.writeFile(f, Buffer.from(await r.arrayBuffer()));
+    const csv = execFileSync("unzip", ["-p", f], { maxBuffer: 1 << 28 }).toString();
+    for (const line of csv.split("\n")) { const x = line.split(","); if (x.length < 6 || isNaN(+x[0])) continue; out.push({ t: +x[0], o: +x[1], h: +x[2], l: +x[3], c: +x[4], v: +x[5] }); }
+  }
+  return out;
+}
+function toDaily(m) { const out = []; let cur = null; for (const b of m) { const d = Math.floor(b.t / 864e5) * 864e5; if (!cur || cur.t !== d) { cur = { t: d, o: b.o, h: b.h, l: b.l, c: b.c, v: b.v }; out.push(cur); } else { cur.h = Math.max(cur.h, b.h); cur.l = Math.min(cur.l, b.l); cur.c = b.c; cur.v += b.v; } } return out; }
 let data = {};
-try { data = JSON.parse(await fs.readFile("lab/.cache/data3.json", "utf8")); } catch {}
-if (!Object.keys(data).length) {
+if (process.env.MOCK) { for (const b of ["BTC", "ETH", "SOL", "XRP"].slice(0, N_COINS)) { const m = await klines(b, "15m"); data[b] = { "15m": m, "1d": toDaily(m) }; } }
+else {
   const bx = JSON.parse(await fs.readFile("bingx.json", "utf8"));
   const cands = bx.symbols.filter(x => !EXCLUDE.has(x.base) && !/NCCO|USD$|^\d/.test(x.base)).sort((a, b) => b.qv - a.qv);
   for (const s of [{ base: "BTC" }, ...cands.filter(x => x.base !== "BTC")]) {
     if (Object.keys(data).length >= N_COINS) break;
-    try { const d1 = await klines(s.base, "1d"); if (d1.length < 400) continue; const m = await klines(s.base, "15m"); console.log(s.base, "15m 根數", m.length, m[0] && new Date(m[0].t).toISOString()); if (m.length < 8000) continue; data[s.base] = { "1d": d1, "15m": m }; console.log("OK", s.base, m.length); } catch (e) { console.log("失敗", s.base, e.message); }
+    try { const m = await binance15(s.base); console.log(s.base, "15m 根數", m.length, m[0] && new Date(m[0].t).toISOString()); if (m.length < 35000) continue; data[s.base] = { "15m": m, "1d": toDaily(m) }; } catch (e) { console.log("失敗", s.base, e.message); }
   }
-  if (!process.env.CI) { try { await fs.mkdir("lab/.cache", { recursive: true }); await fs.writeFile("lab/.cache/data3.json", JSON.stringify(data)); } catch (e) { console.log("快取略過", e.message); } }
 }
 const coins = Object.keys(data); console.log("幣種", coins.length);
 
