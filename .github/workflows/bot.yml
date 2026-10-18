@@ -1,7 +1,7 @@
 name: 主力策略機器人
 on:
   schedule:
-    - cron: '14 * * * *'   # 每小時（4h K 收盤後會在下一次執行時處理）
+    - cron: '1,16,31,46 * * * *'   # 每 15 分鐘（GitHub 排程可能延遲幾分鐘）
   workflow_dispatch:
   push:
     paths:

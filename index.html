@@ -270,7 +270,7 @@ canvas.chart{background:#070C16;border-color:var(--line)}
   <div class="chips" id="chips"></div>
 
   <section class="paper bot" id="bot">
-    <h2>🏆 主力策略（雲端 24 小時虛擬單）</h2>
+    <h2>🏆 主力策略・波段（雲端 24 小時虛擬單）</h2>
     <p class="lead">實驗室 3 年回測最穩的組合：<b>4 小時K 突破 55 根新高才做多</b>，而且要同時符合 ① BTC 日線站上 EMA50 ② 該幣 20 天漲幅排前 10 名 ③ 4 小時K 在 EMA200 之上。停損 = 進場價 − 2 倍 ATR，收盤跌破前 27 根最低點就出場（沒有固定 TP，讓獲利奔跑）。同時最多 5 張、每筆最多賠本金 1%。回測：最近一年沒看過的資料 年化約 +40%、最大回撤約 19%（同期抱 BTC −17%）。勝率約 26%，常常小賠、偶爾大賺，這是正常的。<br>這區由雲端每小時自動執行，不用開電腦，所有裝置看到的都一樣。</p>
     <div class="chips" id="botChips"><span class="chip">讀取中…</span></div>
     <h3 class="bot-h">持倉中</h3>
@@ -279,6 +279,11 @@ canvas.chart{background:#070C16;border-color:var(--line)}
     <div class="tbl-wrap"><table class="list"><thead><tr><th>幣種</th><th>現價</th><th>突破價</th><th>還差</th><th>20天漲</th><th>停損約</th></tr></thead><tbody id="botWatch"></tbody></table></div>
     <h3 class="bot-h">已結束</h3>
     <div class="tbl-wrap"><table class="list"><thead><tr><th>幣種</th><th>進場</th><th>出場</th><th>進場價</th><th>出場價</th><th>原因</th><th>結果</th></tr></thead><tbody id="botClosed"></tbody></table></div>
+    <h2 style="margin-top:10px">⚡ 日內版（當天平倉）</h2>
+    <p class="lead">同一套濾網（BTC 在 EMA50 之上＋20 天強勢前 10 名），改用 15 分K：<b>價格突破過去 48 小時最高點就做多</b>，停損約 3 倍小時級 ATR，每個幣一天最多 1 筆，台灣凌晨 04:00 後不再進場，<b>早上 08:00 一律平倉</b>，不留倉過夜。2 年回測：測試期 年化約 +31%、回撤 20%；最近 8 個月沒看過的資料 年化約 +108%、回撤 14%（這段剛好行情好，實際請以虛擬單為準）。開盤區間突破、日內動能、做空 都測過，扣完手續費是虧的，所以沒有放進來。每 15 分鐘自動檢查一次。</p>
+    <div class="chips" id="intraChips"></div>
+    <div class="tbl-wrap"><table class="list"><thead><tr><th>幣種</th><th>進場時間</th><th>進場價</th><th>停損</th><th>現價</th><th>目前</th></tr></thead><tbody id="intraOpen"></tbody></table></div>
+    <div class="tbl-wrap"><table class="list"><thead><tr><th>幣種</th><th>進場</th><th>出場</th><th>進場價</th><th>出場價</th><th>原因</th><th>結果</th></tr></thead><tbody id="intraClosed"></tbody></table></div>
   </section>
 
   <div class="filters">
@@ -783,8 +788,12 @@ async function loadBot(){try{const r=await fetch("https://a0917625816-afk.github
   $("botOpen").innerHTML=B.open.length?B.open.map(p=>`<tr><td><span class="coin">${esc(p.base)}</span> <span class="pill long">做多</span></td><td>${tFmt(p.t)}</td><td>${fmtP(p.e)}</td><td class="sl">${fmtP(p.stop)}</td><td>${fmtP(p.cur)}</td><td class="${p.curR>=0?"out-win":"out-loss"}">${rTxt(p.curR||0)}</td></tr>`).join(""):`<tr><td colspan="6" class="empty">${m.btcUp?"目前沒有持倉，等待突破訊號。":"大盤偏弱，策略暫停做多（這就是它回撤小的原因）。"}</td></tr>`;
   $("botWatch").innerHTML=(B.watch||[]).length?B.watch.map(w=>`<tr><td><span class="coin">${esc(w.base)}</span></td><td>${fmtP(w.cur)}</td><td class="tp">${fmtP(w.brk)}</td><td>${w.dist<=0?'<span class="pill long">已突破</span>':w.dist+"%"}</td><td class="up">+${w.mom}%</td><td class="sl">${fmtP(w.stopIf)}</td></tr>`).join(""):`<tr><td colspan="6" class="empty">目前沒有符合濾網的幣。</td></tr>`;
   $("botClosed").innerHTML=(B.closed||[]).length?B.closed.slice(0,100).map(t=>`<tr><td><span class="coin">${esc(t.base)}</span></td><td>${tFmt(t.t)}</td><td>${tFmt(t.tx)}</td><td>${fmtP(t.e)}</td><td>${fmtP(t.x)}</td><td style="font-family:var(--sans)">${esc(t.why)}</td><td class="${t.R>0?"out-win":"out-loss"}">${rTxt(t.R)}</td></tr>`).join(""):`<tr><td colspan="7" class="empty">還沒有結束的單。這是慢策略，一週可能只有幾筆。</td></tr>`;
+  const I=B.intra||{open:[],closed:[],stats:{}},is=I.stats||{};
+  $("intraChips").innerHTML=`<span class="chip">持倉 <b>${I.open.length}/5</b></span><span class="chip">已結束 <b>${is.n||0}</b></span><span class="chip go">勝率 <b>${is.n?is.win+"%":"—"}</b></span><span class="chip ${(is.sumR||0)>=0?"go":"short"}">合計 <b>${is.n?rTxt(is.sumR):"—"}</b></span><span class="chip ${(is.ret||0)>=0?"go":"short"}">帳戶 <b>${(is.ret>=0?"+":"")+(is.ret||0)}%</b></span>`;
+  $("intraOpen").innerHTML=I.open.length?I.open.map(p=>`<tr><td><span class="coin">${esc(p.base)}</span> <span class="pill long">做多</span></td><td>${tFmt(p.t)}</td><td>${fmtP(p.e)}</td><td class="sl">${fmtP(p.stop)}</td><td>${fmtP(p.cur)}</td><td class="${p.curR>=0?"out-win":"out-loss"}">${rTxt(p.curR||0)}</td></tr>`).join(""):`<tr><td colspan="6" class="empty">目前沒有日內持倉。</td></tr>`;
+  $("intraClosed").innerHTML=(I.closed||[]).length?I.closed.slice(0,100).map(t=>`<tr><td><span class="coin">${esc(t.base)}</span></td><td>${tFmt(t.t)}</td><td>${tFmt(t.tx)}</td><td>${fmtP(t.e)}</td><td>${fmtP(t.x)}</td><td style="font-family:var(--sans)">${esc(t.why)}</td><td class="${t.R>0?"out-win":"out-loss"}">${rTxt(t.R)}</td></tr>`).join(""):`<tr><td colspan="7" class="empty">還沒有結束的日內單。</td></tr>`;
 }catch(e){$("botChips").innerHTML=`<span class="chip">主力策略資料讀取失敗，稍後自動重試</span>`}}
-loadBot();setInterval(loadBot,5*6e4);
+loadBot();setInterval(loadBot,3*6e4);
 function renderPaper(){
   const st=paperStats(),unit=S.cap*S.risk/100;
   $("pChips").innerHTML=`<span class="chip">進行中 <b>${st.open}</b></span><span class="chip">已結束 <b>${st.n}</b></span><span class="chip go">勝率 <b>${st.n?Math.round(st.win/st.n*100)+"%":"—"}</b></span><span class="chip ${st.avg>=0?"go":"short"}">平均每筆 <b>${st.n?rTxt(st.avg):"—"}</b></span><span class="chip ${st.tot>=0?"go":"short"}">合計 <b>${st.n?rTxt(st.tot):"—"}</b></span><span class="chip">今天 <b class="${riskState().dayR>=0?"up":"down"}">${rTxt(riskState().dayR)}</b></span><span class="chip">換算損益 <b>${st.n?(st.tot*unit>=0?"+":"")+(st.tot*unit).toFixed(1)+" U":"—"}</b></span><span class="small" style="align-self:center">換算方式：每筆最多賠本金 ${S.risk}%（${unit.toFixed(1)} U）</span>`;

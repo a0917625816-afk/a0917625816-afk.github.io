@@ -71,6 +71,41 @@ for (const b of coins) {
   st.open.push({ base: b, t: c[i].t + H4, e, r, stop: e - r, amt: st.equity * RISK, lastBar: c[i].t, cur, curR: +((cur - e) / r).toFixed(2), mom: +(((mom.find(x => x[0] === b) || [0, 0])[1]) * 100).toFixed(1) });
 }
 st.lastBar = Math.max(st.lastBar, closedBars(D.BTC.h).at(-1).t);
+
+// ===== 日內策略：15 分K 突破過去 48 小時高點（192 根），同樣的 BTC＋強勢濾網，只做多 =====
+// 停損 = 進場 − 6×ATR14(15m)；每幣每天最多 1 筆；只在 UTC 20:00（台灣 04:00）前進場；UTC 24:00（台灣 08:00）強制平倉
+const M15 = 9e5, IN = 192, IK = 6;
+const I = st.intra = Object.assign({ equity: 1, open: [], closed: [], lastBar: 0, done: {} }, st.intra || {});
+if (!I.lastBar) I.lastBar = Math.floor(now / M15) * M15 - 2 * M15; // 第一次執行不回補舊訊號
+const iNeed = new Set([...top, ...I.open.map(p => p.base)]);
+for (const b of iNeed) {
+  let c; try { c = (await kl(b, "15m", 400)).filter(x => x.t + M15 <= now); } catch (e) { continue; } await sleep(80);
+  if (c.length < IN + 20) continue; const a = atr(c, 14);
+  for (let i = IN; i < c.length; i++) {
+    const bar = c[i], day = Math.floor(bar.t / D1), dayEnd = (day + 1) * D1;
+    const p = I.open.find(q => q.base === b);
+    if (p) {
+      if (bar.t <= p.lastBar) continue;
+      let x = null, why = "";
+      if (bar.l <= p.stop) { x = Math.min(bar.o, p.stop); why = "停損"; }
+      else if (bar.t + M15 >= p.dayEnd) { x = bar.c; why = "收盤平倉（08:00）"; }
+      p.lastBar = bar.t; p.cur = bar.c; p.curR = +((bar.c - p.e) / p.r).toFixed(2);
+      if (x != null) { const R = (x - p.e) / p.r - COST * p.e / p.r; I.equity += p.amt * R; I.closed.unshift({ ...p, x, R: +R.toFixed(3), why, tx: bar.t + M15 }); I.open = I.open.filter(q => q !== p); }
+      continue;
+    }
+    if (bar.t <= I.lastBar) continue;
+    if (bar.t >= day * D1 + 20 * 36e5 || I.done[b] === day || !btcUp || !top.has(b) || I.open.length >= MAXPOS) continue;
+    let hi = -Infinity; for (let j = i - IN; j < i; j++) hi = Math.max(hi, c[j].h);
+    if (!(bar.c > hi)) continue;
+    const e = i + 1 < c.length ? c[i + 1].o : bar.c, r = IK * a[i]; if (!(r > 0) || r / e < 0.002) continue;
+    I.done[b] = day;
+    I.open.push({ base: b, t: bar.t + M15, e, r, stop: e - r, amt: I.equity * RISK, lastBar: bar.t, dayEnd, cur: bar.c, curR: 0 });
+  }
+}
+I.lastBar = Math.floor(now / M15) * M15 - M15; // 已檢查到最近收盤的那根
+for (const k of Object.keys(I.done)) if (I.done[k] < Math.floor(now / D1) - 1) delete I.done[k];
+I.closed = I.closed.slice(0, 300);
+{ const c2 = I.closed, w = c2.filter(x => x.R > 0).length; I.stats = { n: c2.length, win: c2.length ? Math.round(w / c2.length * 100) : 0, sumR: +c2.reduce((s, x) => s + x.R, 0).toFixed(2), ret: +((I.equity - 1) * 100).toFixed(1) }; }
 st.closed = st.closed.slice(0, 300);
 const cl = st.closed, wins = cl.filter(x => x.R > 0).length;
 st.stats = { n: cl.length, win: cl.length ? Math.round(wins / cl.length * 100) : 0, avgR: cl.length ? +(cl.reduce((s, x) => s + x.R, 0) / cl.length).toFixed(2) : 0, sumR: +cl.reduce((s, x) => s + x.R, 0).toFixed(2), ret: +((st.equity - 1) * 100).toFixed(1) };
