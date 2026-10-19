@@ -1,7 +1,9 @@
 name: 主力策略機器人
+# GitHub 的排程常常延遲或漏跑，所以改成「一個工作連續跑約 5.5 小時、每 15 分鐘執行一次」，
+# 排程只負責把它叫起來；同時間只會有一個在跑，下一個會排隊接手。
 on:
   schedule:
-    - cron: '1,16,31,46 * * * *'   # 每 15 分鐘（GitHub 排程可能延遲幾分鐘）
+    - cron: '3 * * * *'
   workflow_dispatch:
   push:
     paths:
@@ -15,18 +17,26 @@ concurrency:
 jobs:
   run:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 350
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
-      - run: node scripts/bot.mjs
-      - name: 存檔
+      - name: 每 15 分鐘執行
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add bot.json
-          if git diff --cached --quiet; then exit 0; fi
-          git commit -m "機器人更新 $(TZ=Asia/Taipei date '+%m-%d %H:%M')"
-          for i in 1 2 3; do git pull --rebase origin main && git push && break; sleep 5; done
+          END=$(( $(date +%s) + 330*60 ))
+          while [ $(date +%s) -lt $END ]; do
+            git pull -q --rebase origin main || git rebase --abort || true
+            node scripts/bot.mjs > /tmp/bot.log 2>&1 || tail -5 /tmp/bot.log
+            git add bot.json
+            if ! git diff --cached --quiet; then
+              git commit -q -m "機器人更新 $(TZ=Asia/Taipei date '+%m-%d %H:%M')"
+              for i in 1 2 3 4; do git pull -q --rebase origin main && git push -q && break; sleep 7; done
+            fi
+            NOW=$(date +%s); NEXT=$(( (NOW/900 + 1)*900 + 40 ))
+            [ $NEXT -ge $END ] && break
+            sleep $(( NEXT - NOW ))
+          done
