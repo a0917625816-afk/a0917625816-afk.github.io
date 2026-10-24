@@ -269,22 +269,6 @@ canvas.chart{background:#070C16;border-color:var(--line)}
   <div class="statusbar" id="statusbar"><span><span class="dot warn"></span>準備中…</span></div>
   <div class="chips" id="chips"></div>
 
-  <section class="paper bot" id="bot">
-    <h2>🏆 主力策略・波段（雲端 24 小時虛擬單・不用開網頁）</h2>
-    <p class="lead">實驗室 3 年回測最穩的組合：<b>4 小時K 突破 55 根新高才做多</b>，而且要同時符合 ① BTC 日線站上 EMA50 ② 該幣 20 天漲幅排前 10 名 ③ 4 小時K 在 EMA200 之上。停損 = 進場價 − 2 倍 ATR，收盤跌破前 27 根最低點就出場（沒有固定 TP，讓獲利奔跑）。同時最多 5 張、每筆最多賠本金 1%。回測：最近一年沒看過的資料 年化約 +40%、最大回撤約 19%（同期抱 BTC −17%）。勝率約 26%，常常小賠、偶爾大賺，這是正常的。<br>這區由雲端每小時自動執行，不用開電腦，所有裝置看到的都一樣。</p>
-    <div class="chips" id="botChips"><span class="chip">讀取中…</span></div>
-    <h3 class="bot-h">持倉中</h3>
-    <div class="tbl-wrap"><table class="list"><thead><tr><th>幣種</th><th>進場時間</th><th>進場價</th><th>停損</th><th>現價</th><th>目前</th></tr></thead><tbody id="botOpen"></tbody></table></div>
-    <h3 class="bot-h">快要突破（符合濾網，價格接近 55 根新高）</h3>
-    <div class="tbl-wrap"><table class="list"><thead><tr><th>幣種</th><th>現價</th><th>突破價</th><th>還差</th><th>20天漲</th><th>停損約</th></tr></thead><tbody id="botWatch"></tbody></table></div>
-    <h3 class="bot-h">已結束</h3>
-    <div class="tbl-wrap"><table class="list"><thead><tr><th>幣種</th><th>進場</th><th>出場</th><th>進場價</th><th>出場價</th><th>原因</th><th>結果</th></tr></thead><tbody id="botClosed"></tbody></table></div>
-    <h2 style="margin-top:10px">⚡ 日內版（當天平倉）</h2>
-    <p class="lead">同一套濾網（BTC 在 EMA50 之上＋20 天強勢前 10 名），改用 15 分K：<b>價格突破過去 48 小時最高點就做多</b>，停損約 3 倍小時級 ATR，每個幣一天最多 1 筆，台灣凌晨 04:00 後不再進場，<b>早上 08:00 一律平倉</b>，不留倉過夜。2 年回測：測試期 年化約 +31%、回撤 20%；最近 8 個月沒看過的資料 年化約 +108%、回撤 14%（這段剛好行情好，實際請以虛擬單為準）。開盤區間突破、日內動能、做空 都測過，扣完手續費是虧的，所以沒有放進來。每 15 分鐘自動檢查一次。</p>
-    <div class="chips" id="intraChips"></div>
-    <div class="tbl-wrap"><table class="list"><thead><tr><th>幣種</th><th>進場時間</th><th>進場價</th><th>停損</th><th>現價</th><th>目前</th></tr></thead><tbody id="intraOpen"></tbody></table></div>
-    <div class="tbl-wrap"><table class="list"><thead><tr><th>幣種</th><th>進場</th><th>出場</th><th>進場價</th><th>出場價</th><th>原因</th><th>結果</th></tr></thead><tbody id="intraClosed"></tbody></table></div>
-  </section>
 
   <div class="filters">
     <span class="lbl">顯示</span>
@@ -318,6 +302,23 @@ canvas.chart{background:#070C16;border-color:var(--line)}
   </div>
 
   <div class="mlist" id="mlist" hidden></div>
+
+  <section class="paper bot" id="bot">
+    <h2>🏆 主力策略・波段（雲端 24 小時虛擬單・不用開網頁）</h2>
+    <p class="lead">實驗室 3 年回測最穩的組合：<b>4 小時K 突破 55 根新高才做多</b>，而且要同時符合 ① BTC 日線站上 EMA50 ② 該幣 20 天漲幅排前 10 名 ③ 4 小時K 在 EMA200 之上。停損 = 進場價 − 2 倍 ATR，收盤跌破前 27 根最低點就出場（沒有固定 TP，讓獲利奔跑）。同時最多 5 張、每筆最多賠本金 1%。回測：最近一年沒看過的資料 年化約 +40%、最大回撤約 19%（同期抱 BTC −17%）。勝率約 26%，常常小賠、偶爾大賺，這是正常的。<br>這區由雲端每 15 分鐘自動執行，不用開電腦，所有裝置看到的都一樣。</p>
+    <div class="chips" id="botChips"><span class="chip">讀取中…</span></div>
+    <h3 class="bot-h">持倉中</h3>
+    <div class="tbl-wrap"><table class="list"><thead><tr><th>幣種</th><th>進場時間</th><th>進場價</th><th>停損</th><th>現價</th><th>目前</th></tr></thead><tbody id="botOpen"></tbody></table></div>
+    <h3 class="bot-h">快要突破（符合濾網，價格接近 55 根新高）</h3>
+    <div class="tbl-wrap"><table class="list"><thead><tr><th>幣種</th><th>現價</th><th>突破價</th><th>還差</th><th>20天漲</th><th>停損約</th></tr></thead><tbody id="botWatch"></tbody></table></div>
+    <h3 class="bot-h">已結束</h3>
+    <div class="tbl-wrap"><table class="list"><thead><tr><th>幣種</th><th>進場</th><th>出場</th><th>進場價</th><th>出場價</th><th>原因</th><th>結果</th></tr></thead><tbody id="botClosed"></tbody></table></div>
+    <h2 style="margin-top:10px">⚡ 日內版（當天平倉）</h2>
+    <p class="lead">同一套濾網（BTC 在 EMA50 之上＋20 天強勢前 10 名），改用 15 分K：<b>價格突破過去 48 小時最高點就做多</b>，停損約 3 倍小時級 ATR，每個幣一天最多 1 筆，台灣凌晨 04:00 後不再進場，<b>早上 08:00 一律平倉</b>，不留倉過夜。2 年回測：測試期 年化約 +31%、回撤 20%；最近 8 個月沒看過的資料 年化約 +108%、回撤 14%（這段剛好行情好，實際請以虛擬單為準）。開盤區間突破、日內動能、做空 都測過，扣完手續費是虧的，所以沒有放進來。每 15 分鐘自動檢查一次。</p>
+    <div class="chips" id="intraChips"></div>
+    <div class="tbl-wrap"><table class="list"><thead><tr><th>幣種</th><th>進場時間</th><th>進場價</th><th>停損</th><th>現價</th><th>目前</th></tr></thead><tbody id="intraOpen"></tbody></table></div>
+    <div class="tbl-wrap"><table class="list"><thead><tr><th>幣種</th><th>進場</th><th>出場</th><th>進場價</th><th>出場價</th><th>原因</th><th>結果</th></tr></thead><tbody id="intraClosed"></tbody></table></div>
+  </section>
 
   <section class="paper" id="paper">
     <h2>舊版虛擬單（評分制・要開著網頁才會下單）</h2>
