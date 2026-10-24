@@ -22,7 +22,7 @@ try { st = Object.assign(st, JSON.parse(await fs.readFile(FILE, "utf8"))); } cat
 
 const bx = JSON.parse(await fs.readFile("bingx.json", "utf8"));
 const univ = ["BTC", ...bx.symbols.filter(x => x.base !== "BTC" && !EXCLUDE.has(x.base) && !/NCCO|USD$|^\d/.test(x.base)).sort((a, b) => b.qv - a.qv).map(x => x.base)];
-const need = new Set([...univ.slice(0, UNIV + 10), ...st.open.map(p => p.base)]);
+const need = new Set([...univ.slice(0, UNIV + 10), ...st.open.map(p => p.base), ...((st.b || {}).open || []).map(p => p.base)]);
 const D = {};
 for (const b of need) { try { const d = await kl(b, "1d", 260), h = await kl(b, "4h", 320); if (d.length >= 60 && h.length >= 260) D[b] = { d, h }; } catch (e) { console.log("略過", b, e.message); } await sleep(80); }
 const coins = univ.filter(b => D[b]).slice(0, UNIV);
@@ -37,23 +37,32 @@ const mom = coins.map(b => { const d = lastDayClosed(D[b].d); return d.length > 
 const top = new Set(mom.slice(0, TOPK).filter(x => x[1] > 0).map(x => x[0]));
 
 // 1) 管理持倉：逐根處理上次之後收盤的 4h K
-for (const p of [...st.open]) {
-  const c = D[p.base] ? closedBars(D[p.base].h) : null; if (!c) continue;
-  for (let i = M; i < c.length; i++) {
-    const b = c[i]; if (b.t <= p.lastBar) continue;
-    let x = null, why = "";
-    if (b.l <= p.stop) { x = Math.min(b.o, p.stop); why = "停損"; }
-    else { let lo = Infinity; for (let j = i - M; j < i; j++) lo = Math.min(lo, c[j].l); if (b.c < lo) { x = b.c; why = "跌破通道出場"; } }
-    p.lastBar = b.t; p.last = b.c; p.hi = Math.max(p.hi || p.e, b.h);
-    if (x != null) {
-      const R = (x - p.e) / p.r - COST * p.e / p.r;
-      st.equity += p.amt * R;
-      st.closed.unshift({ ...p, x, R: +R.toFixed(3), why, tx: b.t + H4 });
-      st.open = st.open.filter(q => q !== p); break;
+// A 版＝原版；B 版＝漲到 1R 先平 1/3、剩下停損移到成本（10/24 起兩版並行比較）
+const B = st.b = Object.assign({ equity: 1, open: [], closed: [] }, st.b || {});
+function manageSwing(S, partial) {
+  for (const p of [...S.open]) {
+    const c = D[p.base] ? closedBars(D[p.base].h) : null; if (!c) continue;
+    p.real ||= 0;
+    for (let i = M; i < c.length; i++) {
+      const b = c[i]; if (b.t <= p.lastBar) continue;
+      let x = null, why = "";
+      if (b.l <= p.stop) { x = Math.min(b.o, p.stop); why = p.took ? "保本出場" : "停損"; }
+      else {
+        if (partial && !p.took && b.h >= p.e + p.r) { p.took = true; p.real += 1 / 3; p.stop = Math.max(p.stop, p.e + 0.05 * p.r); }
+        let lo = Infinity; for (let j = i - M; j < i; j++) lo = Math.min(lo, c[j].l); if (b.c < lo) { x = b.c; why = "跌破通道出場"; }
+      }
+      p.lastBar = b.t; p.last = b.c; p.hi = Math.max(p.hi || p.e, b.h);
+      if (x != null) {
+        const left = p.took ? 2 / 3 : 1, R = p.real + left * (x - p.e) / p.r - COST * p.e / p.r;
+        S.equity += p.amt * R;
+        S.closed.unshift({ ...p, x, R: +R.toFixed(3), why, tx: b.t + H4 });
+        S.open = S.open.filter(q => q !== p); break;
+      }
     }
+    if (S.open.includes(p)) { const live = D[p.base].h.at(-1).c; p.cur = live; p.curR = +((p.real || 0) + (p.took ? 2 / 3 : 1) * (live - p.e) / p.r).toFixed(2); }
   }
-  if (st.open.includes(p)) { const live = D[p.base].h.at(-1).c; p.cur = live; p.curR = +((live - p.e) / p.r).toFixed(2); }
 }
+manageSwing(st, false); manageSwing(B, true);
 
 // 2) 新訊號：最近收盤的 4h K（以及上次執行後漏掉的）
 const watch = [];
@@ -66,9 +75,11 @@ for (const b of coins) {
   if (!(c[i].t > st.lastBar)) continue;
   const sig = c[i].c > hiPrev && okTrend;
   if (!sig || !btcUp || !okTop) continue;
-  if (st.open.length >= MAXPOS || st.open.some(p => p.base === b)) continue;
   const nxt = all.find(x => x.t === c[i].t + H4); const e = nxt ? nxt.o : c[i].c, r = K * a[i];
-  st.open.push({ base: b, t: c[i].t + H4, e, r, stop: e - r, amt: st.equity * RISK, lastBar: c[i].t, cur, curR: +((cur - e) / r).toFixed(2), mom: +(((mom.find(x => x[0] === b) || [0, 0])[1]) * 100).toFixed(1) });
+  for (const S of [st, B]) {
+    if (S.open.length >= MAXPOS || S.open.some(p => p.base === b)) continue;
+    S.open.push({ base: b, t: c[i].t + H4, e, r, stop: e - r, amt: S.equity * RISK, lastBar: c[i].t, cur, curR: +((cur - e) / r).toFixed(2), real: 0, took: false, mom: +(((mom.find(x => x[0] === b) || [0, 0])[1]) * 100).toFixed(1) });
+  }
 }
 st.lastBar = Math.max(st.lastBar, closedBars(D.BTC.h).at(-1).t);
 
@@ -112,6 +123,8 @@ I.closed = I.closed.slice(0, 300);
 st.closed = st.closed.slice(0, 300);
 const cl = st.closed, wins = cl.filter(x => x.R > 0).length;
 st.stats = { n: cl.length, win: cl.length ? Math.round(wins / cl.length * 100) : 0, avgR: cl.length ? +(cl.reduce((s, x) => s + x.R, 0) / cl.length).toFixed(2) : 0, sumR: +cl.reduce((s, x) => s + x.R, 0).toFixed(2), ret: +((st.equity - 1) * 100).toFixed(1) };
+B.closed = B.closed.slice(0, 300);
+{ const c2 = B.closed, w = c2.filter(x => x.R > 0).length; B.stats = { n: c2.length, win: c2.length ? Math.round(w / c2.length * 100) : 0, sumR: +c2.reduce((s, x) => s + x.R, 0).toFixed(2), ret: +((B.equity - 1) * 100).toFixed(1) }; }
 st.market = { btcUp, btc: bD[bI].c, btcE50: +bE[bI].toFixed(1), top: [...top] };
 st.watch = watch.filter(w => w.top && w.ema200).sort((a, b) => a.dist - b.dist).slice(0, 12);
 st.updated = new Date().toISOString();
