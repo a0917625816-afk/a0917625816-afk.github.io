@@ -2,7 +2,7 @@
 // 策略：4h 通道突破（55 根新高）＋ 4h EMA200 之上 ＋ BTC 日線站上 EMA50 ＋ 20 日漲幅前 10 名
 // 停損 2×ATR14，收盤跌破前 27 根最低點出場；同時最多 5 張；每筆風險 1%
 import fs from "node:fs/promises";
-import { ema, atr } from "./ta-core.mjs";
+import { ema, sma, atr } from "./ta-core.mjs";
 
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const UA = { "User-Agent": "Mozilla/5.0 (radar-bot)", "Accept": "application/json" };
@@ -14,7 +14,7 @@ async function getJSON(url) { for (let t = 0; t < 4; t++) { try { const r = awai
 async function kl(base, iv, limit) {
   const j = await getJSON(`https://open-api.bingx.com/openApi/swap/v3/quote/klines?symbol=${base}-USDT&interval=${iv}&limit=${limit}`);
   if (j.code !== 0 || !Array.isArray(j.data)) throw new Error("bad data");
-  return j.data.map(x => ({ t: +x.time, o: +x.open, h: +x.high, l: +x.low, c: +x.close })).sort((a, b) => a.t - b.t);
+  return j.data.map(x => ({ t: +x.time, o: +x.open, h: +x.high, l: +x.low, c: +x.close, v: +x.volume })).sort((a, b) => a.t - b.t);
 }
 
 let st = { equity: 1, open: [], closed: [], lastBar: 0, created: Date.now() };
@@ -73,6 +73,7 @@ for (const b of coins) {
 st.lastBar = Math.max(st.lastBar, closedBars(D.BTC.h).at(-1).t);
 
 // ===== 日內策略：15 分K 突破過去 48 小時高點（192 根），同樣的 BTC＋強勢濾網，只做多 =====
+// 進場品質：突破 K 量 >1.5 倍均量、收在上方 40%（10/24 第四輪回測加入）
 // 停損 = 進場 − 6×ATR14(15m)；每幣每天最多 1 筆；只在 UTC 20:00（台灣 04:00）前進場；UTC 24:00（台灣 08:00）強制平倉
 const M15 = 9e5, IN = 192, IK = 6;
 const I = st.intra = Object.assign({ equity: 1, open: [], closed: [], lastBar: 0, done: {} }, st.intra || {});
@@ -80,7 +81,7 @@ if (!I.lastBar) I.lastBar = Math.floor(now / M15) * M15 - 2 * M15; // 第一次�
 const iNeed = new Set([...top, ...I.open.map(p => p.base)]);
 for (const b of iNeed) {
   let c; try { c = (await kl(b, "15m", 400)).filter(x => x.t + M15 <= now); } catch (e) { continue; } await sleep(80);
-  if (c.length < IN + 20) continue; const a = atr(c, 14);
+  if (c.length < IN + 20) continue; const a = atr(c, 14), v20 = sma(c.map(x => x.v), 20);
   for (let i = IN; i < c.length; i++) {
     const bar = c[i], day = Math.floor(bar.t / D1), dayEnd = (day + 1) * D1;
     const p = I.open.find(q => q.base === b);
@@ -97,8 +98,10 @@ for (const b of iNeed) {
     if (bar.t >= day * D1 + 20 * 36e5 || I.done[b] === day || !btcUp || !top.has(b) || I.open.length >= MAXPOS) continue;
     let hi = -Infinity; for (let j = i - IN; j < i; j++) hi = Math.max(hi, c[j].h);
     if (!(bar.c > hi)) continue;
+    I.done[b] = day; // 每天只看當天第一次突破（跟回測一致）
+    // 第四輪回測合格的品質濾網：突破那根量 > 前 20 根平均 1.5 倍，且收在 K 棒上方 40% 以內
+    const rng = bar.h - bar.l; if (!(bar.v > 1.5 * v20[i]) || !(rng > 0 && (bar.c - bar.l) / rng >= 0.6)) continue;
     const e = i + 1 < c.length ? c[i + 1].o : bar.c, r = IK * a[i]; if (!(r > 0) || r / e < 0.002) continue;
-    I.done[b] = day;
     I.open.push({ base: b, t: bar.t + M15, e, r, stop: e - r, amt: I.equity * RISK, lastBar: bar.t, dayEnd, cur: bar.c, curR: 0 });
   }
 }

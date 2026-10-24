@@ -314,7 +314,7 @@ canvas.chart{background:#070C16;border-color:var(--line)}
     <h3 class="bot-h">已結束</h3>
     <div class="tbl-wrap"><table class="list"><thead><tr><th>幣種</th><th>進場</th><th>出場</th><th>進場價</th><th>出場價</th><th>原因</th><th>結果</th></tr></thead><tbody id="botClosed"></tbody></table></div>
     <h2 style="margin-top:10px">⚡ 日內版（當天平倉）</h2>
-    <p class="lead">同一套濾網（BTC 在 EMA50 之上＋20 天強勢前 10 名），改用 15 分K：<b>價格突破過去 48 小時最高點就做多</b>，停損約 3 倍小時級 ATR，每個幣一天最多 1 筆，台灣凌晨 04:00 後不再進場，<b>早上 08:00 一律平倉</b>，不留倉過夜。2 年回測：測試期 年化約 +31%、回撤 20%；最近 8 個月沒看過的資料 年化約 +108%、回撤 14%（這段剛好行情好，實際請以虛擬單為準）。開盤區間突破、日內動能、做空 都測過，扣完手續費是虧的，所以沒有放進來。每 15 分鐘自動檢查一次。</p>
+    <p class="lead">同一套濾網（BTC 在 EMA50 之上＋20 天強勢前 10 名），改用 15 分K：<b>價格突破過去 48 小時最高點就做多</b>，而且突破那根要<b>量能放大 1.5 倍以上、收盤收在 K 棒上半段</b>（10/24 加入，回測勝率 43.6%→45%、平均獲利 +0.06R→+0.10R、最大回撤 35%→26%），停損約 3 倍小時級 ATR，每個幣一天最多 1 筆，台灣凌晨 04:00 後不再進場，<b>早上 08:00 一律平倉</b>，不留倉過夜。2 年回測：測試期 年化約 +31%、回撤 20%；最近 8 個月沒看過的資料 年化約 +108%、回撤 14%（這段剛好行情好，實際請以虛擬單為準）。開盤區間突破、日內動能、做空 都測過，扣完手續費是虧的，所以沒有放進來。每 15 分鐘自動檢查一次。</p>
     <div class="chips" id="intraChips"></div>
     <div class="tbl-wrap"><table class="list"><thead><tr><th>幣種</th><th>進場時間</th><th>進場價</th><th>停損</th><th>現價</th><th>目前</th></tr></thead><tbody id="intraOpen"></tbody></table></div>
     <div class="tbl-wrap"><table class="list"><thead><tr><th>幣種</th><th>進場</th><th>出場</th><th>進場價</th><th>出場價</th><th>原因</th><th>結果</th></tr></thead><tbody id="intraClosed"></tbody></table></div>
