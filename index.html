@@ -350,7 +350,8 @@ canvas.chart{background:#070C16;border-color:var(--line)}
         <li><b>波段 B</b>：進場同 A，漲到 1R 先賣 1/3、剩下保本。勝率較高（約 51%），賺得少一點。跑到 11/24 跟 A 比，留哪版由你決定。</li>
         <li><b>日內</b>：15 分K 突破 48 小時新高，要量能放大、收盤夠強、而且是成交額夠大的熱門幣；早上 08:00 一律平倉。</li>
         <li>三組都要先過濾：BTC 日線站上 EMA50、該幣 20 天漲幅前 10 名。每筆最多賠本金 1%。</li></ul></div>
-      <div class="intel-card"><h4>② 情報團＋多空辯論（每週日）</h4><ul>
+      <div class="intel-card"><h4>② 情報團＋多空辯論（每 3 天）</h4><ul>
+        <li>全隊共同任務：<b>在平均獲利不變差、回撤不變大的前提下，把勝率拉高</b>。</li>
         <li>4 名觀察員：新聞總經、莊家思維（資金費率、爆倉單）、華爾街（ETF、選擇權）、社群情緒（脆、X、PTT 等公開討論）。</li>
         <li>多方、空方兩位辯手根據情報互相反駁，裁判下結論。</li>
         <li>結論只用來<b>提醒風險日期、要小心的幣、決定先回測哪個點子</b>，不會憑感覺改機器人。</li></ul></div>
@@ -391,8 +392,8 @@ canvas.chart{background:#070C16;border-color:var(--line)}
   </section>
 
   <section class="paper bot" id="intel">
-    <h2>🧠 情報團＋多空辯論（每週更新）</h2>
-    <p class="lead">每週由 4 名觀察員（新聞總經、莊家思維、華爾街、社群情緒）收集情報，再由多方、空方兩位辯手各自提出理由互相反駁，最後裁判下結論。<b>情報只用來提醒風險、決定要回測哪些點子，不會直接改機器人的進出場規則</b>；任何新規則都要回測做到「勝率提高、平均獲利不低於原本 9 成、回撤不超過 1.2 倍」才會上線。內容僅供參考，不是投資建議。</p>
+    <h2>🧠 情報團＋多空辯論（每 3 天開會）</h2>
+    <p class="lead">每 3 天由 4 名觀察員（新聞總經、莊家思維、華爾街、社群情緒）收集情報，再由多方、空方兩位辯手各自提出理由互相反駁，最後裁判下結論。<b>情報只用來提醒風險、決定要回測哪些點子，不會直接改機器人的進出場規則</b>；任何新規則都要回測做到「勝率提高、平均獲利不低於原本 9 成、回撤不超過 1.2 倍」才會上線。內容僅供參考，不是投資建議。</p>
     <div id="intelBody"><p class="lead">讀取中…</p></div>
   </section>
 
@@ -880,14 +881,14 @@ async function loadOffice(){const fl=$("officeFloor");if(!fl)return;
   const pad=n=>String(n).padStart(2,"0"),hm=ms=>{const d=new Date(ms);return pad(d.getMonth()+1)+"/"+pad(d.getDate())+" "+pad(d.getHours())+":"+pad(d.getMinutes())};
   const botSt=(o,label)=>{if(!B)return["r","讀不到資料"];if(!alive)return["r",`${ago} 分鐘沒回報`];const n=(o&&o.open||[]).length;if(n)return["g",`${label} ${n} 張`];return btcUp?["g","盯盤中"]:["y","待命（BTC 濾網關）"]};
   const lab=LAB&&LAB.workflow_runs&&LAB.workflow_runs[0],labBusy=lab&&lab.status!=="completed";
-  const nextSun=(()=>{const d=new Date();const add=(7-d.getDay())%7;const n=new Date(d.getFullYear(),d.getMonth(),d.getDate()+add,19,52);if(n<d)n.setDate(n.getDate()+7);return pad(n.getMonth()+1)+"/"+pad(n.getDate())+" 19:52"})();
+  const nextSun=(()=>{const d=new Date();for(let k=0;k<5;k++){const n=new Date(d.getFullYear(),d.getMonth(),d.getDate()+k,19,52);if(n>d&&n.getDate()%3===1)return pad(n.getMonth()+1)+"/"+pad(n.getDate())+" 19:52"}return"3 天內"})();
   const meet=["y",`下次開會 ${nextSun}`];
   const D=(av,nm,rl,st,busy)=>`<div class="desk"><span class="av${busy?" busy":""}" aria-hidden="true">${av}</span><span class="nm">${esc(nm)}</span><span class="rl">${esc(rl)}</span><span class="stt ${st[0]}"><i></i>${esc(st[1])}</span></div>`;
   const R=(t,d)=>`<div class="room"><h5>${t}</h5><div class="desks">${d.join("")}</div></div>`;
   const sA=botSt(B,"持倉"),sB=botSt(B&&B.b,"持倉"),sI=botSt(B&&B.intra,"持倉");
   fl.innerHTML=R("💹 交易區（24 小時）",[D("🤖","波段 A","4h 突破・讓利潤跑",sA,alive),D("🦾","波段 B","1R 先收 1/3",sB,alive),D("⚡","日內","15m 突破・08:00 平倉",sI,alive)])
-   +R("🔭 情報室（每週日）",[D("🗞️","觀察員1","新聞＋總經",meet),D("🎲","觀察員2","莊家思維",meet),D("🏦","觀察員3","華爾街",meet),D("💬","觀察員4","社群情緒",meet)])
-   +R("⚖️ 會議室（每週日）",[D("🐂","多方","找做多理由",meet),D("🐻","空方","找風險",meet),D("🧑‍⚖️","裁判","下結論",I?["g",esc(I.verdict.winner)]:meet)])
+   +R("🔭 情報室（每 3 天）",[D("🗞️","觀察員1","新聞＋總經",meet),D("🎲","觀察員2","莊家思維",meet),D("🏦","觀察員3","華爾街",meet),D("💬","觀察員4","社群情緒",meet)])
+   +R("⚖️ 會議室（每 3 天）",[D("🐂","多方","找做多理由",meet),D("🐻","空方","找風險",meet),D("🧑‍⚖️","裁判","下結論",I?["g",esc(I.verdict.winner)]:meet)])
    +R("🧪 實驗室",[D("🔬","回測員","歷史資料驗證",lab?(labBusy?["g","回測中…"]:["y","待命"]):["y","待命"],labBusy),D("🎰","蒙地卡羅","模擬 1000 次",labBusy?["g","計算中…"]:["y","待命"],labBusy)]);
   if(!B)return;
   const all=[...(B.open||[]).map(p=>({k:"A",p})),...((B.b||{}).open||[]).map(p=>({k:"B",p})),...((B.intra||{}).open||[]).map(p=>({k:"日內",p}))];
