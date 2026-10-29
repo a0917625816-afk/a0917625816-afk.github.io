@@ -150,6 +150,28 @@ details.sec ol,details.sec ul{margin:0;padding-left:1.3em;display:flex;flex-dire
 .intel-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:10px}
 .intel-card{border:1px solid var(--line);border-radius:10px;padding:10px 12px;background:var(--sunk)}
 .intel-card h4{margin:0 0 6px;font-size:.92rem}
+.office-wrap{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:12px}
+@media (max-width:860px){.office-wrap{grid-template-columns:1fr}}
+.office-floor{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,230px),1fr));gap:10px;padding:10px;border-radius:12px;border:2px solid #24324f;
+  background-color:#13203a;background-image:linear-gradient(#1a2a48 1px,transparent 1px),linear-gradient(90deg,#1a2a48 1px,transparent 1px);background-size:22px 22px;align-items:start}
+.room{border:2px solid #2c3d60;border-radius:10px;background:rgba(6,10,18,.55);padding:8px}
+.room>h5{margin:0 0 6px;font-size:.8rem;color:var(--muted);letter-spacing:.05em}
+.desks{display:grid;grid-template-columns:repeat(auto-fill,minmax(98px,1fr));gap:6px}
+.desk{background:#3a2a1c;border:2px solid #5a4029;border-radius:8px;padding:6px 4px 5px;text-align:center;position:relative}
+.desk .av{font-size:1.7rem;line-height:1.1;display:block}
+.desk .av.busy{animation:bob 1.2s ease-in-out infinite}
+@keyframes bob{50%{transform:translateY(-2px)}}
+@media (prefers-reduced-motion:reduce){.desk .av.busy{animation:none}}
+.desk .nm{display:block;font-size:.76rem;font-weight:600;color:#f4e6d4}
+.desk .rl{display:block;font-size:.66rem;color:#c9b49a}
+.desk .stt{display:inline-flex;align-items:center;gap:4px;margin-top:3px;font-size:.66rem;background:var(--sunk);border-radius:999px;padding:1px 7px;color:var(--ink)}
+.desk .stt i{width:7px;height:7px;border-radius:50%;display:inline-block;background:var(--muted)}
+.stt.g i{background:var(--long)}.stt.y i{background:var(--watch)}.stt.r i{background:var(--short)}
+.o-stats{display:grid;grid-template-columns:repeat(2,1fr);gap:6px}
+.o-stats div{border:1px solid var(--line);border-radius:8px;padding:6px;text-align:center;font-size:.72rem;color:var(--muted)}
+.o-stats b{display:block;font-size:1.15rem;color:var(--ink);font-family:var(--mono)}
+.o-feed{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:4px;font-size:.78rem}
+.o-feed li{display:flex;gap:6px;align-items:baseline}.o-feed time{color:var(--muted);font-family:var(--mono);font-size:.7rem;flex:none}
 .intel-card ul{margin:0;padding-left:1.2em}
 .intel-card li,.intel-card p{font-size:.86rem;line-height:1.55;margin:2px 0}
 .bot .tbl-wrap{max-height:min(380px,60vh)}
@@ -307,6 +329,18 @@ canvas.chart{background:#070C16;border-color:var(--line)}
   </div>
 
   <div class="mlist" id="mlist" hidden></div>
+
+  <section class="paper bot" id="office">
+    <h2>🏢 AI 交易辦公室</h2>
+    <div class="office-wrap">
+      <div class="office-floor" id="officeFloor"><p class="lead">員工報到中…</p></div>
+      <aside class="office-side">
+        <div class="intel-card"><h4>📊 今日統計</h4><div class="o-stats" id="oStats"></div></div>
+        <div class="intel-card"><h4>📰 即時動態</h4><ul class="o-feed" id="oFeed"></ul></div>
+        <div class="intel-card"><h4>🙋 需要你決定</h4><ul class="o-feed" id="oTodo"></ul></div>
+      </aside>
+    </div>
+  </section>
 
   <section class="paper bot" id="concept">
     <h2>🧭 整套系統怎麼運作（先看這裡）</h2>
@@ -838,6 +872,37 @@ async function loadMC(){const el=$("mcBody");if(!el)return;try{const r=await fet
   <p><b>最穩前 8 名</b></p><div class="tbl-wrap">${tb(S.top)}</div><p><b>最不穩</b></p><div class="tbl-wrap">${tb(S.worst)}</div></div>`}).join("")}</div>`;
 }catch(e){el.innerHTML='<p class="lead">模擬結果還沒產生（正在雲端計算，約 20 分鐘）。</p>'}}
 loadMC();
+async function loadOffice(){const fl=$("officeFloor");if(!fl)return;
+  const get=async u=>{try{const r=await fetch(u,{cache:"no-store"});return r.ok?await r.json():null}catch(e){return null}};
+  const base="https://a0917625816-afk.github.io/",t=Math.floor(Date.now()/6e4);
+  const [B,I,LAB]=await Promise.all([get(base+"bot.json?t="+t),get(base+"intel.json?t="+t),get("https://api.github.com/repos/a0917625816-afk/a0917625816-afk.github.io/actions/workflows/lab.yml/runs?per_page=1")]);
+  const ago=B?Math.round((Date.now()-new Date(B.updated))/6e4):999,alive=ago<=40,btcUp=!!(B&&B.market&&B.market.btcUp);
+  const pad=n=>String(n).padStart(2,"0"),hm=ms=>{const d=new Date(ms);return pad(d.getMonth()+1)+"/"+pad(d.getDate())+" "+pad(d.getHours())+":"+pad(d.getMinutes())};
+  const botSt=(o,label)=>{if(!B)return["r","讀不到資料"];if(!alive)return["r",`${ago} 分鐘沒回報`];const n=(o&&o.open||[]).length;if(n)return["g",`${label} ${n} 張`];return btcUp?["g","盯盤中"]:["y","待命（BTC 濾網關）"]};
+  const lab=LAB&&LAB.workflow_runs&&LAB.workflow_runs[0],labBusy=lab&&lab.status!=="completed";
+  const nextSun=(()=>{const d=new Date();const add=(7-d.getDay())%7;const n=new Date(d.getFullYear(),d.getMonth(),d.getDate()+add,19,52);if(n<d)n.setDate(n.getDate()+7);return pad(n.getMonth()+1)+"/"+pad(n.getDate())+" 19:52"})();
+  const meet=["y",`下次開會 ${nextSun}`];
+  const D=(av,nm,rl,st,busy)=>`<div class="desk"><span class="av${busy?" busy":""}" aria-hidden="true">${av}</span><span class="nm">${esc(nm)}</span><span class="rl">${esc(rl)}</span><span class="stt ${st[0]}"><i></i>${esc(st[1])}</span></div>`;
+  const R=(t,d)=>`<div class="room"><h5>${t}</h5><div class="desks">${d.join("")}</div></div>`;
+  const sA=botSt(B,"持倉"),sB=botSt(B&&B.b,"持倉"),sI=botSt(B&&B.intra,"持倉");
+  fl.innerHTML=R("💹 交易區（24 小時）",[D("🤖","波段 A","4h 突破・讓利潤跑",sA,alive),D("🦾","波段 B","1R 先收 1/3",sB,alive),D("⚡","日內","15m 突破・08:00 平倉",sI,alive)])
+   +R("🔭 情報室（每週日）",[D("🗞️","觀察員1","新聞＋總經",meet),D("🎲","觀察員2","莊家思維",meet),D("🏦","觀察員3","華爾街",meet),D("💬","觀察員4","社群情緒",meet)])
+   +R("⚖️ 會議室（每週日）",[D("🐂","多方","找做多理由",meet),D("🐻","空方","找風險",meet),D("🧑‍⚖️","裁判","下結論",I?["g",esc(I.verdict.winner)]:meet)])
+   +R("🧪 實驗室",[D("🔬","回測員","歷史資料驗證",lab?(labBusy?["g","回測中…"]:["y","待命"]):["y","待命"],labBusy),D("🎰","蒙地卡羅","模擬 1000 次",labBusy?["g","計算中…"]:["y","待命"],labBusy)]);
+  if(!B)return;
+  const all=[...(B.open||[]).map(p=>({k:"A",p})),...((B.b||{}).open||[]).map(p=>({k:"B",p})),...((B.intra||{}).open||[]).map(p=>({k:"日內",p}))];
+  const cl=[...(B.closed||[]).map(x=>({k:"波段A",x})),...((B.b||{}).closed||[]).map(x=>({k:"波段B",x})),...((B.intra||{}).closed||[]).map(x=>({k:"日內",x}))];
+  const day0=new Date();day0.setHours(0,0,0,0);const today=cl.filter(c=>c.x.tx>=day0.getTime());
+  $("oStats").innerHTML=`<div><b>${all.length}</b>持倉中</div><div><b>${today.length}</b>今日結束</div><div><b style="color:${alive?"var(--long)":"var(--short)"}">${alive?"正常":"異常"}</b>機器人（${ago} 分前）</div><div><b style="color:${btcUp?"var(--long)":"var(--watch)"}">${btcUp?"開":"關"}</b>BTC 濾網</div>`;
+  const ev=[...cl.map(c=>({t:c.x.tx,h:`${c.k}｜${esc(c.x.base)} ${esc(c.x.why)} <b class="${c.x.R>0?"out-win":"out-loss"}">${rTxt(c.x.R)}</b>`})),...all.map(a=>({t:a.p.t,h:`${a.k==="A"?"波段A":a.k==="B"?"波段B":"日內"}｜進場 ${esc(a.p.base)}`}))].sort((a,b)=>b.t-a.t).slice(0,8);
+  $("oFeed").innerHTML=ev.length?ev.map(e=>`<li><time>${hm(e.t)}</time><span>${e.h}</span></li>`).join(""):"<li>還沒有動態</li>";
+  const bn=((B.b||{}).closed||[]).length,an=(B.closed||[]).length,todo=[];
+  todo.push(`波段 A／B 要留哪版：11/24 後、兩版各 15 筆再決定（目前 A ${an} 筆、B ${bn} 筆）`);
+  if(I&&I.queue)I.queue.filter(q=>/等你決定|先問你/.test(q.status+q.item)).forEach(q=>todo.push(esc(q.item)+"："+esc(q.status)));
+  if(!alive)todo.unshift("<b>機器人超過 40 分鐘沒回報，請通知 Claude 檢查</b>");
+  $("oTodo").innerHTML=todo.map(x=>`<li>• <span>${x}</span></li>`).join("");
+}
+loadOffice();setInterval(loadOffice,3*6e4);
 function renderPaper(){return;
   const st=paperStats(),unit=S.cap*S.risk/100;
   $("pChips").innerHTML=`<span class="chip">進行中 <b>${st.open}</b></span><span class="chip">已結束 <b>${st.n}</b></span><span class="chip go">勝率 <b>${st.n?Math.round(st.win/st.n*100)+"%":"—"}</b></span><span class="chip ${st.avg>=0?"go":"short"}">平均每筆 <b>${st.n?rTxt(st.avg):"—"}</b></span><span class="chip ${st.tot>=0?"go":"short"}">合計 <b>${st.n?rTxt(st.tot):"—"}</b></span><span class="chip">今天 <b class="${riskState().dayR>=0?"up":"down"}">${rTxt(riskState().dayR)}</b></span><span class="chip">換算損益 <b>${st.n?(st.tot*unit>=0?"+":"")+(st.tot*unit).toFixed(1)+" U":"—"}</b></span><span class="small" style="align-self:center">換算方式：每筆最多賠本金 ${S.risk}%（${unit.toFixed(1)} U）</span>`;
