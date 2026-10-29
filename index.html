@@ -308,6 +308,33 @@ canvas.chart{background:#070C16;border-color:var(--line)}
 
   <div class="mlist" id="mlist" hidden></div>
 
+  <section class="paper bot" id="concept">
+    <h2>🧭 整套系統怎麼運作（先看這裡）</h2>
+    <div class="intel-grid">
+      <div class="intel-card"><h4>① 三組機器人（雲端 24 小時虛擬單）</h4><ul>
+        <li><b>波段 A</b>：4 小時K 突破 55 根新高才做多，讓獲利奔跑。勝率低（約 25%），靠少數大賺。</li>
+        <li><b>波段 B</b>：進場同 A，漲到 1R 先賣 1/3、剩下保本。勝率較高（約 51%），賺得少一點。跑到 11/24 跟 A 比，留哪版由你決定。</li>
+        <li><b>日內</b>：15 分K 突破 48 小時新高，要量能放大、收盤夠強、而且是成交額夠大的熱門幣；早上 08:00 一律平倉。</li>
+        <li>三組都要先過濾：BTC 日線站上 EMA50、該幣 20 天漲幅前 10 名。每筆最多賠本金 1%。</li></ul></div>
+      <div class="intel-card"><h4>② 情報團＋多空辯論（每週日）</h4><ul>
+        <li>4 名觀察員：新聞總經、莊家思維（資金費率、爆倉單）、華爾街（ETF、選擇權）、社群情緒（脆、X、PTT 等公開討論）。</li>
+        <li>多方、空方兩位辯手根據情報互相反駁，裁判下結論。</li>
+        <li>結論只用來<b>提醒風險日期、要小心的幣、決定先回測哪個點子</b>，不會憑感覺改機器人。</li></ul></div>
+      <div class="intel-card"><h4>③ 改規則的鐵律</h4><ul>
+        <li>任何新規則都要先用 2～3 年歷史資料回測。</li>
+        <li>合格標準：<b>勝率提高、平均獲利不低於原本 9 成、最大回撤不超過 1.2 倍</b>。</li>
+        <li>要「測試期」和「之後沒看過的資料」兩段都合格才上線，避免只是剛好湊對。</li>
+        <li>虛擬單不到 30 筆不因為輸贏改規則（樣本太少）。紀錄不美化、不刪輸的單。</li></ul></div>
+      <div class="intel-card"><h4>④ 蒙地卡羅 1000 次</h4><ul>
+        <li>把歷史交易隨機重抽 1000 次，模擬「同樣的策略、不同的運氣」，看正常會遇到多大的回撤、連虧幾筆。</li>
+        <li>也用來找「最穩的幣」：先用前段資料挑，再看後段資料是否真的比較好。<b>後段也成立才拿來用</b>，不然只是運氣。</li></ul></div>
+      <div class="intel-card"><h4>⑤ 安全原則</h4><ul>
+        <li>交易所 API 金鑰絕對不開「提現」權限。</li>
+        <li>不需要也不要提供任何社群或交易所密碼。</li>
+        <li>這裡全部是虛擬單與研究，不是投資建議；真倉要不要做、做多大，由你自己決定。</li></ul></div>
+    </div>
+  </section>
+
   <section class="paper bot" id="bot">
     <h2>🏆 主力策略・波段（雲端 24 小時虛擬單・不用開網頁）</h2>
     <p class="lead">實驗室 3 年回測最穩的組合：<b>4 小時K 突破 55 根新高才做多</b>，而且要同時符合 ① BTC 日線站上 EMA50 ② 該幣 20 天漲幅排前 10 名 ③ 4 小時K 在 EMA200 之上。停損 = 進場價 − 2 倍 ATR，收盤跌破前 27 根最低點就出場（沒有固定 TP，讓獲利奔跑）。同時最多 5 張、每筆最多賠本金 1%。回測：最近一年沒看過的資料 年化約 +40%、最大回撤約 19%（同期抱 BTC −17%）。勝率約 26%，常常小賠、偶爾大賺，這是正常的。<br>這區由雲端每 15 分鐘自動執行，不用開電腦，所有裝置看到的都一樣。</p>
@@ -335,31 +362,10 @@ canvas.chart{background:#070C16;border-color:var(--line)}
     <div id="intelBody"><p class="lead">讀取中…</p></div>
   </section>
 
-  <section class="paper" id="paper">
-    <h2>舊版虛擬單（評分制・要開著網頁才會下單）</h2>
-    <p class="lead" style="color:var(--watch)">⚠️ 這區是舊的評分策略，只在這台裝置打開網頁時才會下單，而且第一週測試是虧的（平均 −0.18R）。<b>真正 24 小時跑的是最上面的「🏆 主力策略」和「⚡ 日內版」</b>，那兩區不用開網頁也會自動下單。</p>
-    <p class="lead">開啟後，每次掃描到「可進場」的幣，而且分數達到下面設定的門檻（預設 80 分），才會用當下真實價格自動下一張虛擬單（遵守風控上限，分數高的優先），之後每 15 分鐘K檢查一次有沒有打到停損或 TP：TP1 平 1/3 後停損移到進場價、TP2 再平 1/3、剩下放到 TP3，並扣約 0.1% 手續費。紀錄存在這台電腦的瀏覽器裡。頁面關掉期間的價格變化，下次打開會自動補算，但關掉期間出現的新訊號會漏掉。</p>
-    <div class="chips" id="pChips"></div>
-    <div class="risk-set">
-      <b style="color:var(--ink)">風控上限</b>
-      <label for="rkMin">分數至少 <input id="rkMin" inputmode="numeric" value="80"> 分才下單</label>
-      <label for="rkOpen">同時最多持倉 <input id="rkOpen" inputmode="numeric" value="5"> 張</label>
-      <label for="rkSame">同方向最多 <input id="rkSame" inputmode="numeric" value="3"> 張</label>
-      <label for="rkDay">每天最多虧 <input id="rkDay" inputmode="decimal" value="3"> R</label>
-      <label for="rkStreak">連虧 <input id="rkStreak" inputmode="numeric" value="3"> 筆就暫停</label>
-    </div>
-    <div class="ctrl">
-      <button class="btn" type="button" id="btnPaper" aria-pressed="true">自動下虛擬單：開</button>
-      <button class="btn" type="button" id="btnCopyPaper">複製測試紀錄（貼給 Claude）</button>
-      <button class="btn" type="button" id="btnClearPaper">清除紀錄</button>
-      <span class="toast" id="pToast" hidden></span>
-    </div>
-    <div class="tbl-wrap">
-      <table class="list">
-        <thead><tr><th>開單時間</th><th>幣種</th><th>方向</th><th>分數</th><th>進場</th><th>停損</th><th>TP1</th><th>TP2</th><th>TP3</th><th>狀態</th><th>結果</th></tr></thead>
-        <tbody id="pBody"><tr><td colspan="11" class="empty">還沒有虛擬單。掃描到「可進場」的幣時會自動建立。</td></tr></tbody>
-      </table>
-    </div>
+  <section class="paper bot" id="mc">
+    <h2>🎲 蒙地卡羅 1000 次：最穩的幣與正常波動</h2>
+    <p class="lead">用 2.5 年歷史回測交易，隨機重抽 1000 次。「賺錢機率」＝1000 次裡平均賺錢的比例；「最差 5%」＝運氣最差的 5% 情況下，每筆平均還能拿多少 R（越高越穩）。<b>挑幣驗證</b>寫「有效」才代表前段最穩的幣在後段也真的比較好，可以參考；寫「無效」代表只是運氣，請不要只挑那幾隻做。</p>
+    <div id="mcBody"><p class="lead">讀取中…（第一次計算約需 20 分鐘）</p></div>
   </section>
 
   <details class="sec">
@@ -754,7 +760,7 @@ function riskState(){const RK=PAPER.risk,today=new Date().toDateString();const c
   let streak=0;for(const t of closed){if(t.real<0)streak++;else break}
   const dayStop=dayR<=-RK.dayLoss,streakStop=streak>=RK.streak&&(!closed[0]||RK.ack!==closed[0].id);
   return{dayR,streak,dayStop,streakStop,paused:dayStop||streakStop,lastId:closed[0]&&closed[0].id}}
-function renderRisk(){const el=$("riskBanner");if(!el||MOBILE)return;const st=riskState(),unit=S.cap*S.risk/100;
+function renderRisk(){return;const el=$("riskBanner");if(!el||MOBILE)return;const st=riskState(),unit=S.cap*S.risk/100;
   if(st.dayStop)el.innerHTML=`<div class="risk-banner"><span><b>今天已虧 ${Math.abs(st.dayR).toFixed(2)}R（約 ${(Math.abs(st.dayR)*unit).toFixed(1)} U），達到每日上限。</b>今天暫停新的虛擬單，你自己今天也不要再開新單，明天再繼續。</span></div>`;
   else if(st.streakStop)el.innerHTML=`<div class="risk-banner"><span><b>已經連續虧損 ${st.streak} 筆。</b>暫停新的虛擬單。先離開盤面休息，不要想著馬上賺回來。</span><button class="btn" type="button" id="btnAck">我休息過了，繼續</button></div>`;
   else el.innerHTML="";
@@ -793,7 +799,7 @@ function paperOpen(){
       lastT:Math.floor(now/P15)*P15,maxEnd:now+100*MODES[S.mode].eDt,status:"open",last:e});openSet.add(r.base)}
   if(PAPER.trades.length>500)PAPER.trades.length=500;
   savePaper()}
-async function paperStep(){if(isDemo||!src)return;await paperUpdate();paperOpen();renderPaper()}
+async function paperStep(){return;if(isDemo||!src)return;await paperUpdate();paperOpen();renderPaper()}
 function floatR(t){const cur=(rows.find(r=>r.base===t.base&&r.state==="ok")||{}).cur??t.last;return t.real+t.left*t.dir*(cur-t.e)/t.R}
 function paperStats(){const c=PAPER.trades.filter(t=>t.status==="closed");const tot=c.reduce((s,t)=>s+t.real,0);
   return{open:PAPER.trades.length-c.length,n:c.length,win:c.filter(t=>t.real>0).length,tot,avg:c.length?tot/c.length:0}}
@@ -824,7 +830,15 @@ async function loadIntel(){const el=$("intelBody");if(!el)return;try{const r=awa
   <div class="intel-card"><h4>🧪 回測佇列（通過才上線）</h4><ul>${(I.queue||[]).map(x=>`<li>${esc(x.item)}　<b>${esc(x.status)}</b></li>`).join("")}</ul></div></div>`;
 }catch(e){el.innerHTML='<p class="lead">情報暫時讀不到，稍後再試。</p>'}}
 loadIntel();
-function renderPaper(){
+async function loadMC(){const el=$("mcBody");if(!el)return;try{const r=await fetch("https://a0917625816-afk.github.io/mc.json?t="+Math.floor(Date.now()/36e5),{cache:"no-store"});if(!r.ok)throw 0;const M=await r.json();
+  const tb=a=>`<table class="list"><thead><tr><th>幣</th><th>筆數</th><th>勝率</th><th>平均R</th><th>賺錢機率</th><th>最差5%</th></tr></thead><tbody>${a.map(x=>`<tr><td>${esc(x.cn)}</td><td>${x.n}</td><td>${x.win}%</td><td>${x.avgR}</td><td>${x.pProfit}%</td><td>${x.p5}</td></tr>`).join("")}</tbody></table>`;
+  el.innerHTML=`<p class="lead">更新：${esc(M.created.slice(0,10))}｜${M.coins} 個幣｜模擬 ${M.sims} 次</p><div class="intel-grid">${Object.values(M.strats).map(S=>{const p=S.port;return `<div class="intel-card"><h4>${esc(S.name)}</h4>
+  <p><b>正常波動</b>：最大回撤一般約 ${p.ddMed}%，運氣差（最差 5%）會到 ${p.dd95}%；連虧一般 ${p.streakMed} 筆，運氣差會到 ${p.streak95} 筆。遇到這些都還算正常，不代表策略壞掉。</p>
+  <p><b>挑幣驗證</b>：${S.valid?"✅ 有效":"❌ 無效（只是運氣）"}｜前段最穩的幣到後段：勝率 ${S.oTop.win}%、平均 ${S.oTop.avgR}R（全部平均 ${S.oAll.win}%、${S.oAll.avgR}R）</p>
+  <p><b>最穩前 8 名</b></p><div class="tbl-wrap">${tb(S.top)}</div><p><b>最不穩</b></p><div class="tbl-wrap">${tb(S.worst)}</div></div>`}).join("")}</div>`;
+}catch(e){el.innerHTML='<p class="lead">模擬結果還沒產生（正在雲端計算，約 20 分鐘）。</p>'}}
+loadMC();
+function renderPaper(){return;
   const st=paperStats(),unit=S.cap*S.risk/100;
   $("pChips").innerHTML=`<span class="chip">進行中 <b>${st.open}</b></span><span class="chip">已結束 <b>${st.n}</b></span><span class="chip go">勝率 <b>${st.n?Math.round(st.win/st.n*100)+"%":"—"}</b></span><span class="chip ${st.avg>=0?"go":"short"}">平均每筆 <b>${st.n?rTxt(st.avg):"—"}</b></span><span class="chip ${st.tot>=0?"go":"short"}">合計 <b>${st.n?rTxt(st.tot):"—"}</b></span><span class="chip">今天 <b class="${riskState().dayR>=0?"up":"down"}">${rTxt(riskState().dayR)}</b></span><span class="chip">換算損益 <b>${st.n?(st.tot*unit>=0?"+":"")+(st.tot*unit).toFixed(1)+" U":"—"}</b></span><span class="small" style="align-self:center">換算方式：每筆最多賠本金 ${S.risk}%（${unit.toFixed(1)} U）</span>`;
   $("btnPaper").setAttribute("aria-pressed",PAPER.auto);$("btnPaper").textContent=PAPER.auto?"自動下虛擬單：開":"自動下虛擬單：關";
@@ -836,12 +850,8 @@ function renderPaper(){
 function paperText(){const st=paperStats();const L=[`合約全幣掃描｜虛擬單紀錄（匯出於 ${tFmt(Date.now())}）`,`風控：分數 ${PAPER.risk.minScore||80} 分以上才下單、同時最多 ${PAPER.risk.maxOpen} 張、同方向 ${PAPER.risk.maxSame} 張、每日最多虧 ${PAPER.risk.dayLoss}R、連虧 ${PAPER.risk.streak} 筆暫停`,`已結束 ${st.n} 筆、進行中 ${st.open} 筆｜勝率 ${st.n?Math.round(st.win/st.n*100):0}%｜平均 ${rTxt(st.avg)}｜合計 ${rTxt(st.tot)}`,""];
   PAPER.trades.slice().reverse().forEach(t=>L.push(`${tFmt(t.t0)} ${t.base} ${t.mode==="swing"?"波段":"短線"} ${t.dir>0?"多":"空"} ${t.score}分｜進場 ${fmtP(t.e)} SL ${fmtP(t.sl0)} TP ${fmtP(t.tp1)}/${fmtP(t.tp2)}/${fmtP(t.tp3)}｜${t.status==="open"?"進行中（浮動 "+rTxt(floatR(t))+"）":t.outcome+" "+rTxt(t.real)+"（"+tFmt(t.tEnd)+"）"}`));
   return L.join("\n")}
-function syncRisk(){const RK=PAPER.risk;$("rkMin").value=RK.minScore||80;$("rkOpen").value=RK.maxOpen;$("rkSame").value=RK.maxSame;$("rkDay").value=RK.dayLoss;$("rkStreak").value=RK.streak}
-[["rkMin","minScore",50],["rkOpen","maxOpen",1],["rkSame","maxSame",1],["rkDay","dayLoss",0.5],["rkStreak","streak",1]].forEach(([id,k,min])=>$(id).addEventListener("change",()=>{const v=parseFloat($(id).value);if(v>=min){PAPER.risk[k]=k==="dayLoss"?v:Math.round(v);savePaper();renderRisk();renderPaper()}else syncRisk()}));
-function pToast(m){const t=$("pToast");t.textContent=m;t.hidden=false;setTimeout(()=>t.hidden=true,3000)}
-$("btnPaper").onclick=()=>{PAPER.auto=!PAPER.auto;savePaper();renderPaper()};
-$("btnCopyPaper").onclick=()=>{const txt=paperText();try{navigator.clipboard.writeText(txt).then(()=>pToast("已複製，直接貼給 Claude"),()=>pToast("複製失敗，請改用截圖"))}catch(e){pToast("複製失敗，請改用截圖")}};
-let clearArm=null;$("btnClearPaper").onclick=()=>{const b=$("btnClearPaper");if(!clearArm){b.textContent="確定清除？再按一次";clearArm=setTimeout(()=>{clearArm=null;b.textContent="清除紀錄"},3000);return}clearTimeout(clearArm);clearArm=null;b.textContent="清除紀錄";PAPER.trades=[];savePaper();renderPaper()};
+/* 舊版評分制虛擬單已移除（10/29 使用者要求）：清掉這台裝置裡的舊紀錄 */
+try{localStorage.removeItem("scanner-paper")}catch(e){}
 
 /* ---------- 控制 ---------- */
 function syncUI(){
@@ -867,11 +877,11 @@ $("tbody").addEventListener("click",e=>toggle(e.target.closest("tr.row")));
 $("tbody").addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();toggle(e.target.closest("tr.row"))}});
 let rz;window.addEventListener("resize",()=>{clearTimeout(rz);rz=setTimeout(()=>{const o=rows.find(r=>r.base===open&&r.state==="ok");if(o)drawChart($("cv-open"),o)},150)});
 try{matchMedia("(prefers-color-scheme: dark)").addEventListener("change",()=>{const o=rows.find(r=>r.base===open&&r.state==="ok");if(o)drawChart($("cv-open"),o)})}catch(e){}
-if(MOBILE){document.body.classList.add("m");$("btnSet").hidden=false;$("paper").hidden=true;$("mlist").hidden=false;
+if(MOBILE){document.body.classList.add("m");$("btnSet").hidden=false;$("mlist").hidden=false;
   $("btnSet").onclick=()=>{const o=document.body.classList.toggle("setopen");$("btnSet").setAttribute("aria-expanded",o);$("btnSet").textContent=o?"收起設定":"設定"};
   const mt=e=>{const el=e.target.closest(".mc-main");if(!el||!el.dataset.b)return;const r=rows.find(x=>x.base===el.dataset.b);if(!r||r.state!=="ok")return;open=open===r.base?null:r.base;render();if(open){const c=el.closest(".mc");if(c)c.scrollIntoView({block:"start",behavior:"smooth"})}};
   $("mlist").addEventListener("click",mt);$("mlist").addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();mt(e)}})}
-syncUI();syncRisk();renderRisk();renderPaper();scan();
+syncUI();scan();
 </script>
 </body>
 </html>
