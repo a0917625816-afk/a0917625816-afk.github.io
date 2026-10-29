@@ -2,6 +2,7 @@
 // 策略：4h 通道突破（55 根新高）＋ 4h EMA200 之上 ＋ BTC 日線站上 EMA50 ＋ 20 日漲幅前 10 名
 // 停損 2×ATR14，收盤跌破前 27 根最低點出場；同時最多 5 張；每筆風險 1%
 import fs from "node:fs/promises";
+import { execFileSync } from "node:child_process";
 import { ema, sma, atr } from "./ta-core.mjs";
 
 const sleep = ms => new Promise(r => setTimeout(r, ms));
@@ -84,9 +85,28 @@ for (const b of coins) {
 st.lastBar = Math.max(st.lastBar, closedBars(D.BTC.h).at(-1).t);
 
 // ===== 日內策略：15 分K 突破過去 48 小時高點（192 根），同樣的 BTC＋強勢濾網，只做多 =====
-// 進場品質：突破 K 量 >1.5 倍均量、收在上方 40%（10/24 第四輪回測加入）
+// 進場品質：突破 K 量 >1.5 倍均量、收在上方 40%（10/24 第四輪回測加入）；近 30 天日均成交額 ≥ 1 億 U（10/29 第五輪加入）
 // 停損 = 進場 − 6×ATR14(15m)；每幣每天最多 1 筆；只在 UTC 20:00（台灣 04:00）前進場；UTC 24:00（台灣 08:00）強制平倉
-const M15 = 9e5, IN = 192, IK = 6;
+const M15 = 9e5, IN = 192, IK = 6, LIQ_MIN = 100e6;
+// 第五輪回測合格（10/29）：近 30 天 Binance 合約日均成交額 ≥ 1 億 U 才做日內（Binance 沒上這個合約＝不做）
+// 回測：勝率 43.7%→46.2%、平均 +0.059R→+0.080R、最大回撤 23.4%→17.2%（樣本內外都合格）
+// 資料來自 data.binance.vision 公開日K檔，每天每幣只抓一次並存在 bot.json 的 liq
+const LQ = st.liq = (st.liq && st.liq.day === Math.floor(now / D1)) ? st.liq : { day: Math.floor(now / D1), v: {} };
+async function liqOf(b) {
+  if (b in LQ.v) return LQ.v[b];
+  const sym = b + "USDT"; let sum = 0, n = 0, miss404 = 0, err = 0;
+  for (let k = 1; k <= 30; k++) {
+    const ds = new Date((LQ.day - k) * D1).toISOString().slice(0, 10);
+    try {
+      const r = await fetch(`https://data.binance.vision/data/futures/um/daily/klines/${sym}/1d/${sym}-1d-${ds}.zip`);
+      if (r.status === 404) { miss404++; continue; } if (!r.ok) { err++; continue; }
+      const f = `/tmp/liq-${sym}.zip`; await fs.writeFile(f, Buffer.from(await r.arrayBuffer()));
+      for (const line of execFileSync("unzip", ["-p", f]).toString().split("\n")) { const x = line.split(","); if (x.length < 6 || isNaN(+x[0])) continue; sum += +x[4] * +x[5]; n++; }
+    } catch (e) { err++; }
+  }
+  if (err > 5) return null; // 網路有問題：這次先不進場，也不記下來
+  const v = n >= 20 ? sum / n : 0; LQ.v[b] = Math.round(v); return v;
+}
 const I = st.intra = Object.assign({ equity: 1, open: [], closed: [], lastBar: 0, done: {} }, st.intra || {});
 if (!I.lastBar) I.lastBar = Math.floor(now / M15) * M15 - 2 * M15; // 第一次執行不回補舊訊號
 const iNeed = new Set([...top, ...I.open.map(p => p.base)]);
@@ -112,6 +132,7 @@ for (const b of iNeed) {
     I.done[b] = day; // 每天只看當天第一次突破（跟回測一致）
     // 第四輪回測合格的品質濾網：突破那根量 > 前 20 根平均 1.5 倍，且收在 K 棒上方 40% 以內
     const rng = bar.h - bar.l; if (!(bar.v > 1.5 * v20[i]) || !(rng > 0 && (bar.c - bar.l) / rng >= 0.6)) continue;
+    const lv = await liqOf(b); if (!(lv >= LIQ_MIN)) { console.log("日內略過（成交額不足）", b, lv); continue; }
     const e = i + 1 < c.length ? c[i + 1].o : bar.c, r = IK * a[i]; if (!(r > 0) || r / e < 0.002) continue;
     I.open.push({ base: b, t: bar.t + M15, e, r, stop: e - r, amt: I.equity * RISK, lastBar: bar.t, dayEnd, cur: bar.c, curR: 0 });
   }
