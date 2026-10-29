@@ -337,7 +337,7 @@ canvas.chart{background:#070C16;border-color:var(--line)}
       <aside class="office-side">
         <div class="intel-card"><h4>📊 今日統計</h4><div class="o-stats" id="oStats"></div></div>
         <div class="intel-card"><h4>📰 即時動態</h4><ul class="o-feed" id="oFeed"></ul></div>
-        <div class="intel-card"><h4>🙋 需要你決定</h4><ul class="o-feed" id="oTodo"></ul></div>
+        <div class="intel-card"><h4>🧑‍⚖️ 決策紀錄（Claude 負責）</h4><ul class="o-feed" id="oTodo"></ul></div>
       </aside>
     </div>
   </section>
@@ -366,7 +366,7 @@ canvas.chart{background:#070C16;border-color:var(--line)}
       <div class="intel-card"><h4>⑤ 安全原則</h4><ul>
         <li>交易所 API 金鑰絕對不開「提現」權限。</li>
         <li>不需要也不要提供任何社群或交易所密碼。</li>
-        <li>這裡全部是虛擬單與研究，不是投資建議；真倉要不要做、做多大，由你自己決定。</li></ul></div>
+        <li>這裡全部是虛擬單與研究（目前全部以模擬為主，策略決策由 Claude 負責並公開紀錄），不是投資建議；真倉要不要做、做多大，由你自己決定。</li></ul></div>
     </div>
   </section>
 
@@ -898,10 +898,10 @@ async function loadOffice(){const fl=$("officeFloor");if(!fl)return;
   const ev=[...cl.map(c=>({t:c.x.tx,h:`${c.k}｜${esc(c.x.base)} ${esc(c.x.why)} <b class="${c.x.R>0?"out-win":"out-loss"}">${rTxt(c.x.R)}</b>`})),...all.map(a=>({t:a.p.t,h:`${a.k==="A"?"波段A":a.k==="B"?"波段B":"日內"}｜進場 ${esc(a.p.base)}`}))].sort((a,b)=>b.t-a.t).slice(0,8);
   $("oFeed").innerHTML=ev.length?ev.map(e=>`<li><time>${hm(e.t)}</time><span>${e.h}</span></li>`).join(""):"<li>還沒有動態</li>";
   const bn=((B.b||{}).closed||[]).length,an=(B.closed||[]).length,todo=[];
-  todo.push(`波段 A／B 要留哪版：11/24 後、兩版各 15 筆再決定（目前 A ${an} 筆、B ${bn} 筆）`);
-  if(I&&I.queue)I.queue.filter(q=>/等你決定|先問你/.test(q.status+q.item)).forEach(q=>todo.push(esc(q.item)+"："+esc(q.status)));
-  if(!alive)todo.unshift("<b>機器人超過 40 分鐘沒回報，請通知 Claude 檢查</b>");
-  $("oTodo").innerHTML=todo.map(x=>`<li>• <span>${x}</span></li>`).join("");
+  todo.push(`<time>進行中</time><span>波段 A／B 留哪版：11/24 後、兩版各滿 15 筆時決定（目前 A ${an} 筆、B ${bn} 筆）</span>`);
+  if(I&&I.decisions)I.decisions.slice(0,6).forEach(d=>todo.push(`<time>${esc(d.date)}</time><span>${esc(d.text)}</span>`));
+  if(!alive)todo.unshift("<time>！</time><b>機器人超過 40 分鐘沒回報，Claude 下次開會會檢查</b>");
+  $("oTodo").innerHTML=todo.map(x=>`<li>${x}</li>`).join("");
 }
 loadOffice();setInterval(loadOffice,3*6e4);
 function renderPaper(){return;
