@@ -147,6 +147,11 @@ details.sec ol,details.sec ul{margin:0;padding-left:1.3em;display:flex;flex-dire
 .paper .tbl-wrap{border-radius:10px;max-height:min(560px,70vh);overflow:auto;overscroll-behavior:contain}
 .paper .list th{z-index:1}
 .bot h3.bot-h{font-size:.95rem;margin:4px 0 -4px}
+.intel-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:10px}
+.intel-card{border:1px solid var(--line);border-radius:10px;padding:10px 12px;background:var(--sunk)}
+.intel-card h4{margin:0 0 6px;font-size:.92rem}
+.intel-card ul{margin:0;padding-left:1.2em}
+.intel-card li,.intel-card p{font-size:.86rem;line-height:1.55;margin:2px 0}
 .bot .tbl-wrap{max-height:min(380px,60vh)}
 .out-win{color:var(--long)}.out-loss{color:var(--short)}.out-be{color:var(--muted)}
 .toast{font-size:.84rem;color:var(--long)}
@@ -322,6 +327,12 @@ canvas.chart{background:#070C16;border-color:var(--line)}
     <div class="chips" id="intraChips"></div>
     <div class="tbl-wrap"><table class="list"><thead><tr><th>幣種</th><th>進場時間</th><th>進場價</th><th>停損</th><th>現價</th><th>目前</th></tr></thead><tbody id="intraOpen"></tbody></table></div>
     <div class="tbl-wrap"><table class="list"><thead><tr><th>幣種</th><th>進場</th><th>出場</th><th>進場價</th><th>出場價</th><th>原因</th><th>結果</th></tr></thead><tbody id="intraClosed"></tbody></table></div>
+  </section>
+
+  <section class="paper bot" id="intel">
+    <h2>🧠 情報團＋多空辯論（每週更新）</h2>
+    <p class="lead">每週由 4 名觀察員（新聞總經、莊家思維、華爾街、社群情緒）收集情報，再由多方、空方兩位辯手各自提出理由互相反駁，最後裁判下結論。<b>情報只用來提醒風險、決定要回測哪些點子，不會直接改機器人的進出場規則</b>；任何新規則都要回測做到「勝率提高、平均獲利不低於原本 9 成、回撤不超過 1.2 倍」才會上線。內容僅供參考，不是投資建議。</p>
+    <div id="intelBody"><p class="lead">讀取中…</p></div>
   </section>
 
   <section class="paper" id="paper">
@@ -804,6 +815,15 @@ async function loadBot(){try{const r=await fetch("https://a0917625816-afk.github
   $("intraClosed").innerHTML=(I.closed||[]).length?I.closed.slice(0,100).map(t=>`<tr><td><span class="coin">${esc(t.base)}</span></td><td>${tFmt(t.t)}</td><td>${tFmt(t.tx)}</td><td>${fmtP(t.e)}</td><td>${fmtP(t.x)}</td><td style="font-family:var(--sans)">${esc(t.why)}</td><td class="${t.R>0?"out-win":"out-loss"}">${rTxt(t.R)}</td></tr>`).join(""):`<tr><td colspan="7" class="empty">還沒有結束的日內單。</td></tr>`;
 }catch(e){$("botChips").innerHTML=`<span class="chip">主力策略資料讀取失敗，稍後自動重試</span>`}}
 loadBot();setInterval(loadBot,3*6e4);
+async function loadIntel(){const el=$("intelBody");if(!el)return;try{const r=await fetch("https://a0917625816-afk.github.io/intel.json?t="+Math.floor(Date.now()/36e5),{cache:"no-store"});if(!r.ok)throw 0;const I=await r.json();
+  const li=a=>(a||[]).map(x=>`<li>${esc(x)}</li>`).join("");
+  el.innerHTML=`<div class="intel-card"><h4>⚖️ 本週裁判結論（${esc(I.date)}）：${esc(I.verdict.winner)}</h4><p>${esc(I.verdict.text)}</p></div>
+  <div class="intel-grid" style="margin-top:10px"><div class="intel-card"><h4>🐂 多方理由</h4><ul>${li(I.bull)}</ul></div><div class="intel-card"><h4>🐻 空方理由</h4><ul>${li(I.bear)}</ul></div></div>
+  <div class="intel-grid" style="margin-top:10px">${(I.observers||[]).map(o=>`<div class="intel-card"><h4>${esc(o.name)}</h4><p>${esc(o.text)}</p></div>`).join("")}</div>
+  <div class="intel-grid" style="margin-top:10px"><div class="intel-card"><h4>📅 風險日期（台灣時間，前後少開新單）</h4><ul>${(I.risk||[]).map(x=>`<li><b>${esc(x.when)}</b>　${esc(x.what)}</li>`).join("")}</ul><p>${esc(I.watchCoins||"")}</p></div>
+  <div class="intel-card"><h4>🧪 回測佇列（通過才上線）</h4><ul>${(I.queue||[]).map(x=>`<li>${esc(x.item)}　<b>${esc(x.status)}</b></li>`).join("")}</ul></div></div>`;
+}catch(e){el.innerHTML='<p class="lead">情報暫時讀不到，稍後再試。</p>'}}
+loadIntel();
 function renderPaper(){
   const st=paperStats(),unit=S.cap*S.risk/100;
   $("pChips").innerHTML=`<span class="chip">進行中 <b>${st.open}</b></span><span class="chip">已結束 <b>${st.n}</b></span><span class="chip go">勝率 <b>${st.n?Math.round(st.win/st.n*100)+"%":"—"}</b></span><span class="chip ${st.avg>=0?"go":"short"}">平均每筆 <b>${st.n?rTxt(st.avg):"—"}</b></span><span class="chip ${st.tot>=0?"go":"short"}">合計 <b>${st.n?rTxt(st.tot):"—"}</b></span><span class="chip">今天 <b class="${riskState().dayR>=0?"up":"down"}">${rTxt(riskState().dayR)}</b></span><span class="chip">換算損益 <b>${st.n?(st.tot*unit>=0?"+":"")+(st.tot*unit).toFixed(1)+" U":"—"}</b></span><span class="small" style="align-self:center">換算方式：每筆最多賠本金 ${S.risk}%（${unit.toFixed(1)} U）</span>`;
