@@ -146,6 +146,46 @@ const cl = st.closed, wins = cl.filter(x => x.R > 0).length;
 st.stats = { n: cl.length, win: cl.length ? Math.round(wins / cl.length * 100) : 0, avgR: cl.length ? +(cl.reduce((s, x) => s + x.R, 0) / cl.length).toFixed(2) : 0, sumR: +cl.reduce((s, x) => s + x.R, 0).toFixed(2), ret: +((st.equity - 1) * 100).toFixed(1) };
 B.closed = B.closed.slice(0, 300);
 { const c2 = B.closed, w = c2.filter(x => x.R > 0).length; B.stats = { n: c2.length, win: c2.length ? Math.round(w / c2.length * 100) : 0, sumR: +c2.reduce((s, x) => s + x.R, 0).toFixed(2), ret: +((B.equity - 1) * 100).toFixed(1) }; }
+// 5) 綜合決策員的手動模擬單（intel.json 的 manualVirtual）：只做多、限價進場、獨立紀錄，不影響 A/B/日內
+try {
+  const MN = st.manual = Object.assign({ equity: 1, open: [], closed: [], waiting: {}, done: {} }, st.manual || {});
+  let mv = []; try { mv = JSON.parse(await fs.readFile("intel.json", "utf8")).manualVirtual || []; } catch (e) {}
+  const EXPIRE = 48 * 36e5, MAXHOLD = 72 * 36e5, MAXMAN = 3;
+  const valid = o => o && o.id && o.base && o.side === "long" && o.entry > 0 && o.stop > 0 && o.target > 0 && o.stop < o.entry && o.entry < o.target && !MN.done[o.id];
+  const orders = mv.filter(valid);
+  for (const o of orders) if (!MN.waiting[o.id] && !MN.open.find(q => q.id === o.id)) MN.waiting[o.id] = { ...o, t0: now };
+  for (const id of Object.keys(MN.waiting)) {
+    const w = MN.waiting[id];
+    if (!orders.find(o => o.id === id)) { delete MN.waiting[id]; continue; }
+    if (now - w.t0 > EXPIRE) { MN.done[id] = 1; delete MN.waiting[id]; MN.closed.unshift({ id, base: w.base, side: "做多", e: w.entry, x: null, R: 0, why: "未成交過期", reason: w.reason || "", t: w.t0, tx: now, amt: 0 }); continue; }
+    if (MN.open.length >= MAXMAN) continue;
+    let c; try { c = (await kl(w.base, "15m", 400)).filter(x => x.t + M15 <= now); } catch (e) { continue; } await sleep(80);
+    const hit = c.find(x => x.t + M15 > w.t0 && x.l <= w.entry);
+    if (!hit) continue;
+    const e = Math.min(hit.o, w.entry), r = w.entry - w.stop;
+    MN.open.push({ id, base: w.base, e, r, stop: w.stop, target: w.target, reason: w.reason || "", t: hit.t + M15, lastBar: hit.t, amt: MN.equity * RISK, cur: hit.c, curR: 0 });
+    delete MN.waiting[id];
+  }
+  for (const p of [...MN.open]) {
+    let c; try { c = (await kl(p.base, "15m", 400)).filter(x => x.t + M15 <= now); } catch (e) { continue; } await sleep(80);
+    for (const b of c) {
+      if (b.t <= p.lastBar) continue;
+      let x = null, why = "";
+      if (b.l <= p.stop) { x = Math.min(b.o, p.stop); why = "停損"; }
+      else if (b.h >= p.target) { x = Math.max(b.o, p.target); why = "停利"; }
+      else if (b.t - p.t >= MAXHOLD) { x = b.c; why = "超時平倉"; }
+      p.lastBar = b.t; p.cur = b.c; p.curR = +((b.c - p.e) / p.r).toFixed(2);
+      if (x != null) {
+        const R = (x - p.e) / p.r - COST * p.e / p.r;
+        MN.equity += p.amt * R;
+        MN.closed.unshift({ id: p.id, base: p.base, side: "做多", e: p.e, x, R: +R.toFixed(3), why, reason: p.reason, t: p.t, tx: b.t + M15, amt: p.amt });
+        MN.done[p.id] = 1; MN.open = MN.open.filter(q => q !== p); break;
+      }
+    }
+  }
+  MN.closed = MN.closed.slice(0, 300);
+  { const c2 = MN.closed.filter(x => x.R !== undefined && x.amt), w = c2.filter(x => x.R > 0).length; MN.stats = { n: c2.length, win: c2.length ? Math.round(w / c2.length * 100) : 0, sumR: +c2.reduce((q, x) => q + x.R, 0).toFixed(2), ret: +((MN.equity - 1) * 100).toFixed(1) }; }
+} catch (e) { console.log("手動模擬單略過（錯誤）", e.message); }
 st.market = { btcUp, btc: bD[bI].c, btcE50: +bE[bI].toFixed(1), top: [...top] };
 st.watch = watch.filter(w => w.top && w.ema200).sort((a, b) => a.dist - b.dist).slice(0, 12);
 st.updated = new Date().toISOString();
