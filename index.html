@@ -353,7 +353,7 @@ canvas.chart{background:#070C16;border-color:var(--line)}
       <div class="intel-card"><h4>② 情報團＋多空辯論（每 3 天）</h4><ul>
         <li>全隊共同任務：<b>在平均獲利不變差、回撤不變大的前提下，把勝率拉高</b>。</li>
         <li>4 名觀察員：新聞總經、莊家思維（資金費率、爆倉單）、華爾街（ETF、選擇權）、社群情緒（脆、X、PTT 等公開討論）。</li>
-        <li>多方、空方兩位辯手根據情報互相反駁，裁判下結論。</li>
+        <li>多方、空方各三位辯手根據情報互相反駁，裁判下結論。</li>
         <li>結論只用來<b>提醒風險日期、要小心的幣、決定先回測哪個點子</b>，不會憑感覺改機器人。</li></ul></div>
       <div class="intel-card"><h4>③ 改規則的鐵律</h4><ul>
         <li>任何新規則都要先用 2～3 年歷史資料回測。</li>
@@ -393,7 +393,7 @@ canvas.chart{background:#070C16;border-color:var(--line)}
 
   <section class="paper bot" id="intel">
     <h2>🧠 情報團＋多空辯論（每 3 天開會）</h2>
-    <p class="lead">每 3 天由 4 名觀察員（新聞總經、莊家思維、華爾街、社群情緒）收集情報，再由多方、空方兩位辯手各自提出理由互相反駁，最後裁判下結論。<b>情報只用來提醒風險、決定要回測哪些點子，不會直接改機器人的進出場規則</b>；任何新規則都要回測做到「勝率提高、平均獲利不低於原本 9 成、回撤不超過 1.2 倍」才會上線。內容僅供參考，不是投資建議。</p>
+    <p class="lead">每 3 天由 4 名觀察員（新聞總經、莊家思維、華爾街、社群情緒）收集情報，再由多方、空方各三位辯手各自提出理由互相反駁，最後裁判下結論。<b>情報只用來提醒風險、決定要回測哪些點子，不會直接改機器人的進出場規則</b>；任何新規則都要回測做到「勝率提高、平均獲利不低於原本 9 成、回撤不超過 1.2 倍」才會上線。內容僅供參考，不是投資建議。</p>
     <div id="intelBody"><p class="lead">讀取中…</p></div>
   </section>
 
@@ -860,6 +860,7 @@ async function loadIntel(){const el=$("intelBody");if(!el)return;try{const r=awa
   const li=a=>(a||[]).map(x=>`<li>${esc(x)}</li>`).join("");
   el.innerHTML=`<div class="intel-card"><h4>⚖️ 本週裁判結論（${esc(I.date)}）：${esc(I.verdict.winner)}</h4><p>${esc(I.verdict.text)}</p></div>
   <div class="intel-grid" style="margin-top:10px"><div class="intel-card"><h4>🐂 多方理由</h4><ul>${li(I.bull)}</ul></div><div class="intel-card"><h4>🐻 空方理由</h4><ul>${li(I.bear)}</ul></div></div>
+  ${I.synth?`<div class="intel-card" style="margin-top:10px"><h4>🧠 ${esc(I.synth.name)}</h4><p>${esc(I.synth.text)}</p><p><b>模擬單：</b>${(I.synth.manualVirtual||[]).length?"見 intel.json":"目前沒有"}</p></div>`:""}
   <div class="intel-grid" style="margin-top:10px">${(I.observers||[]).map(o=>`<div class="intel-card"><h4>${esc(o.name)}</h4><p>${esc(o.text)}</p></div>`).join("")}</div>
   <div class="intel-grid" style="margin-top:10px"><div class="intel-card"><h4>📅 風險日期（台灣時間，前後少開新單）</h4><ul>${(I.risk||[]).map(x=>`<li><b>${esc(x.when)}</b>　${esc(x.what)}</li>`).join("")}</ul><p>${esc(I.watchCoins||"")}</p></div>
   <div class="intel-card"><h4>🧪 回測佇列（通過才上線）</h4><ul>${(I.queue||[]).map(x=>`<li>${esc(x.item)}　<b>${esc(x.status)}</b></li>`).join("")}</ul></div></div>`;
@@ -886,9 +887,9 @@ async function loadOffice(){const fl=$("officeFloor");if(!fl)return;
   const D=(av,nm,rl,st,busy)=>`<div class="desk"><span class="av${busy?" busy":""}" aria-hidden="true">${av}</span><span class="nm">${esc(nm)}</span><span class="rl">${esc(rl)}</span><span class="stt ${st[0]}"><i></i>${esc(st[1])}</span></div>`;
   const R=(t,d)=>`<div class="room"><h5>${t}</h5><div class="desks">${d.join("")}</div></div>`;
   const sA=botSt(B,"持倉"),sB=botSt(B&&B.b,"持倉"),sI=botSt(B&&B.intra,"持倉");
-  fl.innerHTML=R("💹 交易區（24 小時）",[D("🤖","波段 A","4h 突破・讓利潤跑",sA,alive),D("🦾","波段 B","1R 先收 1/3",sB,alive),D("⚡","日內","15m 突破・08:00 平倉",sI,alive)])
+  fl.innerHTML=R("💹 交易區（24 小時）",[D("🤖","波段 A","4h 突破・讓利潤跑",sA,alive),D("🦾","波段 B","1R 先收 1/3",sB,alive),D("⚡","日內","15m 突破・08:00 平倉",sI,alive),D("🧠","綜合決策員","綜合所有資訊・可下模擬單",I&&I.synth?["g",I.synth.manualVirtual&&I.synth.manualVirtual.length?"模擬單 "+I.synth.manualVirtual.length+" 張":"待命"]:meet,false),D("🛡️","監控員","每小時盯全部人",["g","巡邏中"],false)])
    +R("🔭 情報室（每 3 天）",[D("🗞️","觀察員1","新聞＋總經",meet),D("🎲","觀察員2","莊家思維",meet),D("🏦","觀察員3","華爾街",meet),D("💬","觀察員4","社群情緒",meet)])
-   +R("⚖️ 會議室（每 3 天）",[D("🐂","多方","找做多理由",meet),D("🐻","空方","找風險",meet),D("🧑‍⚖️","裁判","下結論",I?["g",esc(I.verdict.winner)]:meet)])
+   +R("⚖️ 會議室（每 3 天）",[D("🐂","多方1","找做多理由",meet),D("🐂","多方2","找做多理由",meet),D("🐂","多方3","找做多理由",meet),D("🐻","空方1","找風險",meet),D("🐻","空方2","找風險",meet),D("🐻","空方3","找風險",meet),D("🧑‍⚖️","裁判","下結論",I?["g",esc(I.verdict.winner)]:meet)])
    +R("🧪 實驗室",[D("🔬","回測員","歷史資料驗證",lab?(labBusy?["g","回測中…"]:["y","待命"]):["y","待命"],labBusy),D("🎰","蒙地卡羅","模擬 1000 次",labBusy?["g","計算中…"]:["y","待命"],labBusy)]);
   if(!B)return;
   const all=[...(B.open||[]).map(p=>({k:"A",p})),...((B.b||{}).open||[]).map(p=>({k:"B",p})),...((B.intra||{}).open||[]).map(p=>({k:"日內",p}))];
