@@ -358,11 +358,12 @@ canvas.chart{background:#070C16;border-color:var(--line)}
   <section class="paper bot" id="concept">
     <h2>🧭 整套系統怎麼運作（先看這裡）</h2>
     <div class="intel-grid">
-      <div class="intel-card"><h4>① 三組機器人（雲端 24 小時虛擬單）</h4><ul>
+      <div class="intel-card"><h4>① 四組機器人（雲端 24 小時虛擬單）</h4><ul>
         <li><b>波段 A</b>：4 小時K 突破 55 根新高才做多，讓獲利奔跑。勝率低（約 25%），靠少數大賺。</li>
         <li><b>波段 B</b>：進場同 A，漲到 1R 先賣 1/3、剩下保本。勝率較高（約 51%），賺得少一點。跑到 11/24 跟 A 比，留哪版由你決定。</li>
         <li><b>日內</b>：15 分K 突破 48 小時新高，要量能放大、收盤夠強、而且是成交額夠大的熱門幣；早上 08:00 一律平倉。</li>
-        <li>三組都要先過濾：BTC 日線站上 EMA50、該幣 20 天漲幅前 10 名。每筆最多賠本金 1%。</li></ul></div>
+        <li><b>日內 B</b>（10/31 新增）：規則同日內，但只做近 30 天日均成交額 ≥5 億 U 的大幣。第八輪回測合格，與日內並列比較，不刪原組。</li>
+        <li>四組都要先過濾：BTC 日線站上 EMA50、該幣 20 天漲幅前 10 名。每筆最多賠本金 1%。</li></ul></div>
       <div class="intel-card"><h4>② 情報團＋多空辯論（每 3 天）</h4><ul>
         <li>全隊共同任務：<b>在平均獲利不變差、回撤不變大的前提下，把勝率拉高</b>。</li>
         <li>4 名觀察員：新聞總經、莊家思維（資金費率、爆倉單）、華爾街（ETF、選擇權）、社群情緒（脆、X、PTT 等公開討論）。</li>
@@ -402,6 +403,11 @@ canvas.chart{background:#070C16;border-color:var(--line)}
     <div class="chips" id="intraChips"></div>
     <div class="tbl-wrap"><table class="list"><thead><tr><th>幣種</th><th>進場時間</th><th>進場價</th><th>停損</th><th>現價</th><th>目前</th></tr></thead><tbody id="intraOpen"></tbody></table></div>
     <div class="tbl-wrap"><table class="list"><thead><tr><th>幣種</th><th>進場</th><th>出場</th><th>進場價</th><th>出場價</th><th>原因</th><th>結果</th></tr></thead><tbody id="intraClosed"></tbody></table></div>
+    <h2 style="margin-top:10px">⚡ 日內 B（成交額 ≥5 億 U，10/31 新增）</h2>
+    <p class="lead">規則跟日內版一模一樣，只差一條：<b>這個幣近 30 天在 Binance 合約的日均成交額要有 5 億 U 以上</b>（原版是 1 億）。10/31 第八輪回測用「依成交額分級的滑價成本」重跑（大幣 0.14%、5～20 億 0.25%、1～5 億 0.40%、小於 1 億 0.70%），這版勝率 44.7%→48.0%（樣本外 46.1%→51.2%）、平均獲利 +0.03R→+0.09R（樣本外 +0.18R→+0.31R）、最大回撤 19%→13%（樣本外 10%→2%），樣本內外都合格，所以新增一組並列比較，原日內版照跑不動。代價是單量少很多（回測 636 筆→262 筆），所以要等筆數夠多再下結論。</p>
+    <div class="chips" id="intra2Chips"></div>
+    <div class="tbl-wrap"><table class="list"><thead><tr><th>幣種</th><th>進場時間</th><th>進場價</th><th>停損</th><th>現價</th><th>目前</th></tr></thead><tbody id="intra2Open"></tbody></table></div>
+    <div class="tbl-wrap"><table class="list"><thead><tr><th>幣種</th><th>進場</th><th>出場</th><th>進場價</th><th>出場價</th><th>原因</th><th>結果</th></tr></thead><tbody id="intra2Closed"></tbody></table></div>
   </section>
 
   <section class="paper bot" id="intel">
@@ -867,6 +873,10 @@ async function loadBot(){try{const r=await fetch("https://a0917625816-afk.github
   $("intraChips").innerHTML=`<span class="chip">持倉 <b>${I.open.length}/5</b></span><span class="chip">已結束 <b>${is.n||0}</b></span><span class="chip go">勝率 <b>${is.n?is.win+"%":"—"}</b></span><span class="chip ${(is.sumR||0)>=0?"go":"short"}">合計 <b>${is.n?rTxt(is.sumR):"—"}</b></span><span class="chip ${(is.ret||0)>=0?"go":"short"}">帳戶 <b>${(is.ret>=0?"+":"")+(is.ret||0)}%</b></span>`;
   $("intraOpen").innerHTML=I.open.length?I.open.map(p=>`<tr><td><span class="coin">${esc(p.base)}</span> <span class="pill long">做多</span></td><td>${tFmt(p.t)}</td><td>${fmtP(p.e)}</td><td class="sl">${fmtP(p.stop)}</td><td>${fmtP(p.cur)}</td><td class="${p.curR>=0?"out-win":"out-loss"}">${rTxt(p.curR||0)}</td></tr>`).join(""):`<tr><td colspan="6" class="empty">目前沒有日內持倉。</td></tr>`;
   $("intraClosed").innerHTML=(I.closed||[]).length?I.closed.slice(0,100).map(t=>`<tr><td><span class="coin">${esc(t.base)}</span></td><td>${tFmt(t.t)}</td><td>${tFmt(t.tx)}</td><td>${fmtP(t.e)}</td><td>${fmtP(t.x)}</td><td style="font-family:var(--sans)">${esc(t.why)}</td><td class="${t.R>0?"out-win":"out-loss"}">${rTxt(t.R)}</td></tr>`).join(""):`<tr><td colspan="7" class="empty">還沒有結束的日內單。</td></tr>`;
+  const I2=B.intra2||{open:[],closed:[],stats:{}},i2s=I2.stats||{};
+  $("intra2Chips").innerHTML=`<span class="chip">持倉 <b>${I2.open.length}/5</b></span><span class="chip">已結束 <b>${i2s.n||0}</b></span><span class="chip go">勝率 <b>${i2s.n?i2s.win+"%":"—"}</b></span><span class="chip ${(i2s.sumR||0)>=0?"go":"short"}">合計 <b>${i2s.n?rTxt(i2s.sumR):"—"}</b></span><span class="chip ${(i2s.ret||0)>=0?"go":"short"}">帳戶 <b>${(i2s.ret>=0?"+":"")+(i2s.ret||0)}%</b></span>`;
+  $("intra2Open").innerHTML=I2.open.length?I2.open.map(p=>`<tr><td><span class="coin">${esc(p.base)}</span> <span class="pill long">做多</span></td><td>${tFmt(p.t)}</td><td>${fmtP(p.e)}</td><td class="sl">${fmtP(p.stop)}</td><td>${fmtP(p.cur)}</td><td class="${p.curR>=0?"out-win":"out-loss"}">${rTxt(p.curR||0)}</td></tr>`).join(""):`<tr><td colspan="6" class="empty">目前沒有日內 B 持倉。</td></tr>`;
+  $("intra2Closed").innerHTML=(I2.closed||[]).length?I2.closed.slice(0,100).map(t=>`<tr><td><span class="coin">${esc(t.base)}</span></td><td>${tFmt(t.t)}</td><td>${tFmt(t.tx)}</td><td>${fmtP(t.e)}</td><td>${fmtP(t.x)}</td><td style="font-family:var(--sans)">${esc(t.why)}</td><td class="${t.R>0?"out-win":"out-loss"}">${rTxt(t.R)}</td></tr>`).join(""):`<tr><td colspan="7" class="empty">日內 B 10/31 開始，等下一個突破訊號。</td></tr>`;
 }catch(e){$("botChips").innerHTML=`<span class="chip">主力策略資料讀取失敗，稍後自動重試</span>`}}
 loadBot();setInterval(loadBot,3*6e4);
 async function loadIntel(){const el=$("intelBody");if(!el)return;try{const r=await fetch("https://a0917625816-afk.github.io/intel.json?t="+Math.floor(Date.now()/36e5),{cache:"no-store"});if(!r.ok)throw 0;const I=await r.json();
@@ -910,17 +920,17 @@ async function loadOffice(){const fl=$("officeFloor");if(!fl)return;
   const meet=["y",`下次開會 ${nextSun}`];
   const D=(av,nm,rl,st,busy)=>`<div class="desk"><span class="av${busy?" busy":""}" aria-hidden="true">${av}</span><span class="nm">${esc(nm)}</span><span class="rl">${esc(rl)}</span><span class="stt ${st[0]}"><i></i>${esc(st[1])}</span></div>`;
   const R=(t,d)=>`<div class="room"><h5>${t}</h5><div class="desks">${d.join("")}</div></div>`;
-  const sA=botSt(B,"持倉"),sB=botSt(B&&B.b,"持倉"),sI=botSt(B&&B.intra,"持倉");
-  fl.innerHTML=R("💹 交易區（24 小時）",[D("🤖","波段 A","4h 突破・讓利潤跑",sA,alive),D("🦾","波段 B","1R 先收 1/3",sB,alive),D("⚡","日內","15m 突破・08:00 平倉",sI,alive),D("🧠","綜合決策員","綜合所有資訊・可下模擬單",I&&I.synth?["g",B&&B.manual&&B.manual.open&&B.manual.open.length?"模擬單 "+B.manual.open.length+" 張":"待命"]:meet,false),D("🛡️","監控員","每小時盯全部人",["g","巡邏中"],false)])
+  const sA=botSt(B,"持倉"),sB=botSt(B&&B.b,"持倉"),sI=botSt(B&&B.intra,"持倉"),sI2=botSt(B&&B.intra2,"持倉");
+  fl.innerHTML=R("💹 交易區（24 小時）",[D("🤖","波段 A","4h 突破・讓利潤跑",sA,alive),D("🦾","波段 B","1R 先收 1/3",sB,alive),D("⚡","日內","15m 突破・08:00 平倉",sI,alive),D("⚡","日內 B","同日內・只做成交額≥5億U",sI2,alive),D("🧠","綜合決策員","綜合所有資訊・可下模擬單",I&&I.synth?["g",B&&B.manual&&B.manual.open&&B.manual.open.length?"模擬單 "+B.manual.open.length+" 張":"待命"]:meet,false),D("🛡️","監控員","每小時盯全部人",["g","巡邏中"],false)])
    +R("🔭 情報室（每 3 天）",[D("🗞️","觀察員1","新聞＋總經",meet),D("🎲","觀察員2","莊家思維",meet),D("🏦","觀察員3","華爾街",meet),D("💬","觀察員4","社群情緒",meet)])
    +R("⚖️ 會議室（每 3 天）",[D("🐂","多方1","找做多理由",meet),D("🐂","多方2","找做多理由",meet),D("🐂","多方3","找做多理由",meet),D("🐻","空方1","找風險",meet),D("🐻","空方2","找風險",meet),D("🐻","空方3","找風險",meet),D("🧑‍⚖️","裁判","下結論",I?["g",esc(I.verdict.winner)]:meet)])
    +R("🧪 實驗室",[D("🔬","回測員","歷史資料驗證",lab?(labBusy?["g","回測中…"]:["y","待命"]):["y","待命"],labBusy),D("🎰","蒙地卡羅","模擬 1000 次",labBusy?["g","計算中…"]:["y","待命"],labBusy)]);
   if(!B)return;
-  const all=[...(B.open||[]).map(p=>({k:"A",p})),...((B.b||{}).open||[]).map(p=>({k:"B",p})),...((B.intra||{}).open||[]).map(p=>({k:"日內",p}))];
-  const cl=[...(B.closed||[]).map(x=>({k:"波段A",x})),...((B.b||{}).closed||[]).map(x=>({k:"波段B",x})),...((B.intra||{}).closed||[]).map(x=>({k:"日內",x}))];
+  const all=[...(B.open||[]).map(p=>({k:"A",p})),...((B.b||{}).open||[]).map(p=>({k:"B",p})),...((B.intra||{}).open||[]).map(p=>({k:"日內",p})),...((B.intra2||{}).open||[]).map(p=>({k:"日內B",p}))];
+  const cl=[...(B.closed||[]).map(x=>({k:"波段A",x})),...((B.b||{}).closed||[]).map(x=>({k:"波段B",x})),...((B.intra||{}).closed||[]).map(x=>({k:"日內",x})),...((B.intra2||{}).closed||[]).map(x=>({k:"日內B",x}))];
   const day0=new Date();day0.setHours(0,0,0,0);const today=cl.filter(c=>c.x.tx>=day0.getTime());
   $("oStats").innerHTML=`<div><b>${all.length}</b>持倉中</div><div><b>${today.length}</b>今日結束</div><div><b style="color:${alive?"var(--long)":"var(--short)"}">${alive?"正常":"異常"}</b>機器人（${ago} 分前）</div><div><b style="color:${btcUp?"var(--long)":"var(--watch)"}">${btcUp?"開":"關"}</b>BTC 濾網</div>`;
-  const ev=[...cl.map(c=>({t:c.x.tx,h:`${c.k}｜${esc(c.x.base)} ${esc(c.x.why)} <b class="${c.x.R>0?"out-win":"out-loss"}">${rTxt(c.x.R)}</b>`})),...all.map(a=>({t:a.p.t,h:`${a.k==="A"?"波段A":a.k==="B"?"波段B":"日內"}｜進場 ${esc(a.p.base)}`}))].sort((a,b)=>b.t-a.t).slice(0,8);
+  const ev=[...cl.map(c=>({t:c.x.tx,h:`${c.k}｜${esc(c.x.base)} ${esc(c.x.why)} <b class="${c.x.R>0?"out-win":"out-loss"}">${rTxt(c.x.R)}</b>`})),...all.map(a=>({t:a.p.t,h:`${a.k==="A"?"波段A":a.k==="B"?"波段B":a.k}｜進場 ${esc(a.p.base)}`}))].sort((a,b)=>b.t-a.t).slice(0,8);
   $("oFeed").innerHTML=ev.length?ev.map(e=>`<li><time>${hm(e.t)}</time><span>${e.h}</span></li>`).join(""):"<li>還沒有動態</li>";
   const bn=((B.b||{}).closed||[]).length,an=(B.closed||[]).length,todo=[];
   todo.push(`<time>進行中</time><span>波段 A／B 留哪版：11/24 後、兩版各滿 15 筆時決定（目前 A ${an} 筆、B ${bn} 筆）</span>`);

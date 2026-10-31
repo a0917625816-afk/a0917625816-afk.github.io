@@ -107,40 +107,47 @@ async function liqOf(b) {
   if (err > 5) return null; // 網路有問題：這次先不進場，也不記下來
   const v = n >= 20 ? sum / n : 0; LQ.v[b] = Math.round(v); return v;
 }
+// 第八輪回測合格（10/31）：新增「日內B」＝同樣規則但成交額門檻拉到 ≥5 億 U，獨立一組並列比較，不動原日內組
+// 回測（分級成本）：勝率 44.7%→48.0%（樣本外 46.1%→51.2%）、平均 +0.029R→+0.088R（樣本外 +0.176→+0.314）、回撤 19.3%→13%（樣本外 10.2%→2%）
+const LIQ_MIN2 = 500e6;
 const I = st.intra = Object.assign({ equity: 1, open: [], closed: [], lastBar: 0, done: {} }, st.intra || {});
-if (!I.lastBar) I.lastBar = Math.floor(now / M15) * M15 - 2 * M15; // 第一次執行不回補舊訊號
-const iNeed = new Set([...top, ...I.open.map(p => p.base)]);
+const I2 = st.intra2 = Object.assign({ equity: 1, open: [], closed: [], lastBar: 0, done: {}, created: now }, st.intra2 || {});
+const IGROUPS = [[I, LIQ_MIN], [I2, LIQ_MIN2]];
+for (const [S] of IGROUPS) if (!S.lastBar) S.lastBar = Math.floor(now / M15) * M15 - 2 * M15; // 第一次執行不回補舊訊號
+const iNeed = new Set([...top, ...I.open.map(p => p.base), ...I2.open.map(p => p.base)]);
 for (const b of iNeed) {
   let c; try { c = (await kl(b, "15m", 400)).filter(x => x.t + M15 <= now); } catch (e) { continue; } await sleep(80);
   if (c.length < IN + 20) continue; const a = atr(c, 14), v20 = sma(c.map(x => x.v), 20);
-  for (let i = IN; i < c.length; i++) {
+  for (const [S, lmin] of IGROUPS) for (let i = IN; i < c.length; i++) {
     const bar = c[i], day = Math.floor(bar.t / D1), dayEnd = (day + 1) * D1;
-    const p = I.open.find(q => q.base === b);
+    const p = S.open.find(q => q.base === b);
     if (p) {
       if (bar.t <= p.lastBar) continue;
       let x = null, why = "";
       if (bar.l <= p.stop) { x = Math.min(bar.o, p.stop); why = "停損"; }
       else if (bar.t + M15 >= p.dayEnd) { x = bar.c; why = "收盤平倉（08:00）"; }
       p.lastBar = bar.t; p.cur = bar.c; p.curR = +((bar.c - p.e) / p.r).toFixed(2);
-      if (x != null) { const R = (x - p.e) / p.r - COST * p.e / p.r; I.equity += p.amt * R; I.closed.unshift({ ...p, x, R: +R.toFixed(3), why, tx: bar.t + M15 }); I.open = I.open.filter(q => q !== p); }
+      if (x != null) { const R = (x - p.e) / p.r - COST * p.e / p.r; S.equity += p.amt * R; S.closed.unshift({ ...p, x, R: +R.toFixed(3), why, tx: bar.t + M15 }); S.open = S.open.filter(q => q !== p); }
       continue;
     }
-    if (bar.t <= I.lastBar) continue;
-    if (bar.t >= day * D1 + 20 * 36e5 || I.done[b] === day || !btcUp || !top.has(b) || I.open.length >= MAXPOS) continue;
+    if (bar.t <= S.lastBar) continue;
+    if (bar.t >= day * D1 + 20 * 36e5 || S.done[b] === day || !btcUp || !top.has(b) || S.open.length >= MAXPOS) continue;
     let hi = -Infinity; for (let j = i - IN; j < i; j++) hi = Math.max(hi, c[j].h);
     if (!(bar.c > hi)) continue;
-    I.done[b] = day; // 每天只看當天第一次突破（跟回測一致）
+    S.done[b] = day; // 每天只看當天第一次突破（跟回測一致）
     // 第四輪回測合格的品質濾網：突破那根量 > 前 20 根平均 1.5 倍，且收在 K 棒上方 40% 以內
     const rng = bar.h - bar.l; if (!(bar.v > 1.5 * v20[i]) || !(rng > 0 && (bar.c - bar.l) / rng >= 0.6)) continue;
-    const lv = await liqOf(b); if (!(lv >= LIQ_MIN)) { console.log("日內略過（成交額不足）", b, lv); continue; }
+    const lv = await liqOf(b); if (!(lv >= lmin)) { console.log(S === I ? "日內略過（成交額不足）" : "日內B略過（成交額不足）", b, lv); continue; }
     const e = i + 1 < c.length ? c[i + 1].o : bar.c, r = IK * a[i]; if (!(r > 0) || r / e < 0.002) continue;
-    I.open.push({ base: b, t: bar.t + M15, e, r, stop: e - r, amt: I.equity * RISK, lastBar: bar.t, dayEnd, cur: bar.c, curR: 0 });
+    S.open.push({ base: b, t: bar.t + M15, e, r, stop: e - r, amt: S.equity * RISK, lastBar: bar.t, dayEnd, cur: bar.c, curR: 0 });
   }
 }
-I.lastBar = Math.floor(now / M15) * M15 - M15; // 已檢查到最近收盤的那根
-for (const k of Object.keys(I.done)) if (I.done[k] < Math.floor(now / D1) - 1) delete I.done[k];
-I.closed = I.closed.slice(0, 300);
-{ const c2 = I.closed, w = c2.filter(x => x.R > 0).length; I.stats = { n: c2.length, win: c2.length ? Math.round(w / c2.length * 100) : 0, sumR: +c2.reduce((s, x) => s + x.R, 0).toFixed(2), ret: +((I.equity - 1) * 100).toFixed(1) }; }
+for (const [S] of IGROUPS) {
+  S.lastBar = Math.floor(now / M15) * M15 - M15; // 已檢查到最近收盤的那根
+  for (const k of Object.keys(S.done)) if (S.done[k] < Math.floor(now / D1) - 1) delete S.done[k];
+  S.closed = S.closed.slice(0, 300);
+  const c2 = S.closed, w = c2.filter(x => x.R > 0).length; S.stats = { n: c2.length, win: c2.length ? Math.round(w / c2.length * 100) : 0, sumR: +c2.reduce((s, x) => s + x.R, 0).toFixed(2), ret: +((S.equity - 1) * 100).toFixed(1) };
+}
 st.closed = st.closed.slice(0, 300);
 const cl = st.closed, wins = cl.filter(x => x.R > 0).length;
 st.stats = { n: cl.length, win: cl.length ? Math.round(wins / cl.length * 100) : 0, avgR: cl.length ? +(cl.reduce((s, x) => s + x.R, 0) / cl.length).toFixed(2) : 0, sumR: +cl.reduce((s, x) => s + x.R, 0).toFixed(2), ret: +((st.equity - 1) * 100).toFixed(1) };
