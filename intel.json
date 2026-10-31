@@ -128,6 +128,10 @@
   "decisions": [
     {
       "date": "11/01",
+      "text": "東京盤：偏空（4h 三均線壓頂、週日低量、幣安 11/1 恢復提幣風險），只在壓力做空、支撐接反彈。下 6 筆：BTC P6 空 77871.9／P4 多 76366.2；ETH P4 空 2290.62／P1 多 2173.2；HYPE P4 多 84.92；BCH P4 空 292.94。全部 limit 回調單、7 小時有效。SOL 與 BTC 同向不重複下，AIN 無參考位不下。盤前室首會，無舊劇本、無教訓、型態排行為空。"
+    },
+    {
+      "date": "11/01",
       "text": "新增「BTC 週劇本」（董事長要求）：每週一台北 08:47（週K 收盤後）由 CEO 寫本週三種劇本（多、盤整、空），附機率、目標價位、失效條件，並用攻擊K（實體 ≥0.7×ATR、收在 K 線最高或最低 1/4）標出關鍵價位；下週先檢討上週哪個劇本成真。週劇本是看盤參考，不直接下單、不改機器人規則。"
     },
     {
@@ -285,10 +289,171 @@
   ],
   "review": [],
   "lastMeeting": "2026-10-31",
-  "scenarioVirtual": [],
-  "scenarios": [],
+  "scenarioVirtual": [
+    {
+      "id": "1101-tk-BTC-A",
+      "base": "BTC",
+      "side": "short",
+      "type": "limit",
+      "pattern": "P6",
+      "entry": 77871.9,
+      "stop": 78765.6,
+      "target": 76261.7,
+      "lev": 5,
+      "expireH": 7,
+      "maxHoldH": 48,
+      "session": "tokyo",
+      "scenario": "A",
+      "reason": "BTC A 主劇本（P6 1h 均線回踩順勢做空）：1h EMA20 77488.8 < EMA50 77871.9 < EMA200，4h 三條 EMA 全在價格上方、RSI4h 38.7，趨勢向下。進場＝ema1h e50 77871.9；停損＝前日高 pdh 78765.6（約 1×atr4h）；停利＝前日低 pdl 76261.7。R:R≈1.8，預估勝率 45%。無未過期教訓；週日低流動性，槓桿 5 倍保守。",
+      "date": "2026-11-01"
+    },
+    {
+      "id": "1101-tk-BTC-B",
+      "base": "BTC",
+      "side": "long",
+      "type": "limit",
+      "pattern": "P4",
+      "entry": 76366.2,
+      "stop": 75484.4,
+      "target": 77673.3,
+      "lev": 5,
+      "expireH": 7,
+      "maxHoldH": 48,
+      "session": "tokyo",
+      "scenario": "B",
+      "reason": "BTC B 替代劇本（P4 4h 支撐反應做多）：進場＝sr4h 76366.2（碰 2 次，緊鄰前日低 pdl 76261.7 與昨日紐約盤低點）；停損＝進場 −1×atr4h 881.8 ＝ 75484.4（levels 下方無其他參考位，用 ATR 派生）；停利＝sr1h 77673.3（碰 3 次，接近 h24 77729）。R:R≈1.5，預估勝率 40%（逆 4h 趨勢，只做反彈）。無未過期教訓。",
+      "date": "2026-11-01"
+    },
+    {
+      "id": "1101-tk-ETH-A",
+      "base": "ETH",
+      "side": "short",
+      "type": "limit",
+      "pattern": "P4",
+      "entry": 2290.62,
+      "stop": 2317.35,
+      "target": 2234.24,
+      "lev": 5,
+      "expireH": 7,
+      "maxHoldH": 48,
+      "session": "tokyo",
+      "scenario": "A",
+      "reason": "ETH A 主劇本（P4 4h 壓力反應做空）：4h 三條 EMA 全在價格上方、RSI4h 40.5，趨勢向下。進場＝sr4h 2290.62（碰 4 次，鄰近 sr1h 2296.81 碰 6 次與 fibDown4h 0.382＝2307.2）；停損＝sr1h 2317.35（碰 3 次，略高於 ema4h e50 2315.9）；停利＝sr1h 2234.24（碰 3 次，≈ l24 2233.55）。R:R≈2.1，預估勝率 45%。無未過期教訓。",
+      "date": "2026-11-01"
+    },
+    {
+      "id": "1101-tk-ETH-B",
+      "base": "ETH",
+      "side": "long",
+      "type": "limit",
+      "pattern": "P1",
+      "entry": 2173.2,
+      "stop": 2141.24,
+      "target": 2234.24,
+      "lev": 5,
+      "expireH": 7,
+      "maxHoldH": 48,
+      "session": "tokyo",
+      "scenario": "B",
+      "reason": "ETH B 替代劇本（P1 回踩前日低做多）：進場＝前日低 pdl 2173.2（同時是 sr4h 與 fibDown4h 起點）；停損＝pdl −1×atr4h 31.96 ＝ 2141.24（levels 下方無其他參考位，用 ATR 派生）；停利＝sr1h 2234.24（碰 3 次）。R:R≈1.9，預估勝率 40%（逆勢接反彈，只在急殺到位才成交）。無未過期教訓。",
+      "date": "2026-11-01"
+    },
+    {
+      "id": "1101-tk-HYPE-A",
+      "base": "HYPE",
+      "side": "long",
+      "type": "limit",
+      "pattern": "P4",
+      "entry": 84.9239,
+      "stop": 83.0147,
+      "target": 88.589,
+      "lev": 3,
+      "expireH": 7,
+      "maxHoldH": 48,
+      "session": "tokyo",
+      "scenario": "A",
+      "reason": "HYPE A 主劇本（P4 4h 支撐反應做多）：4h EMA20 87.37 > EMA50 83.98 > EMA200 83.25，4h 趨勢仍向上，RSI4h 55，是 levels 裡少數強勢幣。進場＝sr4h 84.9239（碰 16 次，鄰近 fibUp4h 0.5＝85.685）；停損＝fibUp4h 0.618＝83.0147；停利＝前日低 pdl 88.589（跌破處，回測當壓力）。R:R≈1.9，預估勝率 45%。無未過期教訓。",
+      "date": "2026-11-01"
+    },
+    {
+      "id": "1101-tk-BCH-A",
+      "base": "BCH",
+      "side": "short",
+      "type": "limit",
+      "pattern": "P4",
+      "entry": 292.942,
+      "stop": 297.58,
+      "target": 278.191,
+      "lev": 3,
+      "expireH": 7,
+      "maxHoldH": 48,
+      "session": "tokyo",
+      "scenario": "A",
+      "reason": "BCH A 主劇本（P4 4h 壓力反應做空）：價格在 sr4h 292.94 與 270.62 之間來回，4h RSI 49.8 中性、1h 三條 EMA 糾結。進場＝sr4h 292.942（碰 16 次，鄰近 sr1h 293.567 碰 3 次）；停損＝前日高 pdh 297.58（≈ h24 297.65）；停利＝sr1h 278.191（碰 22 次，區間內最強磁吸位）。R:R≈3.2，預估勝率 35%。無未過期教訓。",
+      "date": "2026-11-01"
+    }
+  ],
+  "scenarios": [
+    {
+      "session": "tokyo",
+      "sessionName": "東京盤",
+      "time": "台北 11/01 07:42",
+      "text": "盤前室首會，無上一盤劇本可檢討。BTC 4h 三均線壓頂、昨日窄幅整理（77729–76853），週日低量、幣安 11/1 擬恢復提幣，偏空但只在壓力做空、支撐接反彈：BTC 回踩 1h EMA50 77872 做空（P6），sr4h 76366 接多（P4）；ETH sr4h 2290.6 做空、pdl 2173.2 接多；HYPE sr4h 84.92 做多；BCH sr4h 292.9 做空。共 6 筆。",
+      "plans": [
+        {
+          "name": "BTC A 主劇本（P6）",
+          "if": "反彈到 1h EMA50 77871.9 未站回",
+          "then": "做空，停損 pdh 78765.6，停利 pdl 76261.7"
+        },
+        {
+          "name": "BTC B 替代劇本（P4）",
+          "if": "回落到 sr4h 76366.2（碰 2 次，≈pdl 76261.7）",
+          "then": "接多反彈，停損 75484（−1×atr4h），停利 sr1h 77673.3"
+        },
+        {
+          "name": "BTC C 失效條件",
+          "if": "1h 收在 pdh 78765.6 之上，或 1h 收在 pdl 76261.7 之下",
+          "then": "收上：偏空失效，改看 sr4h 79481／fibDown 0.382 79550；收下：多單失效，週日不追空（下方無 levels 參考位）"
+        },
+        {
+          "name": "ETH A 主劇本（P4）",
+          "if": "反彈到 sr4h 2290.62（碰 4 次）",
+          "then": "做空，停損 sr1h 2317.35，停利 sr1h 2234.24"
+        },
+        {
+          "name": "ETH B 替代劇本（P1）",
+          "if": "急殺到 pdl 2173.2",
+          "then": "接多，停損 2141.24（−1×atr4h），停利 sr1h 2234.24"
+        },
+        {
+          "name": "ETH C 失效條件",
+          "if": "1h 收在 sr4h 2290.62 之上，或 1h 收在 pdl 2173.2 之下",
+          "then": "收上：空單失效，看 fibDown 0.382 2307.2／sr1h 2317.35；收下：多單失效，等 1h 收回再看 P2"
+        },
+        {
+          "name": "HYPE A 主劇本（P4）",
+          "if": "回落到 sr4h 84.9239（碰 16 次）",
+          "then": "做多，停損 fibUp4h 0.618 83.01，停利 pdl 88.589"
+        },
+        {
+          "name": "BCH A 主劇本（P4）",
+          "if": "反彈到 sr4h 292.942（碰 16 次）",
+          "then": "做空，停損 pdh 297.58，停利 sr1h 278.191（碰 22 次）"
+        },
+        {
+          "name": "不下",
+          "if": "SOL 的 P6 空與 BTC 同一件事；AIN 單日 +94% 無支撐壓力位",
+          "then": "不另下單"
+        }
+      ]
+    }
+  ],
   "lessons": [],
-  "sessions": {},
+  "sessions": {
+    "2026-11-01": {
+      "tokyo": "07:42"
+    }
+  },
   "patterns": [
     {
       "id": "P1",
