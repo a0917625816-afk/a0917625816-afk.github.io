@@ -225,6 +225,51 @@ for (const b of lvSyms) {
 }
 st.levels = LV;
 
+// ===== 8) 戰情室資料（11/1 新增）：BTC 近 72 根 1h K、成交額前 20 大的幣掃描（劇本型態候選＋跟 BTC 的連動）=====
+// 這裡只是「候選清單」給人看，不會自動下單；型態定義與 intel.json 的 patterns 一致
+try {
+  const corr = (a, b) => { const n = Math.min(a.length, b.length); if (n < 30) return null; a = a.slice(-n); b = b.slice(-n); const ma = a.reduce((x, y) => x + y, 0) / n, mb = b.reduce((x, y) => x + y, 0) / n; let sab = 0, sa = 0, sb = 0; for (let i = 0; i < n; i++) { const da = a[i] - ma, db = b[i] - mb; sab += da * db; sa += da * da; sb += db * db; } return sa && sb ? sab / Math.sqrt(sa * sb) : null; };
+  const H1c = {};
+  const get1h = async b => { if (H1c[b]) return H1c[b]; const c = (await kl(b, "1h", 400)).filter(x => x.t + H1 <= now); await sleep(80); H1c[b] = c; return c; };
+  const btc1 = await get1h("BTC"), btcRet = new Map(); for (let i = 1; i < btc1.length; i++) btcRet.set(btc1[i].t, btc1[i].c / btc1[i - 1].c - 1);
+  const btcChg24 = btc1.length > 24 ? btc1.at(-1).c / btc1.at(-25).c - 1 : 0;
+  LV.btcSpark = btc1.slice(-72).map(x => [x.t, PX(x.o), PX(x.h), PX(x.l), PX(x.c)]);
+  LV.btcChg24 = +(btcChg24 * 100).toFixed(2);
+  const scanSyms = [...new Set([...coins.slice(0, 20), ...top])].filter(b => b !== "BTC");
+  const out = [];
+  for (const b of scanSyms) {
+    try {
+      const h1 = await get1h(b); const h4 = D[b] ? closedBars(D[b].h) : null; const d1 = D[b] ? D[b].d : null;
+      if (!h4 || h1.length < 220 || h4.length < 220) continue;
+      const P1 = prep(h1, H1), P4 = prep(h4, H4), i1 = h1.length - 1, i4 = h4.length - 1, last = h1[i1].c, a1 = P1.atr[i1];
+      const day0 = Math.floor(now / D1) * D1, yd = d1.find(x => x.t === day0 - D1);
+      const t4 = last > P4.e50[i4] && P4.e50[i4] > P4.e200[i4] ? 1 : last < P4.e50[i4] && P4.e50[i4] < P4.e200[i4] ? -1 : 0;
+      const t1 = P1.e20[i1] > P1.e50[i1] ? 1 : -1;
+      const prev = h1.slice(-27, -3), h24 = Math.max(...prev.map(x => x.h)), l24 = Math.min(...prev.map(x => x.l));
+      const S = [], near = (L, k) => L != null && Math.abs(last - L) <= k * a1;
+      const add = (pattern, side, level, label) => S.push({ pattern, side, level: PX(level), dist: +((level / last - 1) * 100).toFixed(2), label });
+      if (yd) { if (near(yd.h, 0.5)) add("P1", last >= yd.h ? "long" : "short", yd.h, last >= yd.h ? "站上前日高後回踩" : "頂到前日高"); if (near(yd.l, 0.5)) add("P1", last >= yd.l ? "long" : "short", yd.l, last >= yd.l ? "回踩前日低支撐" : "跌破前日低後反抽"); }
+      const r3 = h1.slice(-3);
+      if (r3.some(x => x.l < l24) && last > l24) add("P2", "long", l24, "掃掉近 24h 低點後收回");
+      if (r3.some(x => x.h > h24) && last < h24) add("P2", "short", h24, "掃掉近 24h 高點後收回");
+      if (yd && t4 > 0 && last < yd.h && near(yd.h, 0.4)) add("P3", "long", yd.h, "多頭排列、貼近前日高，可等突破");
+      if (yd && t4 < 0 && last > yd.l && near(yd.l, 0.4)) add("P3", "short", yd.l, "空頭排列、貼近前日低，可等跌破");
+      const sr = srLevels(P4, i4).filter(x => x.touches >= 2).sort((x, y) => Math.abs(x.price - last) - Math.abs(y.price - last))[0];
+      if (sr && near(sr.price, 0.5)) add("P4", last >= sr.price ? "long" : "short", sr.price, `4h ${last >= sr.price ? "支撐" : "壓力"}（碰 ${sr.touches} 次）`);
+      if (t4 !== 0) { const f = fibAt(P4, i4, t4), lo = Math.min(f.lvl(0.5), f.lvl(0.618)), hi = Math.max(f.lvl(0.5), f.lvl(0.618)); if (last >= lo && last <= hi) add("P5", t4 > 0 ? "long" : "short", f.lvl(0.618), "回到 4h 波段 0.5～0.618"); }
+      if (t1 > 0 && t4 >= 0 && (near(P1.e20[i1], 0.3) || near(P1.e50[i1], 0.3)) && last > P1.e50[i1]) add("P6", "long", P1.e20[i1], "1h 多頭回踩均線");
+      if (t1 < 0 && t4 <= 0 && (near(P1.e20[i1], 0.3) || near(P1.e50[i1], 0.3)) && last < P1.e50[i1]) add("P6", "short", P1.e20[i1], "1h 空頭反彈到均線");
+      if (t4 === 0 && near(h24, 0.3)) add("P7", "short", h24, "區間上緣");
+      if (t4 === 0 && near(l24, 0.3)) add("P7", "long", l24, "區間下緣");
+      const ret = []; const bret = []; for (let i = Math.max(1, h1.length - 168); i < h1.length; i++) { const br = btcRet.get(h1[i].t); if (br == null) continue; ret.push(h1[i].c / h1[i - 1].c - 1); bret.push(br); }
+      const c7 = corr(ret, bret), chg24 = h1.length > 24 ? last / h1.at(-25).c - 1 : 0;
+      const w = watch.find(x => x.base === b);
+      out.push({ base: b, last: PX(last), chg24: +(chg24 * 100).toFixed(2), rel24: +((chg24 - btcChg24) * 100).toFixed(2), corr7: c7 == null ? null : +c7.toFixed(2), t4, t1, top: top.has(b), ema200: w ? w.ema200 : null, brkDist: w ? w.dist : null, setups: S });
+    } catch (e) { console.log("掃描略過", b, e.message); }
+  }
+  st.scan = { updated: new Date().toISOString(), btcChg24: LV.btcChg24, coins: out };
+} catch (e) { console.log("戰情室資料略過（錯誤）", e.message); }
+
 // ===== 7) 劇本單（下單員依劇本員的劇本下的虛擬單，可做多做空，10/31 新增）=====
 // 來源：intel.json 的 scenarioVirtual。每筆固定風險本金 1%；槓桿不設上限，但若「爆倉價在停損之前」就拒單。
 // 成交規則（保守）：limit＝回調掛單、stop＝突破追單；成交那根 K 若也碰到停損，算停損。停損與停利同一根都碰到，算停損。
