@@ -3,7 +3,7 @@
 // 停損 2×ATR14，收盤跌破前 27 根最低點出場；同時最多 5 張；每筆風險 1%
 import fs from "node:fs/promises";
 import { execFileSync } from "node:child_process";
-import { ema, sma, atr } from "./ta-core.mjs";
+import { ema, sma, atr, prep, levels as srLevels, fibAt } from "./ta-core.mjs";
 
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const UA = { "User-Agent": "Mozilla/5.0 (radar-bot)", "Accept": "application/json" };
@@ -193,6 +193,92 @@ try {
   MN.closed = MN.closed.slice(0, 300);
   { const c2 = MN.closed.filter(x => x.R !== undefined && x.amt), w = c2.filter(x => x.R > 0).length; MN.stats = { n: c2.length, win: c2.length ? Math.round(w / c2.length * 100) : 0, sumR: +c2.reduce((q, x) => q + x.R, 0).toFixed(2), ret: +((MN.equity - 1) * 100).toFixed(1) }; }
 } catch (e) { console.log("手動模擬單略過（錯誤）", e.message); }
+
+// ===== 6) 盤前資料快照（給劇本員用，10/31 新增）：BTC、ETH、SOL＋強勢前 3 名的關鍵價位，全部來自交易所 K 線，不靠猜 =====
+const H1 = 36e5, PX = v => (v == null || !isFinite(v)) ? null : +(+v).toPrecision(6);
+const LV = { updated: new Date().toISOString(), coins: {} };
+const lvSyms = [...new Set(["BTC", "ETH", "SOL", ...[...top].slice(0, 3)])];
+for (const b of lvSyms) {
+  try {
+    const h1 = (await kl(b, "1h", 400)).filter(x => x.t + H1 <= now); await sleep(80);
+    const h4 = D[b] ? closedBars(D[b].h) : (await kl(b, "4h", 320)).filter(x => x.t + H4 <= now);
+    const d1 = D[b] ? D[b].d : await kl(b, "1d", 60);
+    if (h1.length < 220 || h4.length < 220) continue;
+    const P1 = prep(h1, H1), P4 = prep(h4, H4), i1 = h1.length - 1, i4 = h4.length - 1, last = (await kl(b, "15m", 2)).at(-1)?.c ?? h1[i1].c;
+    const day0 = Math.floor(now / D1) * D1, yd = d1.filter(x => x.t === day0 - D1)[0];
+    const rng = (from, to) => { const xs = h1.filter(x => x.t >= from && x.t < to); return xs.length ? { hi: PX(Math.max(...xs.map(x => x.h))), lo: PX(Math.min(...xs.map(x => x.l))) } : null; };
+    // 時段（UTC）：亞洲 00–07、倫敦 07–13、紐約 13–21
+    const ses = d => ({ asia: rng(d, d + 7 * H1), london: rng(d + 7 * H1, d + 13 * H1), ny: rng(d + 13 * H1, d + 21 * H1) });
+    const sr = (P, i) => srLevels(P, i).map(x => ({ p: PX(x.price), n: x.touches })).filter(x => Math.abs(x.p / last - 1) < 0.15);
+    const fu = fibAt(P4, i4, 1), fd = fibAt(P4, i4, -1), fib = f => ({ hi: PX(f.hi), lo: PX(f.lo), r382: PX(f.lvl(0.382)), r5: PX(f.lvl(0.5)), r618: PX(f.lvl(0.618)), r786: PX(f.lvl(0.786)) });
+    LV.coins[b] = {
+      last: PX(last), pdh: PX(yd?.h), pdl: PX(yd?.l), pdc: PX(yd?.c),
+      h24: PX(Math.max(...h1.slice(-24).map(x => x.h))), l24: PX(Math.min(...h1.slice(-24).map(x => x.l))),
+      ema1h: { e20: PX(P1.e20[i1]), e50: PX(P1.e50[i1]), e200: PX(P1.e200[i1]) },
+      ema4h: { e20: PX(P4.e20[i4]), e50: PX(P4.e50[i4]), e200: PX(P4.e200[i4]) },
+      atr1h: PX(P1.atr[i1]), atr4h: PX(P4.atr[i4]), rsi1h: +(P1.rsi[i1] || 0).toFixed(1), rsi4h: +(P4.rsi[i4] || 0).toFixed(1),
+      sr1h: sr(P1, i1).slice(-12), sr4h: sr(P4, i4).slice(-12),
+      fibUp4h: fib(fu), fibDown4h: fib(fd),
+      sesToday: ses(day0), sesYday: ses(day0 - D1),
+    };
+  } catch (e) { console.log("快照略過", b, e.message); }
+}
+st.levels = LV;
+
+// ===== 7) 劇本單（下單員依劇本員的劇本下的虛擬單，可做多做空，10/31 新增）=====
+// 來源：intel.json 的 scenarioVirtual。每筆固定風險本金 1%；槓桿不設上限，但若「爆倉價在停損之前」就拒單。
+// 成交規則（保守）：limit＝回調掛單、stop＝突破追單；成交那根 K 若也碰到停損，算停損。停損與停利同一根都碰到，算停損。
+try {
+  const SC = st.scen = Object.assign({ equity: 1, open: [], closed: [], waiting: {}, done: {} }, st.scen || {});
+  let sv = []; try { sv = JSON.parse(await fs.readFile("intel.json", "utf8")).scenarioVirtual || []; } catch (e) {}
+  const MAXOPEN = 5, MAXWAIT = 8, MMR = 0.005;
+  const okSide = o => o.side === "long" ? (o.stop < o.entry && o.entry < o.target) : o.side === "short" ? (o.target < o.entry && o.entry < o.stop) : false;
+  const valid = o => o && o.id && o.base && o.entry > 0 && o.stop > 0 && o.target > 0 && okSide(o) && !SC.done[o.id];
+  const orders = sv.filter(valid);
+  const tierCost = v => v == null ? 0.004 : v >= 2000e6 ? 0.0014 : v >= 500e6 ? 0.0025 : v >= 100e6 ? 0.004 : 0.007;
+  for (const o of orders) if (!SC.waiting[o.id] && !SC.open.find(q => q.id === o.id) && Object.keys(SC.waiting).length < MAXWAIT) SC.waiting[o.id] = { ...o, t0: now };
+  const close = (p, x, why, tx) => {
+    const dir = p.side === "long" ? 1 : -1, R = dir * (x - p.e) / p.r - p.cost * p.e / p.r;
+    SC.equity += p.amt * R; SC.done[p.id] = 1; SC.open = SC.open.filter(q => q !== p);
+    SC.closed.unshift({ id: p.id, base: p.base, side: p.side, type: p.type, session: p.session, scenario: p.scenario, e: p.e, stop: p.stop, target: p.target, x, R: +R.toFixed(3), why, reason: p.reason, lev: p.lev, levNeeded: p.levNeeded, t: p.t, tx, amt: p.amt });
+  };
+  for (const id of Object.keys(SC.waiting)) {
+    const w = SC.waiting[id];
+    if (!orders.find(o => o.id === id)) { delete SC.waiting[id]; continue; }
+    const exp = Math.min(72, w.expireH || 8) * H1;
+    if (now - w.t0 > exp) { SC.done[id] = 1; delete SC.waiting[id]; SC.closed.unshift({ id, base: w.base, side: w.side, session: w.session, scenario: w.scenario, e: w.entry, x: null, R: 0, why: "未成交過期", reason: w.reason || "", t: w.t0, tx: now, amt: 0 }); continue; }
+    if (SC.open.length >= MAXOPEN) continue;
+    let c; try { c = (await kl(w.base, "15m", 400)).filter(x => x.t + M15 <= now); } catch (e) { continue; } await sleep(80);
+    const lim = (w.type || "limit") === "limit", L = w.side === "long";
+    const hit = c.find(x => x.t + M15 > w.t0 && (lim ? (L ? x.l <= w.entry : x.h >= w.entry) : (L ? x.h >= w.entry : x.l <= w.entry)));
+    if (!hit) continue;
+    const e = lim ? (L ? Math.min(hit.o, w.entry) : Math.max(hit.o, w.entry)) : (L ? Math.max(hit.o, w.entry) : Math.min(hit.o, w.entry));
+    // 部位大小以「計畫進場價到停損」計算（跟真實下單一樣）；R 也用計畫距離算，成交價比較好或比較差都會反映在 R 上
+    const r = Math.abs(w.entry - w.stop), dist = Math.abs(e - w.stop); delete SC.waiting[id];
+    const levNeeded = +(RISK * e / r).toFixed(2); // 用全部本金當保證金時需要的槓桿
+    if (w.lev && !(L ? e <= w.stop : e >= w.stop) && (1 / w.lev - MMR) <= dist / e) { SC.done[id] = 1; SC.closed.unshift({ id, base: w.base, side: w.side, session: w.session, e, x: null, R: 0, why: `槓桿 ${w.lev} 倍太高：停損前會先爆倉，拒單`, reason: w.reason || "", t: hit.t, tx: now, amt: 0 }); continue; }
+    const lv = await liqOf(w.base);
+    const p = { id, base: w.base, side: w.side, type: w.type || "limit", session: w.session || "", scenario: w.scenario || "", e, r, plannedE: w.entry, stop: w.stop, target: w.target, reason: w.reason || "", lev: w.lev || null, levNeeded, cost: tierCost(lv), t: hit.t + M15, lastBar: hit.t, amt: SC.equity * RISK, maxHold: Math.min(168, w.maxHoldH || 48) * H1, cur: hit.c, curR: 0 };
+    SC.open.push(p);
+    // 跳空越過停損：成交後停損立刻觸發，以成交價出場（只賠成本）；成交當根又碰到停損：算停損
+    if (L ? e <= p.stop : e >= p.stop) close(p, e, "跳空越過停損，成交即出場", hit.t + M15);
+    else if (L ? hit.l <= p.stop : hit.h >= p.stop) close(p, p.stop, "停損（成交當根）", hit.t + M15);
+  }
+  for (const p of [...SC.open]) {
+    let c; try { c = (await kl(p.base, "15m", 400)).filter(x => x.t + M15 <= now); } catch (e) { continue; } await sleep(80);
+    const L = p.side === "long";
+    for (const b of c) {
+      if (b.t <= p.lastBar) continue;
+      p.lastBar = b.t; p.cur = b.c; p.curR = +((L ? 1 : -1) * (b.c - p.e) / p.r).toFixed(2);
+      if (L ? b.l <= p.stop : b.h >= p.stop) { close(p, L ? Math.min(b.o, p.stop) : Math.max(b.o, p.stop), "停損", b.t + M15); break; }
+      if (L ? b.h >= p.target : b.l <= p.target) { close(p, L ? Math.max(b.o, p.target) : Math.min(b.o, p.target), "停利", b.t + M15); break; }
+      if (b.t + M15 - p.t >= p.maxHold) { close(p, b.c, "超時平倉", b.t + M15); break; }
+    }
+  }
+  SC.closed = SC.closed.slice(0, 500);
+  const real = SC.closed.filter(x => x.amt), agg = xs => { const w = xs.filter(x => x.R > 0).length; return { n: xs.length, win: xs.length ? Math.round(w / xs.length * 100) : 0, sumR: +xs.reduce((q, x) => q + x.R, 0).toFixed(2), avgR: xs.length ? +(xs.reduce((q, x) => q + x.R, 0) / xs.length).toFixed(2) : 0 }; };
+  SC.stats = { ...agg(real), ret: +((SC.equity - 1) * 100).toFixed(1), bySession: Object.fromEntries(["tokyo", "london", "ny"].map(k => [k, agg(real.filter(x => x.session === k))])), bySide: { long: agg(real.filter(x => x.side === "long")), short: agg(real.filter(x => x.side === "short")) }, expired: SC.closed.filter(x => !x.amt).length };
+} catch (e) { console.log("劇本單略過（錯誤）", e.message); }
 st.market = { btcUp, btc: bD[bI].c, btcE50: +bE[bI].toFixed(1), top: [...top] };
 st.watch = watch.filter(w => w.top && w.ema200).sort((a, b) => a.dist - b.dist).slice(0, 12);
 st.updated = new Date().toISOString();
