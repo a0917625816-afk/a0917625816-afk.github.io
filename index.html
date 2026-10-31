@@ -364,10 +364,11 @@ canvas.chart{background:#070C16;border-color:var(--line)}
         <li><b>日內</b>：15 分K 突破 48 小時新高，要量能放大、收盤夠強、而且是成交額夠大的熱門幣；早上 08:00 一律平倉。</li>
         <li><b>日內 B</b>（10/31 新增）：規則同日內，但只做近 30 天日均成交額 ≥5 億 U 的大幣。第八輪回測合格，與日內並列比較，不刪原組。</li>
         <li>四組都要先過濾：BTC 日線站上 EMA50、該幣 20 天漲幅前 10 名。每筆最多賠本金 1%。</li></ul></div>
-      <div class="intel-card"><h4>② 情報團＋多空辯論（每 3 天）</h4><ul>
+      <div class="intel-card"><h4>② 情報團＋多空辯論＋研究驗證組（每 3 天）</h4><ul>
         <li>全隊共同任務：<b>在平均獲利不變差、回撤不變大的前提下，把勝率拉高</b>。</li>
-        <li>4 名觀察員：新聞總經、莊家思維（資金費率、爆倉單）、華爾街（ETF、選擇權）、社群情緒（脆、X、PTT 等公開討論）。</li>
-        <li>多方、空方各三位辯手根據情報互相反駁，裁判下結論。</li>
+        <li>2 名觀察員：總經事件（含風險日期）、市場籌碼（資金費率、未平倉量、爆倉、拉高出貨的幣）。</li>
+        <li>多方、空方各一位辯手根據情報互相反駁，裁判下結論。</li>
+        <li>研究驗證組（10/31 新增）：資料工程師補歷史資料、市場狀態分類員找「不該出手」的時段、出場研究員改良出場、覆盤員逐筆對照回測、做空研究員負責空頭期策略、過擬合審查員擋掉只是運氣好的策略。</li>
         <li>結論只用來<b>提醒風險日期、要小心的幣、決定先回測哪個點子</b>，不會憑感覺改機器人。</li></ul></div>
       <div class="intel-card"><h4>③ 改規則的鐵律</h4><ul>
         <li>任何新規則都要先用 2～3 年歷史資料回測。</li>
@@ -885,6 +886,8 @@ async function loadIntel(){const el=$("intelBody");if(!el)return;try{const r=awa
   <div class="intel-grid" style="margin-top:10px"><div class="intel-card"><h4>🐂 多方理由</h4><ul>${li(I.bull)}</ul></div><div class="intel-card"><h4>🐻 空方理由</h4><ul>${li(I.bear)}</ul></div></div>
   ${I.synth?`<div class="intel-card" style="margin-top:10px"><h4>🧠 ${esc(I.synth.name)}</h4><p>${esc(I.synth.text)}</p><p><b>模擬單：</b>${B&&B.manual&&B.manual.open&&B.manual.open.length?B.manual.open.length+" 張持倉中":"目前沒有持倉"}（紀錄見下方決策）</p></div>`:""}
   <div class="intel-grid" style="margin-top:10px">${(I.observers||[]).map(o=>`<div class="intel-card"><h4>${esc(o.name)}</h4><p>${esc(o.text)}</p></div>`).join("")}</div>
+  ${(I.lab||[]).length?`<div class="intel-card" style="margin-top:10px"><h4>🧪 研究驗證組</h4><ul>${I.lab.map(x=>`<li><b>${esc(x.role)}</b>　${esc(x.text)}</li>`).join("")}</ul></div>`:""}
+  ${(I.review||[]).length?`<div class="intel-card" style="margin-top:10px"><h4>🔁 覆盤紀錄（每筆結束的虛擬單）</h4><ul>${I.review.slice(0,12).map(x=>`<li><b>${esc(x.date)}｜${esc(x.group)}｜${esc(x.base)} ${esc(x.R)}</b>　${esc(x.finding)}</li>`).join("")}</ul></div>`:""}
   <div class="intel-grid" style="margin-top:10px"><div class="intel-card"><h4>📅 風險日期（台灣時間，前後少開新單）</h4><ul>${(I.risk||[]).map(x=>`<li><b>${esc(x.when)}</b>　${esc(x.what)}</li>`).join("")}</ul><p>${esc(I.watchCoins||"")}</p></div>
   <div class="intel-card"><h4>🧪 回測佇列（通過才上線）</h4><ul>${(I.queue||[]).map(x=>`<li>${esc(x.item)}　<b>${esc(x.status)}</b></li>`).join("")}</ul></div></div>`;
 }catch(e){el.innerHTML='<p class="lead">情報暫時讀不到，稍後再試。</p>'}}
@@ -893,6 +896,7 @@ async function loadChat(){const el=$("chatBody");if(!el)return;try{const r=await
   const m=[];const add=(av,nm,cls,text)=>{if(text)m.push(`<div class="msg ${cls}"><span class="av2" aria-hidden="true">${av}</span><div class="bub"><div class="nm">${esc(nm)}</div>${esc(text)}</div></div>`)};
   add("⚖️","裁判（"+I.date+"）","judge",I.verdict&&("結論："+I.verdict.winner+"。"+I.verdict.text));
   (I.observers||[]).forEach((o,i)=>add(["📰","🎲","🏦","💬"][i]||"🔭",o.name,"",o.text));
+  (I.lab||[]).forEach(x=>add("🧪",x.role,"",x.text));
   const n=Math.max((I.bull||[]).length,(I.bear||[]).length);
   for(let i=0;i<n;i++){add("🐂","多方"+(i+1),"bull",(I.bull||[])[i]);add("🐻","空方"+(i+1),"bear",(I.bear||[])[i]);}
   if(I.synth)add("🧠",I.synth.name,"synth",I.synth.text);
@@ -922,8 +926,9 @@ async function loadOffice(){const fl=$("officeFloor");if(!fl)return;
   const R=(t,d)=>`<div class="room"><h5>${t}</h5><div class="desks">${d.join("")}</div></div>`;
   const sA=botSt(B,"持倉"),sB=botSt(B&&B.b,"持倉"),sI=botSt(B&&B.intra,"持倉"),sI2=botSt(B&&B.intra2,"持倉");
   fl.innerHTML=R("💹 交易區（24 小時）",[D("🤖","波段 A","4h 突破・讓利潤跑",sA,alive),D("🦾","波段 B","1R 先收 1/3",sB,alive),D("⚡","日內","15m 突破・08:00 平倉",sI,alive),D("⚡","日內 B","同日內・只做成交額≥5億U",sI2,alive),D("🧠","綜合決策員","綜合所有資訊・可下模擬單",I&&I.synth?["g",B&&B.manual&&B.manual.open&&B.manual.open.length?"模擬單 "+B.manual.open.length+" 張":"待命"]:meet,false),D("🛡️","監控員","每小時盯全部人",["g","巡邏中"],false)])
-   +R("🔭 情報室（每 3 天）",[D("🗞️","觀察員1","新聞＋總經",meet),D("🎲","觀察員2","莊家思維",meet),D("🏦","觀察員3","華爾街",meet),D("💬","觀察員4","社群情緒",meet)])
-   +R("⚖️ 會議室（每 3 天）",[D("🐂","多方1","找做多理由",meet),D("🐂","多方2","找做多理由",meet),D("🐂","多方3","找做多理由",meet),D("🐻","空方1","找風險",meet),D("🐻","空方2","找風險",meet),D("🐻","空方3","找風險",meet),D("🧑‍⚖️","裁判","下結論",I?["g",esc(I.verdict.winner)]:meet)])
+   +R("🔭 情報室（每 3 天）",[D("🗞️","觀察員1","總經＋事件日期",meet),D("🎲","觀察員2","籌碼（費率・OI・爆倉）",meet)])
+   +R("⚖️ 會議室（每 3 天）",[D("🐂","多方","找做多理由",meet),D("🐻","空方","找風險",meet),D("🧑‍⚖️","裁判","下結論",I?["g",esc(I.verdict.winner)]:meet)])
+   +R("🧪 研究驗證組（每 3 天）",[D("🗄️","資料工程師","補齊歷史資料",meet),D("🌦️","市場狀態分類員","趨勢／盤整／恐慌",meet),D("🚪","出場研究員","分批・移動停損",meet),D("🔁","覆盤員","每筆單對照回測",meet),D("🐻","做空研究員","空頭期也有事做",meet),D("🧯","過擬合審查員","擋掉運氣好的策略",meet)])
    +R("🧪 實驗室",[D("🔬","回測員","歷史資料驗證",lab?(labBusy?["g","回測中…"]:["y","待命"]):["y","待命"],labBusy),D("🎰","蒙地卡羅","模擬 1000 次",labBusy?["g","計算中…"]:["y","待命"],labBusy)]);
   if(!B)return;
   const all=[...(B.open||[]).map(p=>({k:"A",p})),...((B.b||{}).open||[]).map(p=>({k:"B",p})),...((B.intra||{}).open||[]).map(p=>({k:"日內",p})),...((B.intra2||{}).open||[]).map(p=>({k:"日內B",p}))];
