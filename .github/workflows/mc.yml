@@ -1,0 +1,36 @@
+name: 蒙地卡羅月更新
+# 每月 1 日 台北 09:17 自動重跑第六輪（四組＋分級成本），更新 mc.json（網站「正常波動範圍」）
+# 跟策略實驗室（lab.yml）分開排隊，不會互相取消
+on:
+  schedule:
+    - cron: '17 1 1 * *'
+  workflow_dispatch:
+  push:
+    paths:
+      - 'lab/run6.mjs'
+      - '.github/workflows/mc.yml'
+permissions:
+  contents: write
+concurrency:
+  group: mc
+  cancel-in-progress: true
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: 蒙地卡羅
+        run: set -o pipefail; node --max-old-space-size=6000 lab/run6.mjs 2>&1 | tee lab/log6.txt
+      - name: 存檔
+        if: success()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -f lab/log6.txt; git add mc.json lab/results6.json lab/report6.md
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m "蒙地卡羅月更新 $(TZ=Asia/Taipei date '+%m-%d %H:%M')"
+          for i in 1 2 3; do git pull --rebase origin main && git push && break; sleep 5; done

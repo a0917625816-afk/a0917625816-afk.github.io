@@ -1,4 +1,5 @@
 // 策略實驗室 第六輪：蒙地卡羅 1000 次＋各幣穩定度（先用樣本內挑幣，再用樣本外驗證會不會只是運氣）
+// 10/31 起：每月 1 日由 .github/workflows/mc.yml 自動重跑；成本改用第八輪的分級成本模型；加入日內 B（成交額≥5億U）
 // 對象：目前上線的三組（波段A、波段B＝1R先平1/3＋保本、日內＝量>1.5倍＋收在K棒上40%）
 // 測試：①流動性（近30天日均成交額門檻）②上市天數門檻（新幣不做）③資金費率不擁擠才做（≤0.01%/8h 或 ≤0）
 import fs from "node:fs/promises";
@@ -67,6 +68,8 @@ console.log("資金費率有資料的幣", fundOK, "/", coins.length);
 function lastFund(cn, t) { const a = FUND[cn]; if (!a || !a.length) return null; let lo = 0, hi = a.length - 1, ans = -1; while (lo <= hi) { const m = (lo + hi) >> 1; if (a[m][0] <= t) { ans = m; lo = m + 1; } else hi = m - 1; } return ans < 0 ? null : a[ans][1]; }
 // 近30天日均成交額（USDT，用日K 收盤×量估算），以前一天為準
 const LIQ = {}; for (const cn of coins) { const d = data[cn].d, m = new Map(); let s = 0; const q = d.map(b => b.c * b.v); for (let i = 0; i < d.length; i++) { s += q[i]; if (i >= 30) s -= q[i - 30]; if (i >= 29) m.set(dk(d[i].t), s / 30); } LIQ[cn] = m; }
+const TIERS = [[2000e6, 0.0014], [500e6, 0.0025], [100e6, 0.0040], [0, 0.0070]]; // 第八輪分級成本（來回）
+function tieredCost(cn, t) { const v = LIQ[cn].get(dk(t) - 1); if (!(v >= 0)) return 0.0040; for (const [th, c] of TIERS) if (v >= th) return c; return 0.0070; }
 // 上市日：資料一開始就有的幣視為老幣（真正上市更早，不受天數限制）
 const G0 = Math.min(...coins.map(cn => data[cn].m[0].t)); const FIRST = {}; for (const cn of coins) { const f0 = data[cn].m[0].t; FIRST[cn] = f0 - G0 < 3 * D1 ? -Infinity : f0; }
 function passF(cn, t, f) {
@@ -96,7 +99,7 @@ function trades(cn, kind, q, x, f) {
         if (kind === "swing") { let lo = Infinity; for (let j = i - M; j < i; j++) lo = Math.min(lo, c[j].l); if (b.c < lo) ex = b.c; }
         else if (b.t + M15 >= pos.dayEnd) ex = b.c;
       }
-      if (ex != null) { const left = pos.took ? 1 - x.f : 1; const R = pos.real + left * (ex - pos.e) / pos.r - COST * pos.e / pos.r; out.push({ cn, t: pos.t, tx: b.t + (kind === "swing" ? H4 : M15), R }); pos = null; }
+      if (ex != null) { const left = pos.took ? 1 - x.f : 1; const R = pos.real + left * (ex - pos.e) / pos.r - pos.cost * pos.e / pos.r; out.push({ cn, t: pos.t, tx: b.t + (kind === "swing" ? H4 : M15), R }); pos = null; }
       continue;
     }
     if (kind === "intra") { const day = dk(b.t); if (day === doneDay || b.t >= day * D1 + 20 * 36e5) continue; }
@@ -108,7 +111,7 @@ function trades(cn, kind, q, x, f) {
     if (!quality(P, i, q)) continue;
     if (!passF(cn, t, f)) continue;
     const e = c[i + 1].o, r = stopK * a[i]; if (!(r > 0) || r / e < 0.002) continue;
-    pos = { e, r, st: e - r, t, real: 0, took: false, dayEnd: (dk(b.t) + 1) * D1 };
+    pos = { e, r, st: e - r, t, real: 0, took: false, dayEnd: (dk(b.t) + 1) * D1, cost: tieredCost(cn, t) };
   }
   return out;
 }
@@ -126,6 +129,7 @@ const STRATS = [
   { key: "A", name: "波段A", kind: "swing", q: {}, x: { tp: 0, f: 0, be: false }, f: {} },
   { key: "B", name: "波段B（1R先平1/3＋保本）", kind: "swing", q: {}, x: { tp: 1, f: 0.33, be: true }, f: {} },
   { key: "I", name: "日內（量能＋收盤強度＋成交額≥1億U）", kind: "intra", q: { vol: 1.5, cs: 0.6 }, x: { tp: 0, f: 0, be: false }, f: { liq: 100 } },
+  { key: "I2", name: "日內B（同日內，成交額≥5億U）", kind: "intra", q: { vol: 1.5, cs: 0.6 }, x: { tp: 0, f: 0, be: false }, f: { liq: 500 } },
 ];
 const SIMS = +(process.env.SIMS || 1000);
 let seed = 12345; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
@@ -151,7 +155,7 @@ function portMC(R) {
 const stat = R => R.length ? { n: R.length, win: +(R.filter(x => x > 0).length / R.length * 100).toFixed(1), avgR: +(R.reduce((s, x) => s + x, 0) / R.length).toFixed(3) } : { n: 0, win: 0, avgR: 0 };
 const OUT = { created: new Date().toISOString(), sims: SIMS, coins: coins.length, period: [new Date(t0).toISOString().slice(0, 10), new Date(cut).toISOString().slice(0, 10), new Date(t1).toISOString().slice(0, 10)], strats: {} };
 const L = ["# 策略實驗室 第六輪：蒙地卡羅 " + SIMS + " 次＋各幣穩定度", "", `產生時間：${OUT.created}；幣種 ${coins.length}；樣本內 ${OUT.period[0]}～${OUT.period[1]}，樣本外 ${OUT.period[1]}～${OUT.period[2]}`, "",
-  "方法：①把每個幣在樣本內的交易重抽 " + SIMS + " 次，算「賺錢機率」與「最差 5% 情況的平均R」；②只用樣本內挑出最穩的幣，再看它們在樣本外（挑幣時沒看過的資料）是不是真的比較好——不是的話就代表只是運氣，不採用。③把全部交易重抽 " + SIMS + " 次，看正常會遇到多大的回撤和連虧。", ""];
+  "成本：分級成本模型（≥20 億U 0.14%、5～20 億 0.25%、1～5 億 0.40%、<1 億 0.70%）。方法：①把每個幣在樣本內的交易重抽 " + SIMS + " 次，算「賺錢機率」與「最差 5% 情況的平均R」；②只用樣本內挑出最穩的幣，再看它們在樣本外（挑幣時沒看過的資料）是不是真的比較好——不是的話就代表只是運氣，不採用。③把全部交易重抽 " + SIMS + " 次，看正常會遇到多大的回撤和連虧。", ""];
 for (const S of STRATS) {
   const tr = coins.flatMap(cn => trades(cn, S.kind, S.q, S.x, S.f));
   const IS = tr.filter(x => x.t < cut), OOS = tr.filter(x => x.t >= cut);

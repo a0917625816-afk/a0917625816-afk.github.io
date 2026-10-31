@@ -8,7 +8,6 @@ on:
       - 'lab/run3.mjs'
       - 'lab/run4.mjs'
       - 'lab/run5.mjs'
-      - 'lab/run6.mjs'
       - 'lab/run7.mjs'
       - 'lab/run8.mjs'
       - '.github/workflows/lab.yml'
