@@ -231,7 +231,7 @@ st.levels = LV;
 try {
   const SC = st.scen = Object.assign({ equity: 1, open: [], closed: [], waiting: {}, done: {} }, st.scen || {});
   let sv = []; try { sv = JSON.parse(await fs.readFile("intel.json", "utf8")).scenarioVirtual || []; } catch (e) {}
-  const MAXOPEN = 5, MAXWAIT = 8, MMR = 0.005;
+  const MAXOPEN = 20, MAXWAIT = 30, MMR = 0.005; // 11/1 使用者決定取消劇本單的筆數門檻，只留系統負荷上限
   const okSide = o => o.side === "long" ? (o.stop < o.entry && o.entry < o.target) : o.side === "short" ? (o.target < o.entry && o.entry < o.stop) : false;
   const valid = o => o && o.id && o.base && o.entry > 0 && o.stop > 0 && o.target > 0 && okSide(o) && !SC.done[o.id];
   const orders = sv.filter(valid);
@@ -240,7 +240,7 @@ try {
   const close = (p, x, why, tx) => {
     const dir = p.side === "long" ? 1 : -1, R = dir * (x - p.e) / p.r - p.cost * p.e / p.r;
     SC.equity += p.amt * R; SC.done[p.id] = 1; SC.open = SC.open.filter(q => q !== p);
-    SC.closed.unshift({ id: p.id, base: p.base, side: p.side, type: p.type, session: p.session, scenario: p.scenario, e: p.e, stop: p.stop, target: p.target, x, R: +R.toFixed(3), why, reason: p.reason, lev: p.lev, levNeeded: p.levNeeded, t: p.t, tx, amt: p.amt });
+    SC.closed.unshift({ id: p.id, base: p.base, side: p.side, type: p.type, session: p.session, scenario: p.scenario, pattern: p.pattern, e: p.e, stop: p.stop, target: p.target, x, R: +R.toFixed(3), why, reason: p.reason, lev: p.lev, levNeeded: p.levNeeded, t: p.t, tx, amt: p.amt });
   };
   for (const id of Object.keys(SC.waiting)) {
     const w = SC.waiting[id];
@@ -258,7 +258,7 @@ try {
     const levNeeded = +(RISK * e / r).toFixed(2); // 用全部本金當保證金時需要的槓桿
     if (w.lev && !(L ? e <= w.stop : e >= w.stop) && (1 / w.lev - MMR) <= dist / e) { SC.done[id] = 1; SC.closed.unshift({ id, base: w.base, side: w.side, session: w.session, e, x: null, R: 0, why: `槓桿 ${w.lev} 倍太高：停損前會先爆倉，拒單`, reason: w.reason || "", t: hit.t, tx: now, amt: 0 }); continue; }
     const lv = await liqOf(w.base);
-    const p = { id, base: w.base, side: w.side, type: w.type || "limit", session: w.session || "", scenario: w.scenario || "", e, r, plannedE: w.entry, stop: w.stop, target: w.target, reason: w.reason || "", lev: w.lev || null, levNeeded, cost: tierCost(lv), t: hit.t + M15, lastBar: hit.t, amt: SC.equity * RISK, maxHold: Math.min(168, w.maxHoldH || 48) * H1, cur: hit.c, curR: 0 };
+    const p = { id, base: w.base, side: w.side, type: w.type || "limit", session: w.session || "", scenario: w.scenario || "", pattern: w.pattern || "P0", e, r, plannedE: w.entry, stop: w.stop, target: w.target, reason: w.reason || "", lev: w.lev || null, levNeeded, cost: tierCost(lv), t: hit.t + M15, lastBar: hit.t, amt: SC.equity * RISK, maxHold: Math.min(168, w.maxHoldH || 48) * H1, cur: hit.c, curR: 0 };
     SC.open.push(p);
     // 跳空越過停損：成交後停損立刻觸發，以成交價出場（只賠成本）；成交當根又碰到停損：算停損
     if (L ? e <= p.stop : e >= p.stop) close(p, e, "跳空越過停損，成交即出場", hit.t + M15);
@@ -277,7 +277,10 @@ try {
   }
   SC.closed = SC.closed.slice(0, 500);
   const real = SC.closed.filter(x => x.amt), agg = xs => { const w = xs.filter(x => x.R > 0).length; return { n: xs.length, win: xs.length ? Math.round(w / xs.length * 100) : 0, sumR: +xs.reduce((q, x) => q + x.R, 0).toFixed(2), avgR: xs.length ? +(xs.reduce((q, x) => q + x.R, 0) / xs.length).toFixed(2) : 0 }; };
-  SC.stats = { ...agg(real), ret: +((SC.equity - 1) * 100).toFixed(1), bySession: Object.fromEntries(["tokyo", "london", "ny"].map(k => [k, agg(real.filter(x => x.session === k))])), bySide: { long: agg(real.filter(x => x.side === "long")), short: agg(real.filter(x => x.side === "short")) }, expired: SC.closed.filter(x => !x.amt).length };
+  SC.stats = { ...agg(real), ret: +((SC.equity - 1) * 100).toFixed(1), bySession: Object.fromEntries(["tokyo", "london", "ny"].map(k => [k, agg(real.filter(x => x.session === k))])), bySide: { long: agg(real.filter(x => x.side === "long")), short: agg(real.filter(x => x.side === "short")) }, byType: { limit: agg(real.filter(x => (x.type || "limit") === "limit")), stop: agg(real.filter(x => x.type === "stop")) }, expired: SC.closed.filter(x => !x.amt).length };
+  // 按型態＋方向統計；early＝較舊的一半、late＝較新的一半（用來驗證：只有前後兩半都賺的型態才算真的有效）
+  const keys = [...new Set(real.map(x => (x.pattern || "P0") + "|" + x.side))];
+  SC.stats.byPattern = Object.fromEntries(keys.map(k => { const [pt, sd] = k.split("|"); const xs = real.filter(x => (x.pattern || "P0") === pt && x.side === sd).sort((a, b) => a.tx - b.tx), h = Math.floor(xs.length / 2); return [k, { pattern: pt, side: sd, ...agg(xs), early: agg(xs.slice(0, h)), late: agg(xs.slice(h)) }]; }));
 } catch (e) { console.log("劇本單略過（錯誤）", e.message); }
 st.market = { btcUp, btc: bD[bI].c, btcE50: +bE[bI].toFixed(1), top: [...top] };
 st.watch = watch.filter(w => w.top && w.ema200).sort((a, b) => a.dist - b.dist).slice(0, 12);
