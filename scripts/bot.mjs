@@ -235,6 +235,16 @@ try {
   const btcChg24 = btc1.length > 24 ? btc1.at(-1).c / btc1.at(-25).c - 1 : 0;
   LV.btcSpark = btc1.slice(-72).map(x => [x.t, PX(x.o), PX(x.h), PX(x.l), PX(x.c)]);
   LV.btcChg24 = +(btcChg24 * 100).toFixed(2);
+  // 週劇本用：BTC 週線（週一 00:00 UTC 起算）、日線、最近的攻擊K（實體 ≥0.7×ATR14 且收在 K 線最高或最低 1/4）
+  const bdAll = D.BTC.d.filter(x => x.t + D1 <= now), wk = [];
+  for (const b of bdAll) { const ws = b.t - ((Math.floor(b.t / D1) + 3) % 7) * D1; const last = wk[wk.length - 1]; if (!last || last.t !== ws) wk.push({ t: ws, o: b.o, h: b.h, l: b.l, c: b.c }); else { last.h = Math.max(last.h, b.h); last.l = Math.min(last.l, b.l); last.c = b.c; } }
+  const wa = atr(wk, 14), da = atr(bdAll, 14);
+  LV.btcWeekly = wk.slice(-12).map(x => [x.t, PX(x.o), PX(x.h), PX(x.l), PX(x.c)]);
+  LV.btcWeekAtr = PX(wa.at(-1)); LV.btcDayAtr = PX(da.at(-1));
+  LV.btcDaily = bdAll.slice(-30).map(x => [x.t, PX(x.o), PX(x.h), PX(x.l), PX(x.c)]);
+  const attack = (c, a, tf, from) => { const out = []; for (let i = Math.max(15, from); i < c.length; i++) { const b = c[i], rng = b.h - b.l, body = Math.abs(b.c - b.o); if (!(a[i] > 0) || rng <= 0 || body < 0.7 * a[i]) continue; const up = b.c > b.o && (b.c - b.l) / rng >= 0.75, dn = b.c < b.o && (b.h - b.c) / rng >= 0.75; if (up || dn) out.push({ tf, t: b.t, dir: up ? "up" : "down", o: PX(b.o), h: PX(b.h), l: PX(b.l), c: PX(b.c), mid: PX((b.o + b.c) / 2), bodyAtr: +(body / a[i]).toFixed(2) }); } return out; };
+  const b4 = closedBars(D.BTC.h), a4 = atr(b4, 14);
+  LV.btcAttack = [...attack(bdAll, da, "1d", bdAll.length - 30), ...attack(b4, a4, "4h", b4.length - 84)].sort((x, y) => y.t - x.t).slice(0, 12);
   const scanSyms = [...new Set([...coins.slice(0, 20), ...top])].filter(b => b !== "BTC");
   const out = [];
   for (const b of scanSyms) {
