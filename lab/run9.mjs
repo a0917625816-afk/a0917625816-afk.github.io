@@ -134,11 +134,11 @@ const all = [];
 for (const S of SETS) {
   if (S.c.length < 1500) { L.push(`## ${S.name}`, "", `資料不足（${S.c.length} 根），略過`, ""); continue; }
   const cut = S.c[Math.floor(S.c.length * SPLIT)].t;
-  const rows = P.map(p => { const tr = sim(S.c, S.cost, p); return { p, IS: stat(tr.filter(x => x.t < cut)), OOS: stat(tr.filter(x => x.t >= cut)), ALL: stat(tr), tr }; });
+  const rows = P.map(p => { const tr = sim(S.c, S.cost, p); return { p, IS: stat(tr.filter(x => x.t < cut)), OOS: stat(tr.filter(x => x.t >= cut)), ALL: stat(tr), G: stat(sim(S.c, 0, p)), tr }; });
   all.push({ set: S.name, rows });
   const pos = rows.filter(r => r.ALL.n >= 20 && r.ALL.avgR > 0).length, both = rows.filter(r => r.IS.n >= 15 && r.OOS.n >= 10 && r.IS.avgR > 0.05 && r.OOS.avgR > 0.05);
-  const avg = rows.reduce((a, r) => a + r.ALL.avgR, 0) / rows.length;
-  L.push(`## ${S.name}`, "", `${S.c.length} 根 K（${new Date(S.c[0].t).toISOString().slice(0, 10)}～${new Date(S.c.at(-1).t).toISOString().slice(0, 10)}）｜${rows.length} 組參數：全期賺錢 ${pos} 組（${Math.round(pos / rows.length * 100)}%）、平均R 的平均 ${avg.toFixed(3)}｜樣本內外都 > 0.05R：${both.length} 組`, "",
+  const avg = rows.reduce((a, r) => a + r.ALL.avgR, 0) / rows.length; const avgG = rows.reduce((a, r) => a + r.G.avgR, 0) / rows.length, posG = rows.filter(r => r.G.n >= 20 && r.G.avgR > 0).length;
+  L.push(`## ${S.name}`, "", `${S.c.length} 根 K（${new Date(S.c[0].t).toISOString().slice(0, 10)}～${new Date(S.c.at(-1).t).toISOString().slice(0, 10)}）｜${rows.length} 組參數：全期賺錢 ${pos} 組（${Math.round(pos / rows.length * 100)}%）、平均R 的平均 ${avg.toFixed(3)}（不含成本：${avgG.toFixed(3)}、賺錢 ${posG} 組）｜停損距離中位數 ${(() => { const rs = rows[0].tr.map(x => x.riskPct).sort((a, b) => a - b); return rs.length ? (rs[rs.length >> 1] * 100).toFixed(3) + '%' : '—'; })()}｜樣本內外都 > 0.05R：${both.length} 組`, "",
     "| 參數 | 樣本內 | 樣本外 | 全期 | 全期 多/空 平均R | 亞/歐/美 平均R |", "|---|---|---|---|---|---|");
   const f = s => `${s.n}/${s.win}%/${s.avgR}/${s.pf ?? "—"}/${s.ddR}`;
   const sub = (tr, fn) => { const g = tr.filter(fn); return g.length ? (g.reduce((a, x) => a + x.R, 0) / g.length).toFixed(2) + `(${g.length})` : "—"; };
@@ -154,6 +154,71 @@ const cons = P.map((p, idx) => { const gn = all.filter(a => isGN(a.set)), cr = a
   const avg = g.length ? g.reduce((s, r) => s + r.ALL.avgR, 0) / g.length : -9;
   return { p, gPos: g.filter(r => r.OOS.avgR > 0).length, gN: g.length, cPos: c2.filter(r => r.OOS.avgR > 0).length, cN: c2.length, avg }; });
 cons.sort((a, b) => b.gPos / Math.max(1, b.gN) - a.gPos / Math.max(1, a.gN) || b.avg - a.avg).slice(0, 15).forEach(x => L.push(`| ${pn(x.p)} | ${x.gPos}/${x.gN} | ${x.cPos}/${x.cN} | ${x.avg.toFixed(3)} |`));
+
+// ===== 開盤版（使用者 11/01：新增「下單員」在各開盤時間用此法）=====
+// 每天三個開盤：東京 00:00 UTC（台灣 08:00）、倫敦 07:00/08:00 UTC（夏/冬令）、紐約 13:30/14:30 UTC（夏/冬令）
+// 區間＝開盤前 pre 小時的高低點；開盤後 4 小時內若跌破（或突破）區間並碰到延伸位就反向進場；每個開盤最多 1 筆；進場後最多持有 4 小時
+const dayOf = t => Math.floor(t / 864e5);
+function nthSun(y, m, k) { const f = new Date(Date.UTC(y, m, 1)); return dayOf(f.getTime()) + ((7 - f.getUTCDay()) % 7) + 7 * (k - 1); }
+function lastSun(y, m) { const f = new Date(Date.UTC(y, m + 1, 1)); const d = dayOf(f.getTime()) - 1; return d - new Date(d * 864e5).getUTCDay(); }
+function opens(day) { const y = new Date(day * 864e5).getUTCFullYear(); const usDst = day >= nthSun(y, 2, 2) && day < nthSun(y, 10, 1), ukDst = day >= lastSun(y, 2) && day < lastSun(y, 9);
+  return [["東京", day * 864e5], ["倫敦", day * 864e5 + (ukDst ? 7 : 8) * 36e5], ["紐約", day * 864e5 + (usDst ? 13.5 : 14.5) * 36e5]]; }
+function simSess(c, cost, p) {
+  const a = atr(c, 14), out = [], idx = new Map(); c.forEach((b, i) => idx.set(b.t, i));
+  const first = t => { let lo = 0, hi = c.length; while (lo < hi) { const m = (lo + hi) >> 1; if (c[m].t < t) lo = m + 1; else hi = m; } return lo; };
+  for (let day = dayOf(c[0].t) + 1; day <= dayOf(c.at(-1).t); day++) for (const [sess, T] of opens(day)) {
+    if (p.sess !== "all" && p.sess !== sess) continue;
+    const i0 = first(T - p.pre * 36e5), i1 = first(T), i2 = first(T + 4 * 36e5);
+    if (i1 - i0 < 3 || i2 >= c.length || i1 < 20 || c[i1].t - T > 36e5) continue;
+    let H = -Infinity, Lo = Infinity; for (let j = i0; j < i1; j++) { H = Math.max(H, c[j].h); Lo = Math.min(Lo, c[j].l); }
+    const R = H - Lo; if (!(R >= a[i1 - 1]) || !(R > 0)) continue;
+    let tr = null;
+    for (let k = i1; k < i2 && !tr; k++) {
+      const b = c[k]; let dir = 0; if (b.l < Lo && !(b.h > H)) dir = 1; else if (b.h > H && !(b.l < Lo)) dir = -1; if (!dir) continue;
+      const base = dir > 0 ? Lo : H, lvl = x => base - dir * x * R, E = lvl(p.e), S = lvl(p.s), Tg = lvl(p.t);
+      let ent = null, touched = false, m = k;
+      for (; m < i2; m++) { const x = c[m];
+        const hitE = dir > 0 ? x.l <= E : x.h >= E, hitS = dir > 0 ? x.l <= S : x.h >= S;
+        if (p.mode === "limit") { if (hitE) { if (m > k && (dir > 0 ? x.o <= S : x.o >= S)) break; ent = { m, e: m > k ? (dir > 0 ? Math.min(x.o, E) : Math.max(x.o, E)) : E, sb: hitS }; break; } }
+        else { if (hitS) break; if (hitE) touched = true; if (touched && (dir > 0 ? x.c > E : x.c < E) && m + 1 < c.length) { ent = { m: m + 1, e: c[m + 1].o, sb: false }; break; } }
+      }
+      if (!ent) break; // 這個開盤第一次破區間就決定，沒成交就放棄（避免同一開盤反覆找）
+      const e = ent.e, r = Math.abs(e - S); if (!(r > 0) || (dir > 0 ? e <= S : e >= S)) break;
+      let x = null, q = ent.m; const end = Math.min(c.length - 1, first(c[ent.m].t + 4 * 36e5));
+      if (ent.sb) x = S; else for (; q <= end; q++) { const y = c[q];
+        if (dir > 0 ? y.l <= S : y.h >= S) { x = q === ent.m ? S : (dir > 0 ? Math.min(y.o, S) : Math.max(y.o, S)); break; }
+        if (p.mode === "limit" && q === ent.m) continue;
+        if (dir > 0 ? y.h >= Tg : y.l <= Tg) { x = Tg; break; } }
+      if (x == null) x = c[end].c;
+      tr = { t: c[ent.m].t, R: dir * (x - e) / r - cost * e / r, dir, sess };
+    }
+    if (tr) out.push(tr);
+  }
+  return out;
+}
+const PS = grid({ sess: ["東京", "倫敦", "紐約"], pre: [1, 2], e: [0.5, 0.618], s: [0.886, 1.0], t: [0.277, 0, -0.5], mode: ["limit", "confirm"] }).filter(p => p.s > p.e);
+const psn = p => `${p.sess}｜開盤前${p.pre}小時區間｜進場${p.e === 0.5 ? "-0.5" : "-0.618"}｜停損${p.s === 1 ? "-1.0" : "-0.886"}｜目標${p.t === 0.277 ? "-0.277" : p.t === 0 ? "0 線" : "區間中線"}｜${p.mode === "limit" ? "掛單" : "收回確認"}`;
+L.push("", "# 開盤版（下單員用）", "", "每天東京／倫敦／紐約開盤，用開盤前 1 或 2 小時的高低點當區間，開盤後 4 小時內第一次破區間就看延伸位反向；每個開盤最多 1 筆，最多持有 4 小時。", "");
+const sessAll = [];
+for (const S of SETS.filter(s => s.tf !== "1h")) {
+  if (S.c.length < 1500) continue;
+  const cut = S.c[Math.floor(S.c.length * SPLIT)].t;
+  const rows = PS.map(p => { const tr = simSess(S.c, S.cost, p); return { p, IS: stat(tr.filter(x => x.t < cut)), OOS: stat(tr.filter(x => x.t >= cut)), ALL: stat(tr), G: stat(simSess(S.c, 0, p)) }; });
+  sessAll.push({ set: S.name, rows });
+  const f = s => `${s.n}/${s.win}%/${s.avgR}/${s.pf ?? "—"}/${s.ddR}`;
+  L.push(`## 開盤版｜${S.name}`, "", "| 參數 | 樣本內 | 樣本外 | 全期 | 全期不含成本 |", "|---|---|---|---|---|");
+  for (const ss of ["東京", "倫敦", "紐約"]) {
+    const rs = rows.filter(r => r.p.sess === ss), pos = rs.filter(r => r.ALL.n >= 10 && r.ALL.avgR > 0).length;
+    L.push(`| **${ss}**：${rs.length} 組中全期賺錢 ${pos} 組（不含成本 ${rs.filter(r => r.G.n >= 10 && r.G.avgR > 0).length} 組） | | | | |`);
+    rs.filter(r => r.IS.n >= 8).sort((a, b) => b.IS.avgR * Math.sqrt(b.IS.n) - a.IS.avgR * Math.sqrt(a.IS.n)).slice(0, 4).forEach(r => L.push(`| ${psn(r.p)} | ${f(r.IS)} | ${f(r.OOS)} | ${f(r.ALL)} | ${f(r.G)} |`));
+  }
+  L.push("");
+}
+L.push("## 開盤版跨資料集一致性（黃金/納指資料集中，樣本外 > 0 的個數）", "", "| 參數 | 黃金/納指 樣本外>0 | 對照組 樣本外>0 | 黃金/納指 全期平均R | 黃金/納指 全期筆數 |", "|---|---|---|---|---|");
+PS.map((p, idx) => { const g = sessAll.filter(a => isGN(a.set)).map(a => a.rows[idx]).filter(r => r.OOS.n >= 5), c2 = sessAll.filter(a => !isGN(a.set)).map(a => a.rows[idx]).filter(r => r.OOS.n >= 5);
+  return { p, gPos: g.filter(r => r.OOS.avgR > 0).length, gN: g.length, cPos: c2.filter(r => r.OOS.avgR > 0).length, cN: c2.length, avg: g.length ? g.reduce((s, r) => s + r.ALL.avgR, 0) / g.length : -9, n: g.reduce((s, r) => s + r.ALL.n, 0) }; })
+  .sort((a, b) => b.gPos / Math.max(1, b.gN) - a.gPos / Math.max(1, a.gN) || b.avg - a.avg).slice(0, 20)
+  .forEach(x => L.push(`| ${psn(x.p)} | ${x.gPos}/${x.gN} | ${x.cPos}/${x.cN} | ${x.avg.toFixed(3)} | ${x.n} |`));
 await fs.writeFile("lab/report9.md", L.join("\n"));
 await fs.writeFile("lab/results9.json", JSON.stringify({ created: new Date().toISOString(), sets: all.map(a => ({ set: a.set, rows: a.rows.map(r => ({ p: r.p, IS: r.IS, OOS: r.OOS, ALL: r.ALL })) })) }));
 console.log(L.join("\n"));
