@@ -377,16 +377,21 @@ try {
         let ent = null, m = k;
         for (; m < Math.min(i2, c.length); m++) { const x = c[m]; if (dir > 0 ? x.l <= E : x.h >= E) { if (m > k && (dir > 0 ? x.o <= S : x.o >= S)) break; ent = { m, e: m > k ? (dir > 0 ? Math.min(x.o, E) : Math.max(x.o, E)) : E, sb: dir > 0 ? x.l <= S : x.h >= S }; break; } }
         if (!ent) { res = (ended || m < Math.min(i2, c.length)) ? { done: true, why: "破區間但沒碰到進場價" } : { waiting: true, dir, E, S, Tg }; break; }
-        const e = ent.e, r = Math.abs(e - S), endT = c[ent.m].t + WIN; let x = null, why = "", q = ent.m;
-        if (ent.sb) { x = S; why = "停損（成交當根）"; }
-        else for (; q < c.length; q++) { const y = c[q]; if (y.t >= endT) break;
+        const e = ent.e, r = Math.abs(e - S), endT = c[ent.m].t + WIN; let x = null, why = "", q = ent.m, worst = e;
+        const adv = y => { worst = dir > 0 ? Math.min(worst, y.l) : Math.max(worst, y.h); };
+        if (ent.sb) { x = S; why = "停損（成交當根）"; adv(c[ent.m]); }
+        else for (; q < c.length; q++) { const y = c[q]; if (y.t >= endT) break; adv(y);
           if (dir > 0 ? y.l <= S : y.h >= S) { x = q === ent.m ? S : (dir > 0 ? Math.min(y.o, S) : Math.max(y.o, S)); why = "停損"; break; }
           if (q === ent.m) continue;
           if (dir > 0 ? y.h >= Tg : y.l <= Tg) { x = Tg; why = "停利（回到 0 線）"; break; } }
         if (x == null && endT <= now) { const z = c[Math.min(c.length - 1, first(endT) - 1)]; x = z.c; why = "4 小時到期平倉"; }
         const tr = { id, sym: name, session: sn, side: dir > 0 ? "long" : "short", H, L, e, stop: S, target: Tg, t: c[ent.m].t };
-        if (x == null) res = { open: { ...tr, cur, curR: +(dir * (cur - e) / r).toFixed(2) } };
-        else { const Rm = dir * (x - e) / r - FCOST * e / r; res = { done: true, trade: { ...tr, x, why, R: +Rm.toFixed(3), tx: now } }; }
+        // 500 倍對照（使用者 11/02 要看）：起始保證金 0.2%，維持保證金約 0.1% → 反向約 0.1% 就爆倉；手續費按名目收，來回 0.1%＝保證金的 50%
+        const LEV = 500, LIQ = 1 / LEV - 0.001, stopPct = r / e, maePct = Math.abs(worst - e) / e;
+        const lev = xx => maePct >= LIQ ? { liq: true, pct: -100 } : xx == null ? null : { liq: false, pct: Math.max(-100, +(LEV * (dir * (xx - e) / e - FCOST) * 100).toFixed(0)) };
+        tr.stopPct = +(stopPct * 100).toFixed(3); tr.liqBeforeStop = stopPct >= LIQ;
+        if (x == null) res = { open: { ...tr, cur, curR: +(dir * (cur - e) / r).toFixed(2), lev500: lev(null) } };
+        else { const Rm = dir * (x - e) / r - FCOST * e / r; res = { done: true, trade: { ...tr, x, why, R: +Rm.toFixed(3), tx: now, lev500: lev(x) } }; }
       }
       if (!res) { if (ended) res = { done: true, why: "沒破區間" }; else res = { waiting: true, both: true }; }
       if (res.done) { FB.done[id] = 1; if (res.trade) { FB.equity += FB.equity * RISK * res.trade.R; FB.closed.unshift(res.trade); } }
@@ -397,6 +402,7 @@ try {
   for (const k of Object.keys(FB.done)) if (+k.split("|")[2] < dayOf(now) - 3) delete FB.done[k];
   FB.closed = FB.closed.slice(0, 300); FB.open = live; FB.plan = plan.sort((a, b) => a.T - b.T);
   const ag = xs => { const w = xs.filter(x => x.R > 0).length; return { n: xs.length, win: xs.length ? Math.round(w / xs.length * 100) : 0, sumR: +xs.reduce((q, x) => q + x.R, 0).toFixed(2), avgR: xs.length ? +(xs.reduce((q, x) => q + x.R, 0) / xs.length).toFixed(3) : 0 }; };
+  const l5 = FB.closed.filter(x => x.lev500); FB.stats500 = { n: l5.length, liq: l5.filter(x => x.lev500.liq).length, sumPct: l5.reduce((q, x) => q + x.lev500.pct, 0) };
   FB.stats = { ...ag(FB.closed), ret: +((FB.equity - 1) * 100).toFixed(1), bySession: Object.fromEntries(["東京", "倫敦", "紐約"].map(k => [k, ag(FB.closed.filter(x => x.session === k))])), bySym: Object.fromEntries(["黃金", "那指"].map(k => [k, ag(FB.closed.filter(x => x.sym === k))])) };
 } catch (e) { console.log("斐波下單員略過（錯誤）", e.message); }
 st.market = { btcUp, btc: bD[bI].c, btcE50: +bE[bI].toFixed(1), top: [...top] };
