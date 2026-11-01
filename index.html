@@ -387,7 +387,8 @@ canvas.chart{background:#070C16;border-color:var(--line)}
 
   <section class="paper bot" id="bot">
     <h2>🏆 主力策略・波段（雲端 24 小時虛擬單・不用開網頁）</h2>
-    <p class="lead">實驗室 3 年回測最穩的組合：<b>4 小時K 突破 55 根新高才做多</b>，而且要同時符合 ① BTC 日線站上 EMA50 ② 該幣 20 天漲幅排前 10 名 ③ 4 小時K 在 EMA200 之上。停損 = 進場價 − 2 倍 ATR，收盤跌破前 27 根最低點就出場（沒有固定 TP，讓獲利奔跑）。同時最多 5 張、每筆最多賠本金 1%。回測：最近一年沒看過的資料 年化約 +40%、最大回撤約 19%（同期抱 BTC −17%）。勝率約 26%，常常小賠、偶爾大賺，這是正常的。<br>這區由雲端每 15 分鐘自動執行，不用開電腦，所有裝置看到的都一樣。</p>
+    <p class="lead">實驗室 3 年回測最穩的組合：<b>4 小時K 突破 55 根新高才做多</b>，而且要同時符合 ① BTC 日線站上 EMA50 ② 該幣 20 天漲幅排前 10 名 ③ 4 小時K 在 EMA200 之上。停損 = 進場價 − 2 倍 ATR，收盤跌破前 27 根最低點就出場（沒有固定 TP，讓獲利奔跑）。同時最多 5 張、每筆最多賠本金 1%。回測：最近一年沒看過的資料 年化約 +40%、最大回撤約 19%（同期抱 BTC −17%）。勝率約 26%，常常小賠、偶爾大賺，這是正常的。<br>這區由雲端每 5 分鐘自動執行（11/01 起，原本 15 分鐘），不用開電腦，所有裝置看到的都一樣。</p>
+    <div class="chips" id="btcLiveBar"><span class="chip"><span class="dot warn"></span>BTC 即時 <b id="btcLivePx">連線中…</b></span><span class="chip" id="btcLiveChg">24h <b>—</b></span><span class="chip" id="btcLiveE50">日線 EMA50 <b>—</b></span><span class="small" style="align-self:center" id="btcLiveAt">Binance 合約即時行情・每秒更新（濾網開關仍以日線收盤判定）</span></div>
     <div class="chips" id="botChips"><span class="chip">讀取中…</span></div>
     <h3 class="bot-h">持倉中</h3>
     <div class="tbl-wrap"><table class="list"><thead><tr><th>幣種</th><th>進場時間</th><th>進場價</th><th>停損</th><th>現價</th><th>目前</th></tr></thead><tbody id="botOpen"></tbody></table></div>
@@ -400,7 +401,7 @@ canvas.chart{background:#070C16;border-color:var(--line)}
     <div class="chips" id="bChips"></div>
     <div class="tbl-wrap"><table class="list"><thead><tr><th>幣種</th><th>進場</th><th>出場</th><th>進場價</th><th>停損/出場價</th><th>狀態</th><th>結果</th></tr></thead><tbody id="bBody"></tbody></table></div>
     <h2 style="margin-top:10px">⚡ 日內版（當天平倉）</h2>
-    <p class="lead">同一套濾網（BTC 在 EMA50 之上＋20 天強勢前 10 名），改用 15 分K：<b>價格突破過去 48 小時最高點就做多</b>，而且突破那根要<b>量能放大 1.5 倍以上、收盤收在 K 棒上半段</b>（10/24 加入，回測勝率 43.6%→45%、平均獲利 +0.06R→+0.10R、最大回撤 35%→26%），而且<b>這個幣近 30 天在 Binance 合約的日均成交額要有 1 億 U 以上</b>（10/29 第五輪回測加入，太冷門、Binance 沒上的幣不做；回測勝率 43.7%→46.2%、平均獲利 +0.06R→+0.08R、最大回撤 23%→17%，樣本內外都合格），停損約 3 倍小時級 ATR，每個幣一天最多 1 筆，台灣凌晨 04:00 後不再進場，<b>早上 08:00 一律平倉</b>，不留倉過夜。2 年回測：測試期 年化約 +31%、回撤 20%；最近 8 個月沒看過的資料 年化約 +108%、回撤 14%（這段剛好行情好，實際請以虛擬單為準）。開盤區間突破、日內動能、做空 都測過，扣完手續費是虧的，所以沒有放進來。每 15 分鐘自動檢查一次。</p>
+    <p class="lead">同一套濾網（BTC 在 EMA50 之上＋20 天強勢前 10 名），改用 15 分K：<b>價格突破過去 48 小時最高點就做多</b>，而且突破那根要<b>量能放大 1.5 倍以上、收盤收在 K 棒上半段</b>（10/24 加入，回測勝率 43.6%→45%、平均獲利 +0.06R→+0.10R、最大回撤 35%→26%），而且<b>這個幣近 30 天在 Binance 合約的日均成交額要有 1 億 U 以上</b>（10/29 第五輪回測加入，太冷門、Binance 沒上的幣不做；回測勝率 43.7%→46.2%、平均獲利 +0.06R→+0.08R、最大回撤 23%→17%，樣本內外都合格），停損約 3 倍小時級 ATR，每個幣一天最多 1 筆，台灣凌晨 04:00 後不再進場，<b>早上 08:00 一律平倉</b>，不留倉過夜。2 年回測：測試期 年化約 +31%、回撤 20%；最近 8 個月沒看過的資料 年化約 +108%、回撤 14%（這段剛好行情好，實際請以虛擬單為準）。開盤區間突破、日內動能、做空 都測過，扣完手續費是虧的，所以沒有放進來。每 5 分鐘自動檢查一次。</p>
     <div class="chips" id="intraChips"></div>
     <div class="tbl-wrap"><table class="list"><thead><tr><th>幣種</th><th>進場時間</th><th>進場價</th><th>停損</th><th>現價</th><th>目前</th></tr></thead><tbody id="intraOpen"></tbody></table></div>
     <div class="tbl-wrap"><table class="list"><thead><tr><th>幣種</th><th>進場</th><th>出場</th><th>進場價</th><th>出場價</th><th>原因</th><th>結果</th></tr></thead><tbody id="intraClosed"></tbody></table></div>
@@ -953,7 +954,7 @@ async function loadOffice(){const fl=$("officeFloor");if(!fl)return;
   const all=[...(B.open||[]).map(p=>({k:"A",p})),...((B.b||{}).open||[]).map(p=>({k:"B",p})),...((B.intra||{}).open||[]).map(p=>({k:"日內",p})),...((B.intra2||{}).open||[]).map(p=>({k:"日內B",p}))];
   const cl=[...(B.closed||[]).map(x=>({k:"波段A",x})),...((B.b||{}).closed||[]).map(x=>({k:"波段B",x})),...((B.intra||{}).closed||[]).map(x=>({k:"日內",x})),...((B.intra2||{}).closed||[]).map(x=>({k:"日內B",x}))];
   const day0=new Date();day0.setHours(0,0,0,0);const today=cl.filter(c=>c.x.tx>=day0.getTime());
-  $("oStats").innerHTML=`<div><b>${all.length}</b>持倉中</div><div><b>${today.length}</b>今日結束</div><div><b style="color:${alive?"var(--long)":"var(--short)"}">${alive?"正常":"異常"}</b>機器人（${ago} 分前）</div><div><b style="color:${btcUp?"var(--long)":"var(--watch)"}">${btcUp?"開":"關"}</b>BTC 濾網</div>`;
+  $("oStats").innerHTML=`<div><b>${all.length}</b>持倉中</div><div><b>${today.length}</b>今日結束</div><div><b style="color:${alive?"var(--long)":"var(--short)"}">${alive?"正常":"異常"}</b>機器人（${ago} 分前）</div><div><b style="color:${btcUp?"var(--long)":"var(--watch)"}">${btcUp?"開":"關"}</b>BTC 濾網</div><div><b data-btc-live>${window.__BTC_LIVE?fmtP(window.__BTC_LIVE.px):"…"}</b>BTC 即時</div>`;
   const ev=[...cl.map(c=>({t:c.x.tx,h:`${c.k}｜${esc(c.x.base)} ${esc(c.x.why)} <b class="${c.x.R>0?"out-win":"out-loss"}">${rTxt(c.x.R)}</b>`})),...all.map(a=>({t:a.p.t,h:`${a.k==="A"?"波段A":a.k==="B"?"波段B":a.k}｜進場 ${esc(a.p.base)}`}))].sort((a,b)=>b.t-a.t).slice(0,8);
   $("oFeed").innerHTML=ev.length?ev.map(e=>`<li><time>${hm(e.t)}</time><span>${e.h}</span></li>`).join(""):"<li>還沒有動態</li>";
   const bn=((B.b||{}).closed||[]).length,an=(B.closed||[]).length,todo=[];
@@ -963,6 +964,32 @@ async function loadOffice(){const fl=$("officeFloor");if(!fl)return;
   $("oTodo").innerHTML=todo.map(x=>`<li>${x}</li>`).join("");
 }
 loadOffice();setInterval(loadOffice,3*6e4);
+// ===== BTC 即時行情：Binance 合約 WebSocket（每秒），斷線自動重連；連不上就改用 REST 每 5 秒抓一次 =====
+(function btcLive(){
+  const L=window.__BTC_LIVE={px:null,prev:null,chg:null,at:0,src:""};let ws=null,restTimer=null,retry=0,lastMsg=0;
+  const pad=n=>String(n).padStart(2,"0");
+  function paint(){const px=L.px;if(!(px>0))return;const el=$("btcLivePx");if(!el)return;
+    const dir=L.prev==null?0:px>L.prev?1:px<L.prev?-1:0;el.textContent=fmtP(px);el.className=dir>0?"up":dir<0?"down":"";
+    const chipPx=el.closest(".chip");if(chipPx){const dot=chipPx.querySelector(".dot");if(dot)dot.className="dot"+(Date.now()-L.at>15e3?" warn":"")}
+    const ch=$("btcLiveChg");if(ch&&L.chg!=null)ch.innerHTML=`24h <b class="${L.chg>=0?"up":"down"}">${(L.chg>=0?"+":"")+L.chg.toFixed(2)}%</b>`;
+    const B=window.__BOT,e50=B&&B.market&&B.market.btcE50,eE=$("btcLiveE50");
+    if(eE)eE.innerHTML=e50>0?`日線 EMA50 <b class="${px>=e50?"up":"down"}">${px>=e50?"之上":"之下"} ${(px/e50*100-100>=0?"+":"")+(px/e50*100-100).toFixed(2)}%</b> <span class="small">(${fmtP(e50)})</span>`:`日線 EMA50 <b>—</b>`;
+    const d=new Date(L.at),at=$("btcLiveAt");if(at)at.textContent=`${L.src}即時行情・${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())} 更新（濾網開關仍以日線收盤判定）`;
+    document.querySelectorAll("[data-btc-live]").forEach(x=>{x.textContent=fmtP(px);x.style.color=dir>0?"var(--long)":dir<0?"var(--short)":""})}
+  function set(px,chg,src){if(!(px>0))return;L.prev=L.px;L.px=px;if(chg!=null&&isFinite(chg))L.chg=chg;L.at=Date.now();L.src=src;paint()}
+  async function rest(){try{const r=await fetch("https://fapi.binance.com/fapi/v1/ticker/24hr?symbol=BTCUSDT",{cache:"no-store"});if(!r.ok)throw 0;const j=await r.json();set(+j.lastPrice,+j.priceChangePercent,"Binance（REST）")}catch(e){
+    try{const r=await fetch("https://open-api.bingx.com/openApi/swap/v2/quote/ticker?symbol=BTC-USDT",{cache:"no-store"});const j=await r.json();const d=j&&j.data;if(d)set(+d.lastPrice,+d.priceChangePercent,"BingX（REST）")}catch(e2){}}}
+  function useRest(){if(restTimer)return;rest();restTimer=setInterval(rest,5000)}
+  function connect(){if(!("WebSocket"in window)){useRest();return}
+    try{ws=new WebSocket("wss://fstream.binance.com/ws/btcusdt@miniTicker")}catch(e){useRest();return}
+    ws.onopen=()=>{retry=0;if(restTimer){clearInterval(restTimer);restTimer=null}};
+    ws.onmessage=ev=>{try{const j=JSON.parse(ev.data);lastMsg=Date.now();const c=+j.c,o=+j.o;set(c,o>0?(c/o-1)*100:null,"Binance")}catch(e){}};
+    ws.onerror=()=>{try{ws&&ws.close()}catch(e){}};
+    ws.onclose=()=>{if(!ws)return;ws=null;retry++;if(retry>=3)useRest();pending=setTimeout(()=>{pending=null;connect()},Math.min(30e3,2000*retry))}}
+  let pending=null;connect();
+  setInterval(()=>{if(ws&&lastMsg&&Date.now()-lastMsg>20e3){try{ws.close()}catch(e){}}paint()},5000);
+  document.addEventListener("visibilitychange",()=>{if(!document.hidden&&!ws&&!pending)connect()});
+})();
 function renderPaper(){return;
   const st=paperStats(),unit=S.cap*S.risk/100;
   $("pChips").innerHTML=`<span class="chip">進行中 <b>${st.open}</b></span><span class="chip">已結束 <b>${st.n}</b></span><span class="chip go">勝率 <b>${st.n?Math.round(st.win/st.n*100)+"%":"—"}</b></span><span class="chip ${st.avg>=0?"go":"short"}">平均每筆 <b>${st.n?rTxt(st.avg):"—"}</b></span><span class="chip ${st.tot>=0?"go":"short"}">合計 <b>${st.n?rTxt(st.tot):"—"}</b></span><span class="chip">今天 <b class="${riskState().dayR>=0?"up":"down"}">${rTxt(riskState().dayR)}</b></span><span class="chip">換算損益 <b>${st.n?(st.tot*unit>=0?"+":"")+(st.tot*unit).toFixed(1)+" U":"—"}</b></span><span class="small" style="align-self:center">換算方式：每筆最多賠本金 ${S.risk}%（${unit.toFixed(1)} U）</span>`;

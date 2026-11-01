@@ -1,5 +1,5 @@
 name: 主力策略機器人
-# GitHub 的排程常常延遲或漏跑，所以改成「一個工作連續跑約 5.5 小時、每 15 分鐘執行一次」，
+# GitHub 的排程常常延遲或漏跑，所以改成「一個工作連續跑約 5.5 小時、每 5 分鐘執行一次」（11/01 董事長指示 BTC 要隨時更新，從 15 分鐘縮短），
 # 排程只負責把它叫起來；同時間只會有一個在跑，下一個會排隊接手。
 on:
   schedule:
@@ -23,7 +23,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
-      - name: 每 15 分鐘執行
+      - name: 每 5 分鐘執行
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -36,7 +36,7 @@ jobs:
               git commit -q -m "機器人更新 $(TZ=Asia/Taipei date '+%m-%d %H:%M')"
               for i in 1 2 3 4; do git pull -q --rebase origin main && git push -q && break; sleep 7; done
             fi
-            NOW=$(date +%s); NEXT=$(( (NOW/900 + 1)*900 + 40 ))
+            NOW=$(date +%s); NEXT=$(( (NOW/300 + 1)*300 + 40 ))
             [ $NEXT -ge $END ] && break
             sleep $(( NEXT - NOW ))
           done
