@@ -337,6 +337,67 @@ try {
   const keys = [...new Set(real.map(x => (x.pattern || "P0") + "|" + x.side))];
   SC.stats.byPattern = Object.fromEntries(keys.map(k => { const [pt, sd] = k.split("|"); const xs = real.filter(x => (x.pattern || "P0") === pt && x.side === sd).sort((a, b) => a.tx - b.tx), h = Math.floor(xs.length / 2); return [k, { pattern: pt, side: sd, ...agg(xs), early: agg(xs.slice(0, h)), late: agg(xs.slice(h)) }]; }));
 } catch (e) { console.log("劇本單略過（錯誤）", e.message); }
+// ===== 8) 斐波下單員（11/01 使用者影片招數：黃金、那指；實驗性虛擬單）=====
+// 每天東京（台灣 08:00）、倫敦（台灣 15:00/16:00）、紐約（台灣 21:30/22:30）開盤：
+//   區間＝開盤前 2 小時（8 根 15 分K）的高低點；開盤後 4 小時內第一次跌破低點→在「低點 − 0.5×區間」掛多單，
+//   停損「低點 − 1.0×區間」，目標回到低點（0 線）；突破高點則對稱做空。每個開盤每個商品最多 1 筆，最多持有 4 小時。
+// 第九輪回測（lab/report9.md）：扣成本後沒有任何一組參數穩定賺錢，所以這裡只是「實驗觀察」，不併入主策略；成本 0.10%。
+try {
+  const FB = st.fib = Object.assign({ equity: 1, closed: [], done: {}, created: Date.now() }, st.fib || {});
+  const SYMS = [["NCCOGOLD2USD", "黃金"], ["NCSINASDAQ1002USD", "那指"]], FCOST = 0.001, PRE = 2 * 36e5, WIN = 4 * 36e5;
+  const dayOf = t => Math.floor(t / D1);
+  const nthSun = (y, m, k) => { const f = new Date(Date.UTC(y, m, 1)); return dayOf(f.getTime()) + ((7 - f.getUTCDay()) % 7) + 7 * (k - 1); };
+  const lastSun = (y, m) => { const f = new Date(Date.UTC(y, m + 1, 1)); const d = dayOf(f.getTime()) - 1; return d - new Date(d * D1).getUTCDay(); };
+  const opens = day => { const y = new Date(day * D1).getUTCFullYear(), us = day >= nthSun(y, 2, 2) && day < nthSun(y, 10, 1), uk = day >= lastSun(y, 2) && day < lastSun(y, 9);
+    return [["tokyo", "東京", day * D1], ["london", "倫敦", day * D1 + (uk ? 7 : 8) * 36e5], ["ny", "紐約", day * D1 + (us ? 13.5 : 14.5) * 36e5]]; };
+  const live = [], plan = [];
+  for (const [sym, name] of SYMS) {
+    let c; try { c = (await kl(sym, "15m", 300)).filter(x => x.t + M15 <= now); } catch (e) { console.log("斐波下單員略過", sym, e.message); continue; } await sleep(80);
+    if (c.length < 40) continue; const a = atr(c, 14), cur = c.at(-1).c;
+    const first = t => { let lo = 0, hi = c.length; while (lo < hi) { const m = (lo + hi) >> 1; if (c[m].t < t) lo = m + 1; else hi = m; } return lo; };
+    const today = dayOf(now);
+    for (const day of [today - 1, today, today + 1]) for (const [sk, sn, T] of opens(day)) {
+      const id = `${sym}|${sk}|${day}`; if (FB.done[id]) continue;
+      if (T < FB.created - PRE) continue; // 上線前的開盤不回補
+      if (T - PRE > now) continue;
+      const i0 = first(T - PRE), i1 = first(T);
+      if (T > now || i1 >= c.length) { // 盤前：先算出目前的區間，給使用者看預計掛單價
+        if (T - now < 3 * 36e5 && i1 - i0 >= 2) { let H = -Infinity, L = Infinity; for (let j = i0; j < c.length; j++) { H = Math.max(H, c[j].h); L = Math.min(L, c[j].l); } const R = H - L; plan.push({ sym: name, session: sn, T, H, L, longE: L - 0.5 * R, longS: L - R, shortE: H + 0.5 * R, shortS: H + R, building: true }); }
+        continue;
+      }
+      if (i1 - i0 < 6) { FB.done[id] = 1; continue; }
+      let H = -Infinity, L = Infinity; for (let j = i0; j < i1; j++) { H = Math.max(H, c[j].h); L = Math.min(L, c[j].l); }
+      const R = H - L; if (!(R >= a[i1 - 1]) || !(R > 0)) { FB.done[id] = 1; continue; }
+      const i2 = first(T + WIN), ended = T + WIN <= now;
+      let res = null;
+      for (let k = i1; k < Math.min(i2, c.length) && !res; k++) {
+        const b = c[k]; let dir = 0; if (b.l < L && !(b.h > H)) dir = 1; else if (b.h > H && !(b.l < L)) dir = -1; if (!dir) continue;
+        const base = dir > 0 ? L : H, E = base - dir * 0.5 * R, S = base - dir * 1.0 * R, Tg = base;
+        let ent = null, m = k;
+        for (; m < Math.min(i2, c.length); m++) { const x = c[m]; if (dir > 0 ? x.l <= E : x.h >= E) { if (m > k && (dir > 0 ? x.o <= S : x.o >= S)) break; ent = { m, e: m > k ? (dir > 0 ? Math.min(x.o, E) : Math.max(x.o, E)) : E, sb: dir > 0 ? x.l <= S : x.h >= S }; break; } }
+        if (!ent) { res = (ended || m < Math.min(i2, c.length)) ? { done: true, why: "破區間但沒碰到進場價" } : { waiting: true, dir, E, S, Tg }; break; }
+        const e = ent.e, r = Math.abs(e - S), endT = c[ent.m].t + WIN; let x = null, why = "", q = ent.m;
+        if (ent.sb) { x = S; why = "停損（成交當根）"; }
+        else for (; q < c.length; q++) { const y = c[q]; if (y.t >= endT) break;
+          if (dir > 0 ? y.l <= S : y.h >= S) { x = q === ent.m ? S : (dir > 0 ? Math.min(y.o, S) : Math.max(y.o, S)); why = "停損"; break; }
+          if (q === ent.m) continue;
+          if (dir > 0 ? y.h >= Tg : y.l <= Tg) { x = Tg; why = "停利（回到 0 線）"; break; } }
+        if (x == null && endT <= now) { const z = c[Math.min(c.length - 1, first(endT) - 1)]; x = z.c; why = "4 小時到期平倉"; }
+        const tr = { id, sym: name, session: sn, side: dir > 0 ? "long" : "short", H, L, e, stop: S, target: Tg, t: c[ent.m].t };
+        if (x == null) res = { open: { ...tr, cur, curR: +(dir * (cur - e) / r).toFixed(2) } };
+        else { const Rm = dir * (x - e) / r - FCOST * e / r; res = { done: true, trade: { ...tr, x, why, R: +Rm.toFixed(3), tx: now } }; }
+      }
+      if (!res) { if (ended) res = { done: true, why: "沒破區間" }; else res = { waiting: true, both: true }; }
+      if (res.done) { FB.done[id] = 1; if (res.trade) { FB.equity += FB.equity * RISK * res.trade.R; FB.closed.unshift(res.trade); } }
+      else if (res.open) live.push(res.open);
+      else plan.push({ sym: name, session: sn, T, H, L, longE: L - 0.5 * R, longS: L - R, shortE: H + 0.5 * R, shortS: H + R, armed: res.both ? null : (res.dir > 0 ? "long" : "short"), until: T + WIN });
+    }
+  }
+  for (const k of Object.keys(FB.done)) if (+k.split("|")[2] < dayOf(now) - 3) delete FB.done[k];
+  FB.closed = FB.closed.slice(0, 300); FB.open = live; FB.plan = plan.sort((a, b) => a.T - b.T);
+  const ag = xs => { const w = xs.filter(x => x.R > 0).length; return { n: xs.length, win: xs.length ? Math.round(w / xs.length * 100) : 0, sumR: +xs.reduce((q, x) => q + x.R, 0).toFixed(2), avgR: xs.length ? +(xs.reduce((q, x) => q + x.R, 0) / xs.length).toFixed(3) : 0 }; };
+  FB.stats = { ...ag(FB.closed), ret: +((FB.equity - 1) * 100).toFixed(1), bySession: Object.fromEntries(["東京", "倫敦", "紐約"].map(k => [k, ag(FB.closed.filter(x => x.session === k))])), bySym: Object.fromEntries(["黃金", "那指"].map(k => [k, ag(FB.closed.filter(x => x.sym === k))])) };
+} catch (e) { console.log("斐波下單員略過（錯誤）", e.message); }
 st.market = { btcUp, btc: bD[bI].c, btcE50: +bE[bI].toFixed(1), top: [...top] };
 st.watch = watch.filter(w => w.top && w.ema200).sort((a, b) => a.dist - b.dist).slice(0, 12);
 st.updated = new Date().toISOString();
