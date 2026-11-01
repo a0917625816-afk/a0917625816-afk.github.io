@@ -30,7 +30,7 @@ jobs:
           END=$(( $(date +%s) + 330*60 ))
           while [ $(date +%s) -lt $END ]; do
             git pull -q --rebase origin main || git rebase --abort || true
-            node scripts/bot.mjs > /tmp/bot.log 2>&1 || tail -5 /tmp/bot.log
+            timeout 240 node scripts/bot.mjs > /tmp/bot.log 2>&1 || tail -5 /tmp/bot.log
             git add bot.json
             if ! git diff --cached --quiet; then
               git commit -q -m "機器人更新 $(TZ=Asia/Taipei date '+%m-%d %H:%M')"
