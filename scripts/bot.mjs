@@ -359,6 +359,7 @@ try {
     for (const day of [today - 1, today, today + 1]) for (const [sk, sn, T] of opens(day)) {
       const id = `${sym}|${sk}|${day}`; if (FB.done[id]) continue;
       if (T < FB.created - PRE) continue; // 上線前的開盤不回補
+      { const wd = new Date(T).getUTCDay(); if (wd === 0 || wd === 6) continue; } // 週末黃金、那指休市（BingX 照常報價但沒量），不做
       if (T - PRE > now) continue;
       const i0 = first(T - PRE), i1 = first(T);
       if (T > now || i1 >= c.length) { // 盤前：先算出目前的區間，給使用者看預計掛單價
