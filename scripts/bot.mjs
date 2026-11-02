@@ -416,7 +416,7 @@ try {
       const m15 = await kl(sym, "15m", 400); await sleep(80); const h1 = await kl(sym, "1h", 300); await sleep(80); const d1 = await kl(sym, "1d", 60); await sleep(80);
       const last = m15.at(-1).c, lastT = m15.at(-1).t, open = now - lastT < 45 * 6e4 && ![0, 6].includes(new Date(now).getUTCDay());
       const ref = h1.find(x => x.t >= now - 864e5) || h1[0], chg24 = (last / ref.o - 1) * 100;
-      const dC = d1.filter(x => x.t + D1 <= now), pd = dC.at(-1);
+      const dC = d1.filter(x => x.t + D1 <= now), pd = dC.filter(x => ![0, 6].includes(new Date(x.t).getUTCDay())).at(-1); // 前日＝上一個交易日（跳過週末）
       const hc = h1.filter(x => x.t + H1g <= now), a1 = atr(hc, 14), ad = atr(dC, 14);
       const ses = (day, h0, h1x) => { const xs = m15.filter(x => x.t >= day * D1 + h0 * 36e5 && x.t < day * D1 + h1x * 36e5); return xs.length ? { hi: P6(Math.max(...xs.map(x => x.h))), lo: P6(Math.min(...xs.map(x => x.l))) } : null; };
       const td = Math.floor(now / D1);
