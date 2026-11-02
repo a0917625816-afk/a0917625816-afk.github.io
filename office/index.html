@@ -102,6 +102,8 @@ tr.dim td{opacity:.45}
 .setups{list-style:none;margin:0;padding:0;display:grid;gap:4px;font-size:14px}
 .setups li{display:flex;flex-wrap:wrap;gap:6px;align-items:baseline}
 .coins{display:grid;gap:10px}
+.gnc .px{font:800 34px/1 var(--display);text-shadow:0 0 14px rgba(252,238,10,.35)}
+.gnc svg{display:block;width:100%;height:auto;background:#03040b;border:1px solid var(--line);border-radius:8px}
 .sc{display:grid;gap:8px;align-content:start;padding:14px;border-radius:10px;border:1px solid var(--line);background:#ffffff05}
 .sc.bull{border-color:rgba(57,255,158,.5)}.sc.bear{border-color:rgba(255,61,110,.5)}.sc.range{border-color:rgba(255,176,32,.5)}
 .sc .h{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
@@ -177,6 +179,7 @@ footer{font-size:13px;color:var(--dim);border-top:1px dashed var(--line);padding
     <nav class="tabs" aria-label="分頁">
       <a href="#war" data-v="war">戰情室</a>
       <a href="#coins" data-v="coins">能做的幣</a>
+      <a href="#gn" data-v="gn">黃金・那指</a>
       <a href="#crew" data-v="crew">工作室</a>
       <a href="#log" data-v="log">會議紀錄</a>
     </nav>
@@ -243,6 +246,40 @@ footer{font-size:13px;color:var(--dim);border-top:1px dashed var(--line);padding
         <div class="coins" id="listB"></div>
         <p class="note">這是候選清單，不是下單建議。盤前室會從這裡挑、照規則寫劇本；型態排行被「暫停」的會變灰。</p>
       </div>
+    </section>
+  </main>
+
+  <!-- 黃金・那指（11/02 新增）-->
+  <main class="view" id="v-gn" hidden>
+    <section class="two" id="gnCards"></section>
+    <section class="two">
+      <div class="card hot">
+        <h2>重大數據倒數 <small>CPI、非農、FOMC 對黃金、那指影響最大；公布前 2 小時不開新單</small></h2>
+        <ul class="risk" id="gnRisk"></ul>
+      </div>
+      <div class="card">
+        <h2>第十輪回測結論 <small>11/02｜黃金・那指期貨 2 年＋近 60 天</small></h2>
+        <ul class="queue" style="padding-left:18px">
+          <li><b>黃金 4 小時波段突破</b>：16 組參數 2 年全部賺錢（最好那組平均 +1.28R、獲利因子 2.95）。但這兩年黃金大多頭，而且樣本外只有 5～12 筆，沒過「樣本外 ≥20 筆」鐵律 → <b>先當觀察組跑虛擬單</b>（下方）。</li>
+          <li><b>那指 4 小時波段突破</b>：16 組只有 7 組賺錢，不穩定 → 不上線。</li>
+          <li><b>紐約開盤區間突破</b>（那指、黃金）：扣 BingX 成本後 0 組賺錢 → 淘汰。</li>
+          <li><b>倫敦盤突破</b>（亞洲區間）：黃金、那指 1 小時 2 年都 0 組賺錢 → 淘汰。</li>
+          <li><b>斐波延伸反轉</b>（第九輪，影片招數）：扣成本後沒有一組穩定賺錢 → 只當實驗組（下方）。</li>
+        </ul>
+        <p class="note">結論：黃金、那指上「短線開盤招」都被手續費吃掉；有機會的是黃金的中長線趨勢。成本以 BingX 差價合約來回 0.10% 計。</p>
+      </div>
+    </section>
+    <section class="card neon">
+      <h2>🥇 黃金波段觀察組 <small>4h 收盤突破 55 根新高（且在 EMA200 之上）做多、跌破 55 根新低（且在 EMA200 之下）做空；停損 2 倍 ATR；反向跌破 27 根就出場；每筆風險 1%</small></h2>
+      <div id="gsWatch"></div>
+      <div class="tbl"><table><thead><tr><th>方向</th><th>進場時間</th><th>進場</th><th>停損</th><th>出場</th><th>原因</th><th>結果</th></tr></thead><tbody id="gsBody"></tbody></table></div>
+    </section>
+    <section class="card">
+      <h2>🎯 斐波下單員（實驗組） <small>東京／倫敦／紐約開盤，開盤前 2 小時區間，破區間後在 -0.5 反向掛單、停損 -1.0、目標 0 線；最多抱 4 小時</small></h2>
+      <div id="fbStat"></div>
+      <div class="tbl"><table><thead><tr><th>商品</th><th>開盤</th><th>區間高／低</th><th>做多掛單（停損）</th><th>做空掛單（停損）</th><th>狀態</th></tr></thead><tbody id="fbPlan"></tbody></table></div>
+      <div class="tbl"><table><thead><tr><th>商品</th><th>開盤</th><th>方向</th><th>進場</th><th>停損</th><th>目標</th><th>出場</th><th>原因</th><th>結果</th><th>若開 500 倍</th></tr></thead><tbody id="fbBody"></tbody></table></div>
+      <p class="note">「若開 500 倍」＝同一筆單用 500 倍的結果（占保證金）：反向約 0.1% 就爆倉（−100%），手續費按名目收、來回約吃掉保證金 50%。</p>
     </section>
   </main>
 
@@ -677,12 +714,55 @@ function renderLog() {
 $("more").addEventListener("click", () => { shown += 20; renderLog(); });
 
 /* ===== 分頁（#war #coins #crew #log） ===== */
-const VIEWS = ["war", "coins", "crew", "log"];
+/* ===== 黃金・那指（11/02）===== */
+function sparkSVG(rows) {
+  if (!rows || rows.length < 5) return "";
+  const W = 560, H = 150, P = 6, hi = Math.max(...rows.map(r => r[2])), lo = Math.min(...rows.map(r => r[3])), sp = hi - lo || 1, bw = (W - 2 * P) / rows.length;
+  const y = v => P + (hi - v) / sp * (H - 2 * P);
+  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="近 72 小時 1 小時K">` + rows.map((r, i) => { const x = P + i * bw + bw / 2, up = r[4] >= r[1], col = up ? "#39ff9e" : "#ff3d6e";
+    return `<line x1="${x}" x2="${x}" y1="${y(r[2])}" y2="${y(r[3])}" stroke="${col}" stroke-width="1"/><rect x="${x - bw * 0.35}" y="${Math.min(y(r[1]), y(r[4]))}" width="${bw * 0.7}" height="${Math.max(1, Math.abs(y(r[1]) - y(r[4])))}" fill="${col}"/>`; }).join("") + `</svg>`;
+}
+function renderGN() {
+  const G = (BOT && BOT.gn) || {}, nm = {gold: "黃金", nasdaq: "那指（Nasdaq 100）"};
+  $("gnCards").innerHTML = ["gold", "nasdaq"].map(k => { const g = G[k];
+    if (!g) return `<div class="card"><h2>${nm[k]}</h2><p class="empty">機器人還沒抓到資料（每 5 分鐘更新一次）。</p></div>`;
+    const lv = [["前日高", g.pdh], ["前日低", g.pdl], ["1h EMA20", g.ema1h && g.ema1h.e20], ["1h EMA50", g.ema1h && g.ema1h.e50], ["1h EMA200", g.ema1h && g.ema1h.e200]];
+    const S = {asia: "亞洲", london: "倫敦", ny: "紐約"};
+    for (const [sk, sn] of Object.entries(S)) { const t = g.sesToday && g.sesToday[sk], yv = g.sesYday && g.sesYday[sk]; if (t) lv.push([`今天${sn}高`, t.hi], [`今天${sn}低`, t.lo]); if (yv) lv.push([`昨天${sn}高`, yv.hi], [`昨天${sn}低`, yv.lo]); }
+    const ladder = lv.filter(x => x[1] != null).concat([["現價", g.last, 1]]).sort((a, b) => b[1] - a[1]).map(([n, v, now]) => `<li class="${now ? "now" : ""}"><span>${esc(n)}</span><span class="v">${fmtP(v)}</span><span class="d">${now ? "" : pct((v / g.last - 1) * 100)}</span></li>`).join("");
+    const st = g.open ? `<span class="pill g">交易中</span>` : `<span class="pill y">休市／沒量</span>`;
+    const cr = g.corr7 == null ? "—" : g.corr7.toFixed(2), crTxt = g.corr7 == null ? "" : g.corr7 >= 0.5 ? "跟 BTC 同步" : g.corr7 <= -0.2 ? "跟 BTC 反著走" : "跟 BTC 關係不大";
+    return `<div class="card neon gnc"><div class="lbl">${nm[k]}｜BingX ${esc(g.sym)}</div>
+      <div class="btchead"><span class="px">${fmtP(g.last)}</span><span class="btcchg ${g.chg24 >= 0 ? "up" : "dn"}">${pct(g.chg24)}</span>${st}</div>
+      ${sparkSVG(g.spark)}
+      <dl class="kv"><dt>平均波動</dt><dd>1 小時 ${fmtP(g.atr1h)}（${pct(g.atr1h / g.last * 100, 2).replace("+", "")}）｜1 天 ${fmtP(g.atr1d)}</dd><dt>跟 BTC 連動</dt><dd>${cr} ${crTxt}（近 7 天 1 小時）</dd></dl>
+      <ul class="ladder">${ladder}</ul></div>`; }).join("");
+  const kw = /CPI|非農|FOMC|PCE|聯準會|Fed|利率|ISM|GDP|就業|通膨/i;
+  const rk = (INTEL.risk || []).filter(r => kw.test(r.what || ""));
+  $("gnRisk").innerHTML = rk.map(r => `<li><b>${esc(r.when)}</b><span>${esc(r.what)}</span></li>`).join("") || `<li class="empty">目前沒有登記的重大數據。</li>`;
+  const GS = (BOT && BOT.gnSwing) || {open: [], closed: [], stats: {}}, w = GS.watch;
+  const gst = GS.stats || {};
+  $("gsWatch").innerHTML = `<div class="big3"><div><span>已結束</span><b>${gst.n || 0} 筆</b></div><div><span>勝率</span><b>${gst.n ? gst.win + "%" : "—"}</b></div><div><span>合計</span><b class="${(gst.sumR || 0) >= 0 ? "up" : "dn"}">${gst.n ? rTxt(gst.sumR) : "—"}</b></div></div>` +
+    (w ? `<p class="note">現價 ${fmtP(w.cur)}｜做多觸發：4h 收盤站上 <b class="up">${fmtP(w.brkUp)}</b>${w.above ? "（目前在 EMA200 之上，可做多）" : "（目前在 EMA200 之下，不做多）"}｜做空觸發：收盤跌破 <b class="dn">${fmtP(w.brkDn)}</b>${!w.above ? "（目前在 EMA200 之下，可做空）" : "（目前在 EMA200 之上，不做空）"}｜EMA200 ${fmtP(w.ema200)}｜4h ATR ${fmtP(w.atr4h)}</p>` : `<p class="note">等機器人第一次執行。</p>`);
+  const sd = d => d > 0 ? `<span class="pill g">做多</span>` : `<span class="pill r">做空</span>`;
+  const gr = [...(GS.open || []).map(p => `<tr><td>${sd(p.dir)}</td><td class="n">${tw(p.t)}</td><td class="n">${fmtP(p.e)}</td><td class="n dn">${fmtP(p.stop)}</td><td class="n">${fmtP(p.cur)}</td><td>持倉中</td><td class="n ${p.curR >= 0 ? "up" : "dn"}">${rTxt(p.curR || 0)}</td></tr>`),
+    ...(GS.closed || []).slice(0, 50).map(t => `<tr><td>${sd(t.dir)}</td><td class="n">${tw(t.t)}</td><td class="n">${fmtP(t.e)}</td><td class="n dn">${fmtP(t.stop)}</td><td class="n">${fmtP(t.x)}</td><td>${esc(t.why)}</td><td class="n ${t.R > 0 ? "up" : "dn"}">${rTxt(t.R)}</td></tr>`)];
+  $("gsBody").innerHTML = gr.join("") || `<tr><td colspan="7" class="empty">11/02 開始，等第一個 4 小時突破。這是慢策略，一個月可能只有 1～2 筆。</td></tr>`;
+  const F = (BOT && BOT.fib) || {closed: [], open: [], plan: [], stats: {}}, fs = F.stats || {}, f5 = F.stats500 || {};
+  $("fbStat").innerHTML = `<div class="big3"><div><span>已結束</span><b>${fs.n || 0} 筆</b></div><div><span>勝率／合計</span><b class="${(fs.sumR || 0) >= 0 ? "up" : "dn"}">${fs.n ? fs.win + "%／" + rTxt(fs.sumR) : "—"}</b></div><div><span>若開 500 倍</span><b class="dn">${f5.n ? f5.liq + "/" + f5.n + " 爆倉｜" + (f5.sumPct > 0 ? "+" : "") + f5.sumPct + "%" : "—"}</b></div></div>`;
+  const hm = t => twHM(t);
+  $("fbPlan").innerHTML = (F.plan || []).map(p => `<tr><td>${esc(p.sym)}</td><td>${esc(p.session)} ${hm(p.T)}</td><td class="n">${fmtP(p.H)}／${fmtP(p.L)}</td><td class="n up">${fmtP(p.longE)}（${fmtP(p.longS)}）</td><td class="n dn">${fmtP(p.shortE)}（${fmtP(p.shortS)}）</td><td>${p.building ? "盤前・區間形成中" : p.armed ? (p.armed === "long" ? "已跌破・等多單成交" : "已突破・等空單成交") : "開盤中・等破區間"}</td></tr>`).join("") || `<tr><td colspan="6" class="empty">現在不在開盤時段；開盤前 2 小時會出現預計掛單價。</td></tr>`;
+  const lv5 = t => t.lev500 ? (t.lev500.liq ? `<span class="pill r">爆倉 −100%</span>` : `<span class="${t.lev500.pct >= 0 ? "up" : "dn"}">${t.lev500.pct > 0 ? "+" : ""}${t.lev500.pct}%</span>`) : "—";
+  const fr = [...(F.open || []).map(t => `<tr><td>${esc(t.sym)}</td><td>${esc(t.session)}</td><td>${sd(t.side === "long" ? 1 : -1)}</td><td class="n">${fmtP(t.e)}</td><td class="n dn">${fmtP(t.stop)}</td><td class="n up">${fmtP(t.target)}</td><td>—</td><td>持倉中</td><td class="n ${t.curR >= 0 ? "up" : "dn"}">${rTxt(t.curR || 0)}</td><td>${t.lev500 && t.lev500.liq ? `<span class="pill r">已爆倉</span>` : "持倉中"}</td></tr>`),
+    ...(F.closed || []).slice(0, 60).map(t => `<tr><td>${esc(t.sym)}</td><td>${esc(t.session)} ${tw(t.t)}</td><td>${sd(t.side === "long" ? 1 : -1)}</td><td class="n">${fmtP(t.e)}</td><td class="n dn">${fmtP(t.stop)}</td><td class="n up">${fmtP(t.target)}</td><td class="n">${fmtP(t.x)}</td><td>${esc(t.why)}</td><td class="n ${t.R > 0 ? "up" : "dn"}">${rTxt(t.R)}</td><td>${lv5(t)}</td></tr>`)];
+  $("fbBody").innerHTML = fr.join("") || `<tr><td colspan="10" class="empty">11/02 開始，等第一個開盤訊號。</td></tr>`;
+}
+const VIEWS = ["war", "coins", "gn", "crew", "log"];
 function route() { const v = VIEWS.includes(location.hash.slice(1)) ? location.hash.slice(1) : "war";
   VIEWS.forEach(k => { $("v-" + k).hidden = k !== v; }); document.querySelectorAll(".tabs a").forEach(a => a.setAttribute("aria-current", a.dataset.v === v ? "page" : "false")); shipOn = v === "crew"; }
 window.addEventListener("hashchange", route);
 
-function renderAll() { renderTicker(); renderWar(); renderCoins(); renderTasks(); renderPlays(); renderBoard(); renderLog(); layoutCrew();
+function renderAll() { renderTicker(); renderWar(); renderCoins(); try { renderGN(); } catch (e) { console.log(e); } renderTasks(); renderPlays(); renderBoard(); renderLog(); layoutCrew();
   const src = LIVE.bot || LIVE.intel ? "即時（每 5 分鐘自動更新）" : (LIVE.err || "顯示的是發布當下的資料");
   $("liveNote").textContent = "資料：" + src + (SNAP ? "｜快照 " + tw(Date.parse(SNAP.at)) : ""); }
 route(); renderTodo(); renderClock(); renderAll(); setInterval(renderClock, 1000); setInterval(() => { renderTasks(); }, 60000); requestAnimationFrame(drawShip);
