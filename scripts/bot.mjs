@@ -405,6 +405,33 @@ try {
   const l5 = FB.closed.filter(x => x.lev500); FB.stats500 = { n: l5.length, liq: l5.filter(x => x.lev500.liq).length, sumPct: l5.reduce((q, x) => q + x.lev500.pct, 0) };
   FB.stats = { ...ag(FB.closed), ret: +((FB.equity - 1) * 100).toFixed(1), bySession: Object.fromEntries(["東京", "倫敦", "紐約"].map(k => [k, ag(FB.closed.filter(x => x.session === k))])), bySym: Object.fromEntries(["黃金", "那指"].map(k => [k, ag(FB.closed.filter(x => x.sym === k))])) };
 } catch (e) { console.log("斐波下單員略過（錯誤）", e.message); }
+// ===== 9) 黃金・那指資料（11/02 群星新分頁用）：現價、時段高低、前日高低、ATR、與 BTC 連動，全部來自 BingX K 線 =====
+try {
+  const GN = {}, H1g = 36e5, P6 = v => (v == null || !isFinite(v)) ? null : +(+v).toPrecision(6);
+  const btc1 = (await kl("BTC", "1h", 200)).filter(x => x.t + H1g <= now); await sleep(80);
+  const bret = new Map(); for (let i = 1; i < btc1.length; i++) bret.set(btc1[i].t, btc1[i].c / btc1[i - 1].c - 1);
+  const corrOf = (a, b) => { const n = a.length; if (n < 30) return null; const ma = a.reduce((x, y) => x + y, 0) / n, mb = b.reduce((x, y) => x + y, 0) / n; let sab = 0, sa = 0, sb = 0; for (let i = 0; i < n; i++) { sab += (a[i] - ma) * (b[i] - mb); sa += (a[i] - ma) ** 2; sb += (b[i] - mb) ** 2; } return sa > 0 && sb > 0 ? sab / Math.sqrt(sa * sb) : null; };
+  for (const [sym, name] of [["NCCOGOLD2USD", "gold"], ["NCSINASDAQ1002USD", "nasdaq"]]) {
+    try {
+      const m15 = await kl(sym, "15m", 400); await sleep(80); const h1 = await kl(sym, "1h", 300); await sleep(80); const d1 = await kl(sym, "1d", 60); await sleep(80);
+      const last = m15.at(-1).c, lastT = m15.at(-1).t, open = now - lastT < 45 * 6e4 && ![0, 6].includes(new Date(now).getUTCDay());
+      const ref = h1.find(x => x.t >= now - 864e5) || h1[0], chg24 = (last / ref.o - 1) * 100;
+      const dC = d1.filter(x => x.t + D1 <= now), pd = dC.at(-1);
+      const hc = h1.filter(x => x.t + H1g <= now), a1 = atr(hc, 14), ad = atr(dC, 14);
+      const ses = (day, h0, h1x) => { const xs = m15.filter(x => x.t >= day * D1 + h0 * 36e5 && x.t < day * D1 + h1x * 36e5); return xs.length ? { hi: P6(Math.max(...xs.map(x => x.h))), lo: P6(Math.min(...xs.map(x => x.l))) } : null; };
+      const td = Math.floor(now / D1);
+      let yd = td - 1; while ([0, 6].includes(new Date(yd * D1).getUTCDay())) yd--;
+      const sess = d => ({ asia: ses(d, 0, 7), london: ses(d, 7, 13), ny: ses(d, 13, 21) });
+      const ra = [], rb = []; for (let i = Math.max(1, hc.length - 168); i < hc.length; i++) { const br = bret.get(hc[i].t); if (br == null) continue; ra.push(hc[i].c / hc[i - 1].c - 1); rb.push(br); }
+      const c7 = corrOf(ra, rb);
+      const cl = hc.map(x => x.c), e20 = ema(cl, 20), e50 = ema(cl, 50), e200 = ema(cl, 200), i = hc.length - 1;
+      GN[name] = { sym, last: P6(last), lastT, open, chg24: +chg24.toFixed(2), pdh: pd ? P6(pd.h) : null, pdl: pd ? P6(pd.l) : null, pdc: pd ? P6(pd.c) : null,
+        atr1h: P6(a1[i]), atr1d: P6(ad.at(-1)), corr7: c7 == null ? null : +c7.toFixed(2), ema1h: { e20: P6(e20[i]), e50: P6(e50[i]), e200: P6(e200[i]) },
+        sesToday: sess(td), sesYday: sess(yd), spark: hc.slice(-72).map(x => [x.t, P6(x.o), P6(x.h), P6(x.l), P6(x.c)]) };
+    } catch (e) { console.log("黃金那指略過", sym, e.message); }
+  }
+  st.gn = { updated: new Date().toISOString(), ...GN };
+} catch (e) { console.log("黃金那指資料略過（錯誤）", e.message); }
 st.market = { btcUp, btc: bD[bI].c, btcE50: +bE[bI].toFixed(1), top: [...top] };
 st.watch = watch.filter(w => w.top && w.ema200).sort((a, b) => a.dist - b.dist).slice(0, 12);
 st.updated = new Date().toISOString();
