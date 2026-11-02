@@ -430,6 +430,33 @@ try {
         sesToday: sess(td), sesYday: sess(yd), spark: hc.slice(-72).map(x => [x.t, P6(x.o), P6(x.h), P6(x.l), P6(x.c)]) };
     } catch (e) { console.log("黃金那指略過", sym, e.message); }
   }
+  // 黃金波段觀察組（第十輪：4h 55 根突破＋EMA200 順勢、可做空，停損 2ATR，收盤反向跌破 27 根出場）
+  // 2 年回測 16 組參數全部賺錢，但樣本外只有 5～12 筆、而且這兩年黃金大多頭，不符合「樣本外 ≥20 筆」鐵律 → 只當觀察組
+  try {
+    const GS = st.gnSwing = Object.assign({ equity: 1, open: [], closed: [], lastBar: 0, created: Date.now() }, st.gnSwing || {});
+    const c4 = (await kl("NCCOGOLD2USD", "4h", 320)); await sleep(80);
+    const c = c4.filter(x => x.t + H4 <= now), a = atr(c, 14), e2 = ema(c.map(x => x.c), 200), GC = 0.001;
+    if (!GS.lastBar) GS.lastBar = c.at(-1).t; // 上線當下不回補
+    for (let i = 210; i < c.length; i++) {
+      const b = c[i]; if (b.t <= GS.lastBar) continue;
+      for (const p of [...GS.open]) {
+        const d = p.dir; let x = null, why = "";
+        if (d > 0 ? b.l <= p.stop : b.h >= p.stop) { x = d > 0 ? Math.min(b.o, p.stop) : Math.max(b.o, p.stop); why = "停損"; }
+        else { let ex = d > 0 ? Infinity : -Infinity; for (let j = i - 27; j < i; j++) ex = d > 0 ? Math.min(ex, c[j].l) : Math.max(ex, c[j].h); if (d > 0 ? b.c < ex : b.c > ex) { x = b.c; why = d > 0 ? "跌破通道出場" : "突破通道出場"; } }
+        if (x != null) { const R = d * (x - p.e) / p.r - GC * p.e / p.r; GS.equity += p.amt * R; GS.closed.unshift({ ...p, x, R: +R.toFixed(3), why, tx: b.t + H4 }); GS.open = GS.open.filter(q => q !== p); }
+      }
+      if (!GS.open.length && i + 1 <= c4.length - 1 && a[i] > 0) {
+        let hi = -Infinity, lo = Infinity; for (let j = i - 55; j < i; j++) { hi = Math.max(hi, c[j].h); lo = Math.min(lo, c[j].l); }
+        const dir = b.c > hi && b.c > e2[i] ? 1 : b.c < lo && b.c < e2[i] ? -1 : 0;
+        if (dir) { const nx = c4.find(x => x.t === b.t + H4), e = nx ? nx.o : b.c, r = 2 * a[i]; GS.open.push({ sym: "黃金", dir, side: dir > 0 ? "long" : "short", e, r, stop: e - dir * r, t: b.t + H4, amt: GS.equity * RISK }); }
+      }
+      GS.lastBar = b.t;
+    }
+    const cur = c4.at(-1).c; GS.open.forEach(p => { p.cur = cur; p.curR = +(p.dir * (cur - p.e) / p.r).toFixed(2); });
+    { const i = c.length - 1; let hi = -Infinity, lo = Infinity; for (let j = i - 54; j <= i; j++) { hi = Math.max(hi, c[j].h); lo = Math.min(lo, c[j].l); } GS.watch = { cur, brkUp: hi, brkDn: lo, ema200: +e2[i].toPrecision(6), above: c[i].c > e2[i], atr4h: +a[i].toPrecision(6) }; }
+    GS.closed = GS.closed.slice(0, 200);
+    const w = GS.closed.filter(x => x.R > 0).length; GS.stats = { n: GS.closed.length, win: GS.closed.length ? Math.round(w / GS.closed.length * 100) : 0, sumR: +GS.closed.reduce((q, x) => q + x.R, 0).toFixed(2), ret: +((GS.equity - 1) * 100).toFixed(1) };
+  } catch (e) { console.log("黃金波段觀察組略過", e.message); }
   st.gn = { updated: new Date().toISOString(), ...GN };
 } catch (e) { console.log("黃金那指資料略過（錯誤）", e.message); }
 st.market = { btcUp, btc: bD[bI].c, btcE50: +bE[bI].toFixed(1), top: [...top] };
