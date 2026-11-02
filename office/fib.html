@@ -1,0 +1,220 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>斐波極短線實戰</title>
+<meta name="robots" content="noindex,nofollow">
+<link rel="icon" href="data:,">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;800&family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#04050d;--panel:#0a0e1f;--panel2:#10162e;--line:#1d2750;--ink:#e9f1ff;--muted:#8b97bf;--dim:#56628c;--cyan:#00e5ff;--pink:#ff2bd6;--yellow:#fcee0a;--win:#39ff9e;--loss:#ff3d6e;--warn:#ffb020;
+  --display:"Orbitron","Noto Sans TC",system-ui,sans-serif;--body:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.6 var(--body);font-variant-numeric:tabular-nums;
+  background-image:radial-gradient(900px 480px at 0% -10%,rgba(0,229,255,.12),transparent 60%),radial-gradient(800px 460px at 100% 0%,rgba(255,43,214,.10),transparent 60%)}
+.wrap{max-width:1280px;margin:0 auto;padding:16px;display:grid;gap:14px}
+.wrap>*{min-width:0}
+header{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px}
+h1{margin:0;font:800 22px/1.2 var(--display);letter-spacing:.08em;text-shadow:0 0 12px rgba(0,229,255,.5)}
+h1 b{color:var(--pink)}
+header a{color:var(--cyan);font-size:14px}
+.bar{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+.bar label{font-size:13px;color:var(--muted);display:flex;align-items:center;gap:6px}
+select,button{font:600 14px var(--body);background:var(--panel2);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:5px 10px}
+button{cursor:pointer}
+button.go{background:var(--pink);border-color:var(--pink);color:#12000f;box-shadow:0 0 14px rgba(255,43,214,.45)}
+button:focus-visible,select:focus-visible{outline:2px solid var(--yellow);outline-offset:2px}
+.main{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:14px}
+@media (max-width:900px){.main{grid-template-columns:1fr}}
+.card{background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--line);border-radius:12px;padding:12px 14px;display:grid;gap:8px;align-content:start;min-width:0}
+.chart{position:relative;border:1px solid rgba(0,229,255,.45);border-radius:12px;background:#03040b;box-shadow:0 0 26px -10px rgba(0,229,255,.6);overflow:hidden}
+canvas{display:block;width:100%;height:auto}
+.px{display:flex;flex-wrap:wrap;gap:6px 16px;align-items:baseline}
+.px b{font:800 30px/1 var(--display);color:var(--yellow);text-shadow:0 0 12px rgba(252,238,10,.4)}
+.px span{color:var(--muted);font-size:13px}
+.state{font-size:16px;font-weight:700;padding:8px 10px;border-radius:8px;background:#ffffff08;border-left:4px solid var(--dim)}
+.state.armed{border-color:var(--warn);color:var(--warn)}.state.open{border-color:var(--cyan);color:var(--cyan)}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.stats div{background:#ffffff06;border:1px solid var(--line);border-radius:8px;padding:6px 10px;display:grid}
+.stats span{font-size:12px;color:var(--muted)}.stats b{font:700 17px var(--display)}
+.up{color:var(--win)}.dn{color:var(--loss)}
+.log{list-style:none;margin:0;padding:0;display:grid;gap:4px;max-height:360px;overflow:auto;font-size:13px}
+.log li{padding:5px 8px;border-radius:6px;background:#ffffff06}
+.log .t{color:var(--dim);font-family:var(--display);font-size:11px;margin-right:6px}
+.note{font-size:13px;color:var(--muted);margin:0}
+.warn{border:1px solid rgba(255,176,32,.5);background:rgba(255,176,32,.07);border-radius:10px;padding:10px 12px;font-size:14px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>斐波<b>極短線</b>實戰</h1>
+    <a href="./#gn">← 回群星指揮艙</a>
+  </header>
+  <div class="bar" role="group" aria-label="設定">
+    <label>商品 <select id="sym"><option value="XAUUSDT">黃金 XAU</option><option value="BTCUSDT">BTC</option><option value="ETHUSDT">ETH</option></select></label>
+    <label>K 線 <select id="tf"><option value="1m">1 分</option><option value="3m">3 分</option></select></label>
+    <label>區間 <select id="N"><option value="30">30 根</option><option value="60" selected>60 根</option><option value="120">120 根</option></select></label>
+    <label>進場 <select id="pe"><option value="-0.277">-0.277</option><option value="-0.322">-0.322</option><option value="-0.5" selected>-0.5</option><option value="-0.559">-0.559</option><option value="-0.618">-0.618</option></select></label>
+    <label>停損 <select id="ps"><option value="-0.618">-0.618</option><option value="-0.786">-0.786</option><option value="-0.886">-0.886</option><option value="-1" selected>-1.0</option></select></label>
+    <label>目標 <select id="pt"><option value="-0.277">-0.277</option><option value="0" selected>0 線</option><option value="0.277">0.277</option><option value="0.5">0.5</option><option value="0.618">0.618</option></select></label>
+    <label>成本 <select id="cost"><option value="0.001">0.10%（BingX 一般）</option><option value="0.0005">0.05%（全掛單）</option><option value="0">不含成本</option></select></label>
+    <label>播放速度 <select id="spd"><option value="4">慢</option><option value="15" selected>中</option><option value="60">快</option><option value="9999">直接跳到最新</option></select></label>
+    <button class="go" id="btn" type="button">▶ 重新開始</button>
+  </div>
+  <div class="main">
+    <div class="card" style="padding:10px">
+      <div class="px"><b id="px">—</b><span id="pxNote">讀取中…</span></div>
+      <div class="chart"><canvas id="cv" width="1200" height="560" role="img" aria-label="K 線與斐波延伸位"></canvas></div>
+      <p class="note">先把最近約 25 小時（1 分）或 3 天（3 分）的 K 線一根一根重播，播完自動接 Binance 即時行情繼續跑。斐波數值照影片：1.13、1、0.886、0.786、0.618、0.559、0.5、0.322、0.277、0，以及延伸 -0.277、-0.322、-0.5、-0.559、-0.618（粉色區）。黃線＝區間 1／0，藍線＝進場，紅線＝停損，綠線＝目標。</p>
+    </div>
+    <div style="display:grid;gap:14px;align-content:start">
+      <div class="card">
+        <div class="state" id="state">準備中</div>
+        <div class="stats">
+          <div><span>筆數</span><b id="sN">0</b></div>
+          <div><span>勝率</span><b id="sW">—</b></div>
+          <div><span>合計（每筆風險 1R）</span><b id="sR">—</b></div>
+          <div><span>若開 500 倍</span><b id="s5">—</b></div>
+        </div>
+        <p class="note" id="sNote"></p>
+      </div>
+      <div class="card"><h2 style="margin:0;font-size:16px">交易紀錄</h2><ul class="log" id="log"></ul></div>
+      <div class="warn">⚠️ 這是虛擬重播，不是下單。第九、十一輪回測：扣掉手續費後，這招沒有一組參數穩定賺錢；1～3 分鐘的停損只有約 0.05～0.15%，<b>500 倍反向約 0.1% 就爆倉</b>。用這頁親眼看它怎麼賺、怎麼賠。</div>
+    </div>
+  </div>
+</div>
+<script>
+const $ = id => document.getElementById(id);
+const fmt = p => { if (p == null || !isFinite(p)) return "—"; const a = Math.abs(p), d = a >= 1000 ? 2 : a >= 10 ? 3 : 4; return (+p).toLocaleString("en-US", { minimumFractionDigits: d, maximumFractionDigits: d }); };
+const hm = t => new Date(t).toLocaleTimeString("zh-TW", { timeZone: "Asia/Taipei", hour12: false, hour: "2-digit", minute: "2-digit" });
+const rT = r => (r > 0 ? "+" : "") + r.toFixed(2) + "R";
+let bars = [], shown = 0, timer = null, ws = null, S, P;
+
+function params() { return { N: +$("N").value, e: +$("pe").value, s: +$("ps").value, t: +$("pt").value, cost: +$("cost").value }; }
+function reset() { S = { st: "idle", setup: null, pos: null, trades: [], atr: null, msg: "區間形成中", lastI: -1 }; $("log").innerHTML = ""; }
+function say(t, html) { const li = document.createElement("li"); li.innerHTML = `<span class="t">${hm(t)}</span>${html}`; $("log").prepend(li); }
+
+// ===== 規則引擎：跟回測完全同一套（每根 K 收盤後判斷）=====
+function step(i) {
+  const c = bars, b = c[i], N = P.N, W = Math.max(4, N >> 1);
+  if (i > 0) { const tr = Math.max(b.h - b.l, Math.abs(b.h - c[i - 1].c), Math.abs(b.l - c[i - 1].c)); S.atr = S.atr == null ? tr : (S.atr * 13 + tr) / 14; }
+  if (i < N + 15) return;
+  if (S.st === "open") {
+    const p = S.pos, d = p.dir; let x = null, why = "";
+    p.worst = d > 0 ? Math.min(p.worst, b.l) : Math.max(p.worst, b.h);
+    if (d > 0 ? b.l <= p.S : b.h >= p.S) { x = d > 0 ? Math.min(b.o, p.S) : Math.max(b.o, p.S); why = "停損"; }
+    else if (d > 0 ? b.h >= p.T : b.l <= p.T) { x = p.T; why = "停利"; }
+    else if (i - p.i >= N) { x = b.c; why = "時間到平倉"; }
+    if (x != null) close(p, x, why, b.t);
+    return;
+  }
+  if (S.st === "armed") {
+    const z = S.setup, d = z.dir;
+    if (i - z.i > W) { S.st = "idle"; S.msg = "等太久沒成交，取消"; say(b.t, "掛單逾時取消"); }
+    else if (d > 0 ? b.l <= z.S : b.h >= z.S) { if (d > 0 ? b.l <= z.E : b.h >= z.E) { open(z, d > 0 ? Math.min(b.o, z.E) : Math.max(b.o, z.E), i, b.t); if (S.pos) close(S.pos, z.S, "停損（成交當根）", b.t); } else { S.st = "idle"; say(b.t, "直接打穿停損價，取消"); } }
+    else if (d > 0 ? b.l <= z.E : b.h >= z.E) open(z, d > 0 ? Math.min(b.o, z.E) : Math.max(b.o, z.E), i, b.t);
+    else if (d > 0 ? b.h >= z.H : b.l <= z.L) { S.st = "idle"; S.msg = "價格回到區間另一端，取消"; say(b.t, "回到區間另一端，取消掛單"); }
+    return;
+  }
+  let H = -Infinity, L = Infinity; for (let j = i - N; j < i; j++) { H = Math.max(H, c[j].h); L = Math.min(L, c[j].l); }
+  const R = H - L; S.range = { H, L, R, i0: i - N, i1: i };
+  if (!(R >= 2 * S.atr)) { S.msg = "區間太窄（小於 2 倍平均波動），不做"; return; }
+  let dir = 0; if (b.l < L && !(b.h > H)) dir = 1; else if (b.h > H && !(b.l < L)) dir = -1;
+  if (!dir) { S.msg = `區間 ${fmt(L)}～${fmt(H)}，等破區間`; return; }
+  const base = dir > 0 ? L : H, fp = f => base + dir * f * R; // 影片標法：0＝被跌破的那一端、1＝另一端、負數＝延伸
+  if (!(P.s < P.e)) { S.msg = "停損要比進場更遠（例如進場 -0.5、停損 -1.0），請改設定"; return; }
+  S.setup = { dir, H, L, R, i, i0: i - N, base, fp, E: fp(P.e), S: fp(P.s), T: fp(P.t) };
+  S.st = "armed"; S.msg = `${dir > 0 ? "跌破低點" : "突破高點"}！在 ${fmt(S.setup.E)} 掛${dir > 0 ? "多" : "空"}單`;
+  say(b.t, `${dir > 0 ? "<b class='dn'>跌破</b>區間低點" : "<b class='up'>突破</b>區間高點"} → 掛${dir > 0 ? "多" : "空"}單 ${fmt(S.setup.E)}（停損 ${fmt(S.setup.S)}、目標 ${fmt(S.setup.T)}）`);
+  if (dir > 0 ? b.l <= S.setup.E : b.h >= S.setup.E) { const hitS = dir > 0 ? b.l <= S.setup.S : b.h >= S.setup.S; open(S.setup, S.setup.E, i, b.t); if (hitS && S.pos) close(S.pos, S.setup.S, "停損（成交當根）", b.t); }
+}
+function open(z, e, i, t) { S.pos = { ...z, e, i, t, r: Math.abs(e - z.S), worst: e }; S.st = "open"; S.msg = `${z.dir > 0 ? "多" : "空"}單成交 ${fmt(e)}`; say(t, `<b>${z.dir > 0 ? "多" : "空"}單成交</b> ${fmt(e)}`); }
+function close(p, x, why, t) {
+  const R = p.dir * (x - p.e) / p.r - P.cost * p.e / p.r, liq = Math.abs(p.worst - p.e) / p.e >= 0.001, pct = liq ? -100 : Math.max(-100, Math.round(500 * (p.dir * (x - p.e) / p.e - P.cost) * 100));
+  S.trades.push({ R, liq, pct, t, why }); S.st = "idle"; S.pos = null; S.msg = `${why}：${rT(R)}`;
+  say(t, `${why} ${fmt(x)}：<b class="${R > 0 ? "up" : "dn"}">${rT(R)}</b>｜500 倍：${liq ? "<b class='dn'>爆倉</b>" : `<b class="${pct >= 0 ? "up" : "dn"}">${pct > 0 ? "+" : ""}${pct}%</b>`}`);
+}
+
+// ===== 畫圖 =====
+function draw() {
+  const cv = $("cv"), g = cv.getContext("2d"), W = cv.width, H = cv.height, padR = 92, padT = 14, padB = 26;
+  g.fillStyle = "#03040b"; g.fillRect(0, 0, W, H);
+  const n = Math.min(140, shown), from = Math.max(0, shown - n), vis = bars.slice(from, shown); if (!vis.length) return;
+  const z = S.pos || (S.st === "armed" ? S.setup : null), rg = z || S.range;
+  let hi = Math.max(...vis.map(b => b.h)), lo = Math.min(...vis.map(b => b.l));
+  if (z) { hi = Math.max(hi, z.H, z.S, z.T); lo = Math.min(lo, z.L, z.S, z.T); }
+  const sp = (hi - lo) || 1; hi += sp * 0.04; lo -= sp * 0.04;
+  const y = v => padT + (hi - v) / (hi - lo) * (H - padT - padB), bw = (W - padR) / n, x = i => (i - from) * bw + bw / 2;
+  g.strokeStyle = "rgba(255,255,255,.05)"; g.lineWidth = 1; for (let k = 0; k <= 6; k++) { const yy = padT + k * (H - padT - padB) / 6; g.beginPath(); g.moveTo(0, yy); g.lineTo(W - padR, yy); g.stroke(); g.fillStyle = "#56628c"; g.font = "12px Orbitron, sans-serif"; g.fillText(fmt(hi - k * (hi - lo) / 6), W - padR + 6, yy + 4); }
+  if (rg) { const x0 = Math.max(0, x(Math.max(from, rg.i0)) - bw / 2), x1 = x(Math.min(shown - 1, (rg.i1 ?? rg.i))) + bw / 2; g.fillStyle = "rgba(0,229,255,.06)"; g.fillRect(x0, y(rg.H), Math.max(2, x1 - x0), y(rg.L) - y(rg.H)); }
+  const line = (v, col, label, dash) => { const yy = y(v); g.strokeStyle = col; g.setLineDash(dash ? [6, 5] : []); g.lineWidth = 1.3; g.beginPath(); g.moveTo(0, yy); g.lineTo(W - padR, yy); g.stroke(); g.setLineDash([]); g.fillStyle = col; g.font = "bold 12px 'Noto Sans TC', sans-serif"; g.fillText(`${label} ${fmt(v)}`, 6, yy - 4); };
+  if (z) {
+    const fp = f => z.base + z.dir * f * z.R;
+    // 影片同一組斐波：1.13、1、0.886、0.786、0.618、0.559、0.5、0.322、0.277、0、-0.277、-0.322、-0.5、-0.559、-0.618
+    const LV = [[1.13, "#8b97bf"], [1, "#fcee0a"], [0.886, "#ffb020"], [0.786, "#ffb020"], [0.618, "#39c98e"], [0.559, "#39c98e"], [0.5, "#39c98e"], [0.322, "#ffb020"], [0.277, "#ffb020"], [0, "#fcee0a"], [-0.277, "#ffb020"], [-0.322, "#ffb020"], [-0.5, "#ff2bd6"], [-0.559, "#ff2bd6"], [-0.618, "#ff2bd6"]];
+    g.fillStyle = "rgba(255,43,214,.10)"; g.fillRect(0, Math.min(y(fp(-0.5)), y(fp(-0.618))), W - padR, Math.abs(y(fp(-0.5)) - y(fp(-0.618))));
+    g.fillStyle = "rgba(57,201,142,.07)"; g.fillRect(0, Math.min(y(fp(0.5)), y(fp(0.618))), W - padR, Math.abs(y(fp(0.5)) - y(fp(0.618))));
+    LV.forEach(([f, col]) => { const v = fp(f), yy = y(v); g.strokeStyle = col; g.globalAlpha = 0.75; g.lineWidth = 1; g.beginPath(); g.moveTo(W * 0.42, yy); g.lineTo(W - padR, yy); g.stroke(); g.globalAlpha = 1; g.fillStyle = col; g.font = "11px 'Noto Sans TC', sans-serif"; g.textAlign = "right"; g.fillText(`${f} (${fmt(v)})`, W - padR - 4, yy - 3); g.textAlign = "left"; });
+    line(z.E, "#00e5ff", "進場", false); line(z.S, "#ff3d6e", "停損", false); line(z.T, "#39ff9e", "目標", false);
+  } else if (S.range) { line(S.range.H, "rgba(252,238,10,.6)", "區間高", true); line(S.range.L, "rgba(252,238,10,.6)", "區間低", true); }
+  vis.forEach((b, k) => { const i = from + k, up = b.c >= b.o, col = up ? "#39ff9e" : "#ff3d6e", xx = x(i); g.strokeStyle = col; g.lineWidth = 1; g.beginPath(); g.moveTo(xx, y(b.h)); g.lineTo(xx, y(b.l)); g.stroke(); g.fillStyle = col; const y1 = y(Math.max(b.o, b.c)), y2 = y(Math.min(b.o, b.c)); g.fillRect(xx - bw * 0.35, y1, bw * 0.7, Math.max(1, y2 - y1)); });
+  if (S.pos) { const xx = x(S.pos.i); g.fillStyle = "#00e5ff"; g.beginPath(); g.arc(xx, y(S.pos.e), 6, 0, 7); g.fill(); }
+  const last = bars[shown - 1]; g.fillStyle = "#fcee0a"; g.fillRect(W - padR, y(last.c) - 10, padR, 20); g.fillStyle = "#04050d"; g.font = "bold 12px Orbitron, sans-serif"; g.fillText(fmt(last.c), W - padR + 6, y(last.c) + 4);
+  g.fillStyle = "#56628c"; g.font = "11px Orbitron, sans-serif"; for (let k = from; k < shown; k += Math.ceil(n / 7)) g.fillText(hm(bars[k].t), x(k) - 16, H - 8);
+}
+function panel() {
+  const last = bars[shown - 1]; $("px").textContent = fmt(last.c);
+  const st = $("state"); st.textContent = S.msg; st.className = "state " + (S.st === "open" ? "open" : S.st === "armed" ? "armed" : "");
+  const T = S.trades, n = T.length, w = T.filter(x => x.R > 0).length, sum = T.reduce((a, x) => a + x.R, 0), lq = T.filter(x => x.liq).length, s5 = T.reduce((a, x) => a + x.pct, 0);
+  $("sN").textContent = n; $("sW").textContent = n ? Math.round(w / n * 100) + "%" : "—";
+  $("sR").innerHTML = n ? `<span class="${sum >= 0 ? "up" : "dn"}">${rT(sum)}</span>` : "—";
+  $("s5").innerHTML = n ? `<span class="dn">${lq}/${n} 爆倉</span>` : "—";
+  $("sNote").textContent = n ? `平均每筆 ${rT(sum / n)}；500 倍合計 ${s5 > 0 ? "+" : ""}${s5}% 保證金（每筆都用同一份保證金計）` : "";
+}
+function tick() {
+  const k = +$("spd").value, end = bars.length;
+  for (let j = 0; j < k && shown < end; j++) { step(shown); shown++; }
+  draw(); panel();
+  if (shown >= end) { clearInterval(timer); timer = null; $("pxNote").textContent = `重播完 ${bars.length} 根，現在接即時行情（Binance）`; live(); }
+  else $("pxNote").textContent = `重播中 ${hm(bars[shown - 1].t)}（${shown}/${end}）`;
+}
+async function load() {
+  const sym = $("sym").value, tf = $("tf").value;
+  const r = await fetch(`https://fapi.binance.com/fapi/v1/klines?symbol=${sym}&interval=${tf}&limit=1500`);
+  if (!r.ok) throw new Error("HTTP " + r.status);
+  const j = await r.json(); return j.map(x => ({ t: +x[0], o: +x[1], h: +x[2], l: +x[3], c: +x[4] }));
+}
+function live() {
+  if (ws) ws.close();
+  const sym = $("sym").value.toLowerCase(), tf = $("tf").value;
+  ws = new WebSocket(`wss://fstream.binance.com/ws/${sym}@kline_${tf}`);
+  ws.onmessage = ev => { const k = JSON.parse(ev.data).k; const b = { t: k.t, o: +k.o, h: +k.h, l: +k.l, c: +k.c };
+    const lastB = bars[bars.length - 1];
+    if (b.t === lastB.t) { bars[bars.length - 1] = b; }
+    else if (b.t > lastB.t) { bars.push(b); }
+    if (k.x) { /* 收盤：照規則判斷這根 */ }
+    // 已收盤的 K 才進規則引擎；正在跑的那根只畫圖
+    while (shown < bars.length - 1) { step(shown); shown++; }
+    const vis = shown; shown = bars.length; draw(); panel(); shown = vis;
+    $("pxNote").textContent = `即時｜${hm(b.t)} 這根還在跑`;
+  };
+  ws.onerror = () => { $("pxNote").textContent = "即時行情連不上，可按重新開始"; };
+}
+async function start() {
+  clearInterval(timer); if (ws) { ws.close(); ws = null; }
+  P = params(); reset(); shown = 0; $("pxNote").textContent = "讀取 K 線…";
+  try { bars = await load(); } catch (e) { $("pxNote").textContent = "讀不到 Binance 行情（" + e.message + "），請稍後再按重新開始"; return; }
+  bars.pop(); // 最後一根還沒收盤，交給即時行情
+  if (+$("spd").value >= 9999) { while (shown < bars.length) { step(shown); shown++; } draw(); panel(); live(); return; }
+  timer = setInterval(tick, 60);
+}
+$("btn").addEventListener("click", start);
+["sym", "tf", "N", "pe", "ps", "pt", "cost"].forEach(id => $(id).addEventListener("change", start));
+start();
+</script>
+</body>
+</html>
