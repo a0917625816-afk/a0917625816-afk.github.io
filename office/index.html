@@ -1,0 +1,702 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>群星指揮艙</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="robots" content="noindex,nofollow,noai">
+<link rel="icon" href="data:,">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;800&family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+/* 版面：霓虹頂欄（品牌＋四地時鐘＋分頁）→ 分頁：戰情室｜能做的幣｜指揮艙｜會議紀錄。賽博龐克：深夜藍黑底、青＋洋紅霓虹、黃色警示 */
+:root{
+  --bg:#04050d; --panel:#0a0e1f; --panel2:#10162e; --line:#1d2750; --grid:#0f1530;
+  --ink:#e9f1ff; --muted:#8b97bf; --dim:#56628c;
+  --cyan:#00e5ff; --pink:#ff2bd6; --yellow:#fcee0a; --blue:#5b8cff;
+  --win:#39ff9e; --loss:#ff3d6e; --warn:#ffb020;
+  --display:"Orbitron","Noto Sans TC",system-ui,sans-serif;
+  --body:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{background:var(--bg);color:var(--ink);font:16px/1.7 var(--body);font-variant-numeric:tabular-nums;
+  background-image:radial-gradient(900px 480px at 0% -10%,rgba(0,229,255,.14),transparent 60%),radial-gradient(800px 460px at 100% 0%,rgba(255,43,214,.12),transparent 60%),repeating-linear-gradient(0deg,rgba(255,255,255,.025) 0 1px,transparent 1px 34px),repeating-linear-gradient(90deg,rgba(255,255,255,.018) 0 1px,transparent 1px 34px);background-attachment:fixed}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
+.wrap{max-width:1180px;margin:0 auto;padding-block:0 56px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;gap:20px}
+.wrap>*{min-width:0}
+h1,h2,h3{margin:0;text-wrap:balance}
+h2{font:800 18px/1.3 var(--display);letter-spacing:.08em;display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;color:var(--cyan);text-shadow:0 0 12px rgba(0,229,255,.45)}
+h2 small{font:500 13px var(--body);letter-spacing:0;color:var(--muted);text-shadow:none}
+.lbl{font:600 11px var(--display);letter-spacing:.18em;color:var(--dim);text-transform:uppercase}
+a{color:var(--cyan)}
+a:focus-visible,button:focus-visible,summary:focus-visible,input:focus-visible{outline:2px solid var(--yellow);outline-offset:2px}
+
+/* 頂欄 */
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:rgba(4,5,13,.92);backdrop-filter:blur(6px);margin-inline:calc(-1*max(16px,env(safe-area-inset-left,0px)));padding:12px max(16px,env(safe-area-inset-right,0px)) 0 max(16px,env(safe-area-inset-left,0px));border-bottom:1px solid var(--line)}
+.toprow{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px 20px}
+.brand{display:flex;align-items:center;gap:12px}
+.mark{width:34px;height:34px;border:2px solid var(--pink);border-radius:8px;display:grid;place-items:center;box-shadow:0 0 14px rgba(255,43,214,.5),inset 0 0 8px rgba(255,43,214,.35);font:800 16px var(--display);color:var(--pink)}
+.brand h1{font:800 22px/1 var(--display);letter-spacing:.12em;color:var(--ink);text-shadow:0 0 10px rgba(0,229,255,.55),0 0 22px rgba(0,229,255,.25)}
+.brand h1 b{color:var(--pink);text-shadow:0 0 10px rgba(255,43,214,.7)}
+.clocks{display:flex;flex-wrap:wrap;gap:6px 16px;align-items:baseline}
+.clk{display:grid;line-height:1.15}
+.clk span{font:500 11px var(--body);color:var(--muted)}
+.clk b{font:600 16px var(--display);color:var(--ink);letter-spacing:.04em}
+.clk.main b{font-size:26px;color:var(--yellow);text-shadow:0 0 12px rgba(252,238,10,.55)}
+.clk .on{color:var(--win)}
+.tabs{display:flex;gap:4px;margin-top:10px;overflow-x:auto}
+.tabs a{font:700 15px var(--body);color:var(--muted);text-decoration:none;padding:8px 14px;border-bottom:3px solid transparent;white-space:nowrap}
+.tabs a[aria-current="page"]{color:var(--ink);border-color:var(--pink);text-shadow:0 0 10px rgba(255,43,214,.6)}
+.ticker{font-size:13px;color:var(--muted);padding:6px 0 8px;display:flex;flex-wrap:wrap;gap:4px 16px}
+.ticker b{color:var(--ink)}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px;vertical-align:1px;background:var(--dim)}
+.dot.g{background:var(--win);box-shadow:0 0 8px var(--win)}.dot.r{background:var(--loss);box-shadow:0 0 8px var(--loss)}.dot.y{background:var(--warn);box-shadow:0 0 8px var(--warn)}
+
+.view{display:grid;gap:18px;padding-top:18px}
+.card{background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--line);border-radius:12px;padding:16px 18px;display:grid;gap:10px;align-content:start;min-width:0;position:relative}
+.card.neon{border-color:rgba(0,229,255,.55);box-shadow:0 0 0 1px rgba(0,229,255,.15),0 0 26px -8px rgba(0,229,255,.55)}
+.card.hot{border-color:rgba(255,43,214,.55);box-shadow:0 0 26px -8px rgba(255,43,214,.6)}
+.two{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:16px}
+.three{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:16px}
+.pill{font:700 12px var(--body);padding:1px 9px;border-radius:99px;background:#ffffff10;color:var(--muted);white-space:nowrap;display:inline-block}
+.pill.g{background:rgba(57,255,158,.12);color:var(--win)}.pill.r{background:rgba(255,61,110,.14);color:var(--loss)}.pill.y{background:rgba(255,176,32,.14);color:var(--warn)}.pill.c{background:rgba(0,229,255,.12);color:var(--cyan)}.pill.p{background:rgba(255,43,214,.14);color:var(--pink)}
+.up{color:var(--win)}.dn{color:var(--loss)}
+.empty{color:var(--muted);font-size:14px}
+.note{font-size:13px;color:var(--muted);margin:0}
+
+/* 戰情室 */
+.btchead{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 18px}
+.btcpx{font:800 44px/1 var(--display);letter-spacing:.02em;text-shadow:0 0 18px rgba(0,229,255,.45)}
+.btcchg{font:600 18px var(--display)}
+.chartbox{position:relative;border:1px solid var(--line);border-radius:10px;background:#03040b;overflow-x:auto}
+#chart{display:block;width:100%;min-width:680px;height:auto}
+td:first-child{white-space:nowrap}
+.ladder{list-style:none;margin:0;padding:0;display:grid;gap:4px;font-size:14px}
+.ladder li{display:grid;grid-template-columns:1fr auto auto;gap:10px;padding:5px 8px;border-radius:6px;background:#ffffff06}
+.ladder li.now{background:rgba(252,238,10,.10);color:var(--yellow);font-weight:700}
+.ladder .v{font-family:var(--display);font-weight:600}
+.ladder .d{color:var(--muted);min-width:64px;text-align:right}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;font-size:14px}
+.kv dt{color:var(--muted)}.kv dd{margin:0}
+.big3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.big3 div{background:#ffffff06;border:1px solid var(--line);border-radius:10px;padding:10px 12px;display:grid;gap:2px}
+.big3 span{font-size:12px;color:var(--muted)}
+.big3 b{font:700 18px var(--display)}
+
+/* 表格 */
+.tbl{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th{font:700 12px var(--body);color:var(--muted);text-align:left;padding:6px 8px;border-bottom:1px solid var(--line);white-space:nowrap}
+td{padding:7px 8px;border-bottom:1px solid rgba(29,39,80,.6);vertical-align:top}
+td.n,td .n{white-space:nowrap;font-family:var(--display);font-weight:600;font-size:13px}
+tr.dim td{opacity:.45}
+
+/* 能做的幣 */
+.filters{display:flex;flex-wrap:wrap;gap:8px}
+.filters button{font:600 14px var(--body);padding:5px 14px;border-radius:99px;border:1px solid var(--line);background:var(--panel);color:var(--ink);cursor:pointer}
+.filters button[aria-pressed="true"]{background:var(--pink);border-color:var(--pink);color:#12000f;box-shadow:0 0 14px rgba(255,43,214,.5)}
+.coin{display:grid;gap:6px;padding:12px 14px;border:1px solid var(--line);border-radius:10px;background:#ffffff05}
+.coin .h{display:flex;flex-wrap:wrap;gap:6px 12px;align-items:baseline}
+.coin .h b{font:800 17px var(--display);letter-spacing:.04em}
+.coin .h span{font-size:13px;color:var(--muted)}
+.setups{list-style:none;margin:0;padding:0;display:grid;gap:4px;font-size:14px}
+.setups li{display:flex;flex-wrap:wrap;gap:6px;align-items:baseline}
+.coins{display:grid;gap:10px}
+.sc{display:grid;gap:8px;align-content:start;padding:14px;border-radius:10px;border:1px solid var(--line);background:#ffffff05}
+.sc.bull{border-color:rgba(57,255,158,.5)}.sc.bear{border-color:rgba(255,61,110,.5)}.sc.range{border-color:rgba(255,176,32,.5)}
+.sc .h{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.sc .h b{font-size:17px}
+.sc .prob{font:800 26px var(--display)}
+.sc p{margin:0;font-size:15px}
+.sc ul{margin:0;padding-left:18px;font-size:14px}
+.sc .inv{font-size:13px;color:var(--warn)}
+
+/* 引擎 */
+.engines{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,190px),1fr));gap:12px}
+.eng{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 14px;display:grid;gap:4px}
+.eng .nm{font-weight:700;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.eng .big{font:800 26px/1.1 var(--display)}
+.eng .row{display:flex;justify-content:space-between;font-size:13px;color:var(--muted)}
+.eng .row b{color:var(--ink);font-weight:500}
+
+/* 指揮艙 */
+.ship{position:relative;border:1px solid rgba(255,43,214,.45);border-radius:14px;overflow-x:auto;overflow-y:hidden;background:#03040b;box-shadow:0 0 30px -10px rgba(255,43,214,.6)}
+#cv{display:block;width:100%;min-width:820px;height:auto;cursor:pointer}
+.tip{position:absolute;max-width:min(330px,82%);background:rgba(6,8,20,.95);border:1px solid var(--yellow);border-radius:8px;padding:8px 12px;font-size:14px;line-height:1.5;pointer-events:none;transform:translate(-50%,-110%);box-shadow:0 0 16px rgba(252,238,10,.3)}
+.tip b{color:var(--yellow)}
+.crew{display:flex;flex-wrap:wrap;gap:6px}
+.crew button{font:500 13px var(--body);color:var(--ink);background:var(--panel2);border:1px solid var(--line);border-radius:99px;padding:3px 10px;cursor:pointer}
+.crew button[aria-pressed="true"]{border-color:var(--yellow);color:var(--yellow)}
+.todo{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+.todo li{display:flex;gap:10px;align-items:flex-start}
+.todo input{margin-top:6px;width:18px;height:18px;accent-color:var(--pink);flex:none}
+.todo label{cursor:pointer}
+.todo input:checked+label{color:var(--dim);text-decoration:line-through}
+.todo .who{display:block;font-size:13px;color:var(--muted)}
+.tl{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.tl li{display:grid;grid-template-columns:22px 70px 1fr;gap:8px;align-items:baseline;font-size:15px}
+.tl .t{font:600 13px var(--display);color:var(--muted)}
+.tl .s{color:var(--muted);font-size:13px}
+.plan{display:grid;gap:4px;padding:10px 12px;border-radius:8px;background:#ffffff06;border:1px solid var(--line)}
+.plan .h{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:baseline}
+.plan .h span{font-size:13px;color:var(--muted)}
+.plan ul{margin:0;padding-left:18px;font-size:14px}
+
+/* 會議紀錄 */
+.mtg{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 16px}
+.mtg summary{cursor:pointer;display:flex;flex-wrap:wrap;gap:4px 12px;align-items:baseline}
+.mtg summary b{font-size:17px}
+.mtg .d,.log .d{font:600 12px var(--display);color:var(--muted);white-space:nowrap}
+.mtg .v{flex-basis:100%;color:var(--yellow);font-weight:700;font-size:15px}
+.views{list-style:none;margin:10px 0 0;padding:0;display:grid;gap:8px}
+.views li{padding:9px 12px;border-radius:8px;background:#ffffff06;display:grid;gap:2px}
+.views .who{font-weight:700;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.views p,.log p{margin:0;font-size:15px}
+.log{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.log li{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;padding:10px 12px;border-radius:8px;background:var(--panel);border:1px solid var(--line)}
+.more{justify-self:start;font:600 14px var(--body);padding:6px 14px;border-radius:99px;border:1px solid var(--line);background:var(--panel2);color:var(--ink);cursor:pointer}
+.risk{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.risk li{display:grid;grid-template-columns:minmax(110px,auto) 1fr;gap:10px;font-size:14px;padding-bottom:6px;border-bottom:1px dashed var(--line)}
+.risk b{color:var(--warn)}
+.queue{margin:0;padding-left:20px;display:grid;gap:8px;font-size:15px}
+.queue span{display:block;color:var(--muted);font-size:13px}
+.links{display:flex;flex-wrap:wrap;gap:10px}
+.links a{font-weight:600;text-decoration:none;border:1px solid var(--line);background:var(--panel);border-radius:99px;padding:7px 14px}
+.links a:hover{border-color:var(--cyan);box-shadow:0 0 12px -2px rgba(0,229,255,.5)}
+footer{font-size:13px;color:var(--dim);border-top:1px dashed var(--line);padding-top:12px}
+@media (max-width:520px){.btcpx{font-size:34px}.big3{grid-template-columns:1fr 1fr}.clk.main b{font-size:22px}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div class="toprow">
+      <div class="brand"><span class="mark" aria-hidden="true">群</span><h1>群星<b>指揮艙</b></h1></div>
+      <div class="clocks" id="clocks" aria-label="時鐘"></div>
+    </div>
+    <nav class="tabs" aria-label="分頁">
+      <a href="#war" data-v="war">戰情室</a>
+      <a href="#coins" data-v="coins">能做的幣</a>
+      <a href="#crew" data-v="crew">工作室</a>
+      <a href="#log" data-v="log">會議紀錄</a>
+    </nav>
+    <div class="ticker" id="ticker"></div>
+  </header>
+
+  <!-- 戰情室 -->
+  <main class="view" id="v-war">
+    <section class="card neon">
+      <div class="lbl">BTC 戰情室</div>
+      <div class="btchead"><span class="btcpx" id="btcPx">—</span><span class="btcchg" id="btcChg"></span><span id="btcFilter"></span></div>
+      <div class="chartbox"><canvas id="chart" width="1100" height="380" role="img" aria-label="BTC 近 72 小時 1 小時K線與關鍵價位"></canvas></div>
+      <p class="note" id="chartNote"></p>
+    </section>
+    <section class="card hot" id="weekCard">
+      <h2>本週三種劇本 <small id="weekLbl">每週一 08:47（週K 收盤後）由 CEO 更新</small></h2>
+      <p id="weekSum" style="margin:0"></p>
+      <div class="three" id="weekSc"></div>
+      <p class="note" id="weekRev"></p>
+    </section>
+    <section class="card">
+      <h2>最近的攻擊K <small>實體 ≥0.7 倍 ATR、收在 K 線最高或最低 1/4；低點／高點與實體中點常是攻防位</small></h2>
+      <div class="tbl"><table><thead><tr><th>時間</th><th>週期</th><th>方向</th><th>開</th><th>高</th><th>低</th><th>收</th><th>實體中點</th><th>實體／ATR</th></tr></thead><tbody id="attack"></tbody></table></div>
+    </section>
+    <section class="three">
+      <div class="card">
+        <h2>關鍵價位 <small>由上到下，黃色是現價</small></h2>
+        <ul class="ladder" id="ladder"></ul>
+      </div>
+      <div class="card">
+        <h2>三個時段 <small>亞洲 08–15｜倫敦 15–21｜紐約 21–05（台北時間）</small></h2>
+        <div class="tbl"><table><thead><tr><th>時段</th><th>今天高</th><th>今天低</th><th>昨天高</th><th>昨天低</th></tr></thead><tbody id="sess"></tbody></table></div>
+        <div class="big3" id="ind"></div>
+      </div>
+      <div class="card hot">
+        <h2>沒跟著 BTC 走 <small>近 7 天連動低，或今天走勢明顯不同</small></h2>
+        <div class="tbl"><table><thead><tr><th>幣</th><th>24h</th><th>比 BTC</th><th>連動</th></tr></thead><tbody id="decouple"></tbody></table></div>
+        <p class="note">連動 1 代表跟 BTC 同步，0 代表沒關係，負數代表反著走。脫鉤的幣可能是機會，也可能是拉高出貨，看看型態和覆盤紀錄再說。</p>
+      </div>
+    </section>
+    <section class="two">
+      <div class="card">
+        <h2>48 小時內風險 <small>重大事件前 2 小時不開新單</small></h2>
+        <ul class="risk" id="risk48"></ul>
+      </div>
+      <div class="card">
+        <h2>五座引擎 <small>累計成績（虛擬單）</small></h2>
+        <div class="engines" id="engines"></div>
+      </div>
+    </section>
+  </main>
+
+  <!-- 能做的幣 -->
+  <main class="view" id="v-coins" hidden>
+    <section class="two">
+      <div class="card neon">
+        <h2>A｜機器人規則 <small>強勢前 10 名＋站上 4h EMA200，離 55 根新高多近</small></h2>
+        <p class="note" id="aNote"></p>
+        <div class="tbl"><table><thead><tr><th>幣</th><th>現價</th><th>突破價</th><th>還差</th><th>20 日漲幅</th><th>突破後停損</th></tr></thead><tbody id="listA"></tbody></table></div>
+      </div>
+      <div class="card hot">
+        <h2>B｜劇本型態候選 <small>成交額前 20 大＋強勢幣，現在碰到哪些型態</small></h2>
+        <div class="filters" id="bFil"></div>
+        <div class="coins" id="listB"></div>
+        <p class="note">這是候選清單，不是下單建議。盤前室會從這裡挑、照規則寫劇本；型態排行被「暫停」的會變灰。</p>
+      </div>
+    </section>
+  </main>
+
+  <!-- 指揮艙 -->
+  <main class="view" id="v-crew" hidden>
+    <section class="two">
+      <div class="card hot">
+        <h2>待你決定</h2>
+        <ul class="todo" id="todo"></ul>
+      </div>
+      <div class="card">
+        <h2>今日任務 <small id="todayLbl"></small></h2>
+        <ul class="tl" id="tasks"></ul>
+      </div>
+    </section>
+    <section style="display:grid;gap:10px">
+      <h2>霓虹未來工作室 <small>點任何一位組員，看他正在忙什麼；每隔一陣子大家會去會議室開會</small></h2>
+      <div class="ship" id="ship"><canvas id="cv" width="1672" height="941" role="img" aria-label="霓虹未來工作室動畫：董事長華群、CEO、米淇與 AI 組員在各房間工作、開會、休息"></canvas><div class="tip" id="tip" hidden></div></div>
+      <div class="crew" id="crewBtns" aria-label="組員清單"></div>
+    </section>
+    <section class="two">
+      <div class="card">
+        <h2>最新劇本 <small id="scTime"></small></h2>
+        <div id="plays" style="display:grid;gap:10px"></div>
+      </div>
+      <div class="card">
+        <h2>劇本單 <small>持倉、掛單、最近結束</small></h2>
+        <div class="tbl"><table><thead><tr><th>幣</th><th>方向</th><th>型態</th><th>時段</th><th>進場</th><th>停損</th><th>停利</th><th>狀態</th></tr></thead><tbody id="scOpen"></tbody></table></div>
+        <div class="tbl"><table><thead><tr><th>幣</th><th>方向</th><th>型態</th><th>結果</th><th>原因</th></tr></thead><tbody id="scClosed"></tbody></table></div>
+      </div>
+    </section>
+    <section class="card">
+      <h2>型態排行 <small>先比平均R，再比勝率；滿 15 筆才判斷，前後兩半都賺才算「優先」</small></h2>
+      <div class="tbl"><table><thead><tr><th>型態</th><th>方向</th><th>筆數</th><th>勝率</th><th>平均R</th><th>前半／後半</th><th>狀態</th></tr></thead><tbody id="board"></tbody></table></div>
+    </section>
+  </main>
+
+  <!-- 會議紀錄 -->
+  <main class="view" id="v-log" hidden>
+    <div id="meeting"></div>
+    <div class="filters" id="filters"></div>
+    <ul class="log" id="log"></ul>
+    <button class="more" id="more" type="button" hidden>看更多</button>
+    <section class="two">
+      <div class="card"><h2>復盤教訓 <small>有證據才寫，14 天沒再證實就失效</small></h2><ul class="queue" id="lessons"></ul></div>
+      <div class="card"><h2>風險日期 <small>台北時間</small></h2><ul class="risk" id="risk"></ul><p class="note" id="watchCoins"></p></div>
+    </section>
+    <section class="card"><h2>回測佇列 <small>合格才會變成機器人的規則</small></h2><ol class="queue" id="queue"></ol></section>
+    <section class="links">
+      <a href="https://a0917625816-afk.github.io/" target="_blank" rel="noopener">公開交易網站</a>
+      <a href="https://github.com/a0917625816-afk/a0917625816-afk.github.io/actions" target="_blank" rel="noopener">自動排程紀錄</a>
+      <a href="https://github.com/a0917625816-afk/a0917625816-afk.github.io/tree/main/lab" target="_blank" rel="noopener">回測報告</a>
+    </section>
+  </main>
+
+  <footer><span id="liveNote"></span><br>全部是虛擬單與回測，不接真倉、不是投資建議。勾選狀態只存在你這台瀏覽器。</footer>
+</div>
+
+<script>
+/* 發布當下的資料快照；頁面打開後會透過你的 GitHub 連線讀最新的 bot.json／intel.json */
+const SNAP = {"at": "2026-10-31T16:24:47.922279Z", "bot": {"equity": 0.960160225250103, "open": [], "closed": [{"base": "EVAA", "t": 1793203200000, "e": 1.4848, "r": 0.27930816699939787, "stop": 1.2054918330006021, "amt": 0.009699317286276274, "lastBar": 1793246400000, "cur": 1.2311, "curR": -0.91, "real": 0, "took": false, "mom": 58.5, "last": 1.2351, "hi": 1.5716, "x": 1.2054918330006021, "R": -1.007, "why": "停損", "tx": 1793260800000}, {"base": "BEAT", "t": 1793174400000, "e": 0.10759, "r": 0.012765949500674103, "stop": 0.09482405049932591, "amt": 0.009798457990552498, "lastBar": 1793174400000, "cur": 0.08545, "curR": -1.73, "real": 0, "took": false, "mom": 3.9, "last": 0.08064, "hi": 0.10865, "x": 0.09482405049932591, "R": -1.012, "why": "停損", "tx": 1793188800000}, {"base": "IRYS", "t": 1792771200000, "e": 0.06359, "r": 0.011916221463130063, "stop": 0.05167377853686993, "amt": 0.009898179275529306, "lastBar": 1792843200000, "cur": 0.04782, "curR": -1.32, "mom": 28.2, "last": 0.046, "hi": 0.50604, "real": 0, "x": 0.05167377853686993, "R": -1.007, "why": "停損", "tx": 1792857600000}, {"base": "WLD", "t": 1792540800000, "e": 0.5871, "r": 0.045143568575567915, "stop": 0.5419564314244321, "amt": 0.01, "lastBar": 1792641600000, "cur": 0.5409, "curR": -1.02, "mom": 9.7, "last": 0.5401, "hi": 0.5975, "x": 0.5419564314244321, "R": -1.018, "why": "停損", "tx": 1792656000000}], "lastBar": 1793448000000, "created": 1792335268191, "stats": {"n": 4, "win": 0, "avgR": -1.01, "sumR": -4.04, "ret": -4}, "market": {"btcUp": false, "btc": 77308.8, "btcE50": 80543.7, "top": ["AIN", "ZEC"]}, "watch": [{"base": "ZEC", "cur": 1283.02, "brk": 1397.33, "dist": 8.91, "ema200": true, "top": true, "mom": 4, "stopIf": 1307.85}, {"base": "AIN", "cur": 0.23511, "brk": 0.29, "dist": 23.35, "ema200": true, "top": true, "mom": 338.5, "stopIf": 0.226983}], "updated": "2026-10-31T16:16:18.038Z", "intra": {"equity": 1.004304945465372, "open": [], "closed": [{"base": "INJ", "t": 1792951200000, "e": 8.031, "r": 0.42110454807647835, "stop": 7.6098954519235225, "amt": 0.01008501843665534, "lastBar": 1792971900000, "dayEnd": 1792972800000, "cur": 7.867, "curR": -0.39, "x": 7.867, "R": -0.416, "why": "收盤平倉（08:00）", "tx": 1792972800000}, {"base": "AGT", "t": 1792714500000, "e": 0.070841, "r": 0.007261214100144246, "stop": 0.06357978589985576, "amt": 0.00964464251066799, "lastBar": 1792799100000, "dayEnd": 1792800000000, "cur": 0.08801, "curR": 2.36, "x": 0.08801, "R": 2.351, "why": "收盤平倉（08:00）", "tx": 1792800000000}, {"base": "IRYS", "t": 1792768500000, "e": 0.04577, "r": 0.013929219108396312, "stop": 0.031840780891603686, "amt": 0.00964464251066799, "lastBar": 1792799100000, "dayEnd": 1792800000000, "cur": 0.07669, "curR": 2.22, "x": 0.07669, "R": 2.215, "why": "收盤平倉（08:00）", "tx": 1792800000000}, {"base": "STRK", "t": 1792596600000, "e": 0.06113, "r": 0.005140358888513908, "stop": 0.05598964111148609, "amt": 0.009818955157912519, "lastBar": 1792626300000, "dayEnd": 1792627200000, "cur": 0.05733, "curR": -0.74, "x": 0.05733, "R": -0.756, "why": "收盤平倉（08:00）", "tx": 1792627200000}, {"base": "ZRO", "t": 1792596600000, "e": 2.0869, "r": 0.15083634499664764, "stop": 1.9360636550033523, "amt": 0.009818955157912519, "lastBar": 1792620900000, "dayEnd": 1792627200000, "cur": 1.9498, "curR": -0.91, "x": 1.9360636550033523, "R": -1.019, "why": "停損", "tx": 1792621800000}, {"base": "INJ", "t": 1792547100000, "e": 9.379, "r": 0.71056299462945, "stop": 8.66843700537055, "amt": 0.009919988169074362, "lastBar": 1792576800000, "dayEnd": 1792627200000, "cur": 8.675, "curR": -0.99, "x": 8.66843700537055, "R": -1.018, "why": "停損", "tx": 1792577700000}, {"base": "WLD", "t": 1792460700000, "e": 0.5396, "r": 0.04186197532639076, "stop": 0.4977380246736092, "amt": 0.009899462952699545, "lastBar": 1792539900000, "dayEnd": 1792540800000, "cur": 0.5871, "curR": 1.13, "x": 0.5871, "R": 1.117, "why": "收盤平倉（08:00）", "tx": 1792540800000}, {"base": "ZRO", "t": 1792505700000, "e": 1.984, "r": 0.22870858948203088, "stop": 1.755291410517969, "amt": 0.009899462952699545, "lastBar": 1792539900000, "dayEnd": 1792540800000, "cur": 2.0127, "curR": 0.13, "x": 2.0127, "R": 0.113, "why": "收盤平倉（08:00）", "tx": 1792540800000}, {"base": "INJ", "t": 1792506600000, "e": 9.042, "r": 0.5591062444161823, "stop": 8.482893755583817, "amt": 0.009899462952699545, "lastBar": 1792524600000, "dayEnd": 1792540800000, "cur": 8.534, "curR": -0.91, "x": 8.482893755583817, "R": -1.023, "why": "停損", "tx": 1792525500000}, {"base": "Q", "t": 1792383300000, "e": 0.157877, "r": 0.04115611414733386, "stop": 0.11672088585266613, "amt": 0.01, "lastBar": 1792394100000, "dayEnd": 1792454400000, "cur": 0.128275, "curR": -0.72, "x": 0.11672088585266613, "R": -1.005, "why": "停損", "tx": 1792395000000}], "lastBar": 1793462400000, "done": {}, "stats": {"n": 10, "win": 40, "sumR": 0.56, "ret": 0.4}}, "b": {"equity": 0.9799095185955512, "open": [], "closed": [{"base": "EVAA", "t": 1793203200000, "e": 1.4848, "r": 0.27930816699939787, "stop": 1.2054918330006021, "amt": 0.009898820095598905, "lastBar": 1793246400000, "cur": 1.2311, "curR": -0.91, "real": 0, "took": false, "mom": 58.5, "last": 1.2351, "hi": 1.5716, "x": 1.2054918330006021, "R": -1.007, "why": "停損", "tx": 1793260800000}, {"base": "BEAT", "t": 1793174400000, "e": 0.10759, "r": 0.012765949500674103, "stop": 0.09482405049932591, "amt": 0.01, "lastBar": 1793174400000, "cur": 0.08545, "curR": -1.73, "real": 0, "took": false, "mom": 3.9, "last": 0.08064, "hi": 0.10865, "x": 0.09482405049932591, "R": -1.012, "why": "停損", "tx": 1793188800000}], "stats": {"n": 2, "win": 0, "sumR": -2.02, "ret": -2}}, "manual": {"equity": 1, "open": [], "closed": [], "waiting": {}, "done": {}, "stats": {"n": 0, "win": 0, "sumR": 0, "ret": 0}}, "intra2": {"equity": 1, "open": [], "closed": [], "lastBar": 1793462400000, "done": {}, "created": 1793451682732, "stats": {"n": 0, "win": 0, "sumR": 0, "ret": 0}}, "levels": {"updated": "2026-10-31T16:16:08.834Z", "coins": {"ETH": {"last": 2250.41, "pdh": 2261.42, "pdl": 2173.2, "pdc": 2243.74, "h24": 2254, "l24": 2215.67, "ema1h": {"e20": 2244.63, "e50": 2257.61, "e200": 2315.56}, "ema4h": {"e20": 2274.43, "e50": 2318.52, "e200": 2439.46}, "atr1h": 11.4874, "atr4h": 33.4281, "rsi1h": 52.4, "rsi4h": 39.4, "sr1h": [{"p": 2173.2, "n": 1}, {"p": 2207.19, "n": 1}, {"p": 2220.13, "n": 1}, {"p": 2234.24, "n": 3}, {"p": 2253.82, "n": 6}, {"p": 2281.41, "n": 1}, {"p": 2296.81, "n": 6}, {"p": 2317.35, "n": 3}, {"p": 2350.55, "n": 14}, {"p": 2377.94, "n": 2}, {"p": 2389.02, "n": 3}, {"p": 2414.52, "n": 2}], "sr4h": [{"p": 2173.2, "n": 1}, {"p": 2346.79, "n": 18}, {"p": 2443.07, "n": 2}, {"p": 2484.81, "n": 4}, {"p": 2527.19, "n": 6}, {"p": 2582.23, "n": 2}], "fibUp4h": {"hi": 2524, "lo": 2327.48, "r382": 2448.93, "r5": 2425.74, "r618": 2402.55, "r786": 2369.54}, "fibDown4h": {"hi": 2524, "lo": 2173.2, "r382": 2307.21, "r5": 2348.6, "r618": 2389.99, "r786": 2448.93}, "sesToday": {"asia": {"hi": 2250.68, "lo": 2234.74}, "london": {"hi": 2254, "lo": 2236.65}, "ny": {"hi": 2253, "lo": 2242.74}}, "sesYday": {"asia": {"hi": 2257.53, "lo": 2173.2}, "london": {"hi": 2253.92, "lo": 2220.13}, "ny": {"hi": 2261.42, "lo": 2207.19}}}, "SOL": {"last": 95.976, "pdh": 98.51, "pdl": 92.321, "pdc": 96.283, "h24": 96.964, "l24": 93.524, "ema1h": {"e20": 95.845, "e50": 96.7605, "e200": 99.8667}, "ema4h": {"e20": 97.6858, "e50": 99.9992, "e200": 105.282}, "atr1h": 0.67481, "atr4h": 1.79868, "rsi1h": 48.6, "rsi4h": 39.7, "sr1h": [{"p": 92.321, "n": 1}, {"p": 93.708, "n": 2}, {"p": 95.02, "n": 2}, {"p": 96.355, "n": 1}, {"p": 96.964, "n": 1}, {"p": 98.555, "n": 2}, {"p": 99.2333, "n": 3}, {"p": 101.565, "n": 26}, {"p": 105.024, "n": 2}], "sr4h": [{"p": 92.321, "n": 1}, {"p": 93.524, "n": 1}, {"p": 96.964, "n": 1}, {"p": 102.338, "n": 21}, {"p": 108.431, "n": 6}], "fibUp4h": {"hi": 109.182, "lo": 100.332, "r382": 105.801, "r5": 104.757, "r618": 103.713, "r786": 102.226}, "fibDown4h": {"hi": 109.182, "lo": 92.321, "r382": 98.7619, "r5": 100.751, "r618": 102.741, "r786": 105.574}, "sesToday": {"asia": {"hi": 96.964, "lo": 95.535}, "london": {"hi": 96.355, "lo": 95.127}, "ny": {"hi": 96.131, "lo": 95.522}}, "sesYday": {"asia": {"hi": 98.51, "lo": 92.321}, "london": {"hi": 98.243, "lo": 96.247}, "ny": {"hi": 96.832, "lo": 93.524}}}, "ZEC": {"last": 1283.03, "pdh": 1289.97, "pdl": 1182.45, "pdc": 1269.94, "h24": 1297.59, "l24": 1207.99, "ema1h": {"e20": 1269.89, "e50": 1265.59, "e200": 1246.91}, "ema4h": {"e20": 1266.88, "e50": 1252.38, "e200": 1264.95}, "atr1h": 17.5772, "atr4h": 44.7385, "rsi1h": 59.2, "rsi4h": 53.7, "sr1h": [{"p": 1119.41, "n": 1}, {"p": 1141.83, "n": 1}, {"p": 1161.4, "n": 2}, {"p": 1211.45, "n": 20}, {"p": 1260.81, "n": 5}, {"p": 1294.66, "n": 5}, {"p": 1323.12, "n": 5}, {"p": 1397.33, "n": 1}], "sr4h": [{"p": 1102.43, "n": 8}, {"p": 1275.53, "n": 34}], "fibUp4h": {"hi": 1397.33, "lo": 1050, "r382": 1264.65, "r5": 1223.66, "r618": 1182.68, "r786": 1124.33}, "fibDown4h": {"hi": 1152.8, "lo": 1050, "r382": 1089.27, "r5": 1101.4, "r618": 1113.53, "r786": 1130.8}, "sesToday": {"asia": {"hi": 1297.59, "lo": 1254.2}, "london": {"hi": 1290.22, "lo": 1260.69}, "ny": {"hi": 1289.65, "lo": 1273.22}}, "sesYday": {"asia": {"hi": 1289.97, "lo": 1182.45}, "london": {"hi": 1278.43, "lo": 1231.98}, "ny": {"hi": 1260.64, "lo": 1207.99}}}}, "btcSpark": [[1793203200000, 80524.8, 80722.4, 80361.1, 80611.6], [1793206800000, 80588.9, 80940, 80436, 80809.4], [1793210400000, 80825.7, 81294.2, 80660, 81009.3], [1793214000000, 80980.7, 81543.7, 80944.4, 81531.2], [1793217600000, 81549.1, 81759.2, 80951.1, 81295.2], [1793221200000, 81297, 81417.1, 81103.8, 81335.5], [1793224800000, 81321.4, 81396.4, 81095.7, 81240.9], [1793228400000, 81241.2, 81333.2, 81121.7, 81300.4], [1793232000000, 81309.3, 81346.9, 81064.8, 81073.9], [1793235600000, 81063.8, 81067.8, 79941.9, 79941.9], [1793239200000, 79973.9, 80150, 79666.6, 79925.2], [1793242800000, 79930.7, 79998.8, 79718.2, 79827.2], [1793246400000, 79812.7, 80276.7, 79750.2, 80222.2], [1793250000000, 80222.9, 80491.5, 80197.5, 80203.4], [1793253600000, 80201.9, 80250, 79861.8, 79930.2], [1793257200000, 79930.2, 79950.7, 79790.2, 79820.7], [1793260800000, 79817.3, 80110.4, 79806.7, 80021.1], [1793264400000, 80026, 80306, 80005.5, 80172.4], [1793268000000, 80170.5, 80343.4, 80077.1, 80248.4], [1793271600000, 80259.4, 80282.1, 80084, 80129.5], [1793275200000, 80129.6, 80227.5, 79978.6, 80020.8], [1793278800000, 80024.2, 80388.7, 79875.2, 80283.6], [1793282400000, 80270.9, 81497.7, 80226.6, 81134], [1793286000000, 81150, 81879.7, 81149.8, 81723.7], [1793289600000, 81731.2, 81943.3, 81150.3, 81235.2], [1793293200000, 81235.2, 81235.3, 80644.6, 80861.9], [1793296800000, 80862, 80922.4, 80558.5, 80829.5], [1793300400000, 80830.8, 80925.1, 80738.5, 80813.2], [1793304000000, 80816.3, 80821.5, 78223.9, 78845.1], [1793307600000, 78819.7, 79765.3, 78537.9, 79012.2], [1793311200000, 79000.7, 79249, 78602.7, 78987.2], [1793314800000, 78985.2, 78992.6, 77885.5, 77954.6], [1793318400000, 77963.2, 78246.7, 76733.3, 77217.2], [1793322000000, 77215.5, 77339.8, 76636.1, 76803.1], [1793325600000, 76799.2, 77535, 76470.7, 77390.2], [1793329200000, 77389.1, 78224.3, 77277.3, 78219.8], [1793332800000, 78192.2, 78417.7, 77890, 78230.5], [1793336400000, 78228.7, 78730, 78200.8, 78513.6], [1793340000000, 78513.5, 78765.6, 78372.7, 78602.7], [1793343600000, 78611.2, 78617.4, 78009.3, 78151], [1793347200000, 78137, 78205.1, 77868.1, 77991.9], [1793350800000, 77993.6, 78013.1, 77513.8, 77651.2], [1793354400000, 77652, 77792.5, 77301.8, 77791.3], [1793358000000, 77799.7, 77834, 77203.7, 77348.4], [1793361600000, 77346, 77569, 77245.9, 77430.5], [1793365200000, 77435.8, 77435.8, 76593.5, 77164.4], [1793368800000, 77139.3, 77258.2, 76634, 77208], [1793372400000, 77204.1, 78074.3, 77188.8, 77584.3], [1793376000000, 77572.7, 77648.6, 77119.9, 77330.3], [1793379600000, 77309.5, 77451, 77067.7, 77146.1], [1793383200000, 77142.9, 77166.3, 76261.7, 76623.1], [1793386800000, 76605.8, 76999.9, 76305.7, 76893.6], [1793390400000, 76888.3, 77135.3, 76745.1, 76873.6], [1793394000000, 76882.3, 77006.5, 76558.2, 76656.8], [1793397600000, 76659.7, 76960.6, 76659.7, 76901], [1793401200000, 76901, 77333.9, 76853.4, 77308.8], [1793404800000, 77297.7, 77513.9, 77208.2, 77512.6], [1793408400000, 77505.9, 77597.9, 77320, 77345.5], [1793412000000, 77345.3, 77464.9, 77264.4, 77386.6], [1793415600000, 77387.6, 77397.8, 77074, 77114.7], [1793419200000, 77114.9, 77304.6, 77048.8, 77140.1], [1793422800000, 77144.1, 77281.9, 77143.7, 77217.2], [1793426400000, 77218.5, 77458.9, 77189.5, 77336], [1793430000000, 77335.9, 77421.7, 77254, 77290.8], [1793433600000, 77299, 77481.8, 77212.5, 77306.6], [1793437200000, 77307, 77425.3, 77307, 77416.5], [1793440800000, 77416.4, 77495.9, 77349.1, 77361], [1793444400000, 77362.4, 77641.6, 77356.6, 77567.4], [1793448000000, 77563.1, 77693, 77467, 77496.3], [1793451600000, 77496.4, 77550.5, 77389.4, 77458.6], [1793455200000, 77466.2, 77530.3, 77364, 77370.4], [1793458800000, 77370.3, 77566.8, 77320.5, 77547.7]], "btcChg24": -0.05}, "scen": {"equity": 1, "open": [], "closed": [], "waiting": {}, "done": {}, "stats": {"n": 0, "win": 0, "sumR": 0, "avgR": 0, "ret": 0, "bySession": {"tokyo": {"n": 0, "win": 0, "sumR": 0, "avgR": 0}, "london": {"n": 0, "win": 0, "sumR": 0, "avgR": 0}, "ny": {"n": 0, "win": 0, "sumR": 0, "avgR": 0}}, "bySide": {"long": {"n": 0, "win": 0, "sumR": 0, "avgR": 0}, "short": {"n": 0, "win": 0, "sumR": 0, "avgR": 0}}, "byType": {"limit": {"n": 0, "win": 0, "sumR": 0, "avgR": 0}, "stop": {"n": 0, "win": 0, "sumR": 0, "avgR": 0}}, "expired": 0, "byPattern": {}}}, "scan": {"updated": "2026-10-31T16:16:18.037Z", "btcChg24": -0.05, "coins": [{"base": "ETH", "last": 2249.33, "chg24": 1.05, "rel24": 1.1, "corr7": 0.9, "t4": -1, "t1": -1, "top": false, "ema200": false, "brkDist": 7.39, "setups": []}, {"base": "SOL", "last": 95.883, "chg24": 1.09, "rel24": 1.14, "corr7": 0.9, "t4": -1, "t1": -1, "top": false, "ema200": false, "brkDist": 9.64, "setups": [{"pattern": "P6", "side": "short", "level": 95.845, "dist": -0.04, "label": "1h 空頭反彈到均線"}]}, {"base": "ZEC", "last": 1285.42, "chg24": 4.73, "rel24": 4.78, "corr7": 0.78, "t4": 0, "t1": 1, "top": true, "ema200": true, "brkDist": 8.91, "setups": [{"pattern": "P1", "side": "short", "level": 1289.97, "dist": 0.35, "label": "頂到前日高"}]}, {"base": "XRP", "last": 1.2525, "chg24": -0.14, "rel24": -0.1, "corr7": 0.86, "t4": -1, "t1": -1, "top": false, "ema200": false, "brkDist": 7.23, "setups": [{"pattern": "P4", "side": "short", "level": 1.2547, "dist": 0.18, "label": "4h 壓力（碰 2 次）"}]}, {"base": "AVAX", "last": 8.534, "chg24": 2.25, "rel24": 2.3, "corr7": 0.82, "t4": -1, "t1": -1, "top": false, "ema200": false, "brkDist": 9.82, "setups": []}, {"base": "LINK", "last": 11.571, "chg24": 4.71, "rel24": 4.75, "corr7": 0.79, "t4": 0, "t1": 1, "top": false, "ema200": false, "brkDist": 5.75, "setups": []}, {"base": "JUP", "last": 0.2589, "chg24": 1.69, "rel24": 1.74, "corr7": 0.82, "t4": -1, "t1": -1, "top": false, "ema200": false, "brkDist": 21.73, "setups": [{"pattern": "P6", "side": "short", "level": 0.257223, "dist": -0.65, "label": "1h 空頭反彈到均線"}]}, {"base": "UNI", "last": 7.017, "chg24": 1.01, "rel24": 1.05, "corr7": 0.67, "t4": -1, "t1": 1, "top": false, "ema200": false, "brkDist": 7.1, "setups": [{"pattern": "P5", "side": "short", "level": 7.1946, "dist": 2.53, "label": "回到 4h 波段 0.5～0.618"}]}, {"base": "BNB", "last": 705.17, "chg24": 0.76, "rel24": 0.81, "corr7": 0.77, "t4": -1, "t1": -1, "top": false, "ema200": false, "brkDist": 8.16, "setups": [{"pattern": "P6", "side": "short", "level": 704.16, "dist": -0.14, "label": "1h 空頭反彈到均線"}]}, {"base": "WLD", "last": 0.4043, "chg24": -1.77, "rel24": -1.73, "corr7": 0.74, "t4": -1, "t1": -1, "top": false, "ema200": false, "brkDist": 40.69, "setups": []}, {"base": "SUI", "last": 0.9017, "chg24": 1.46, "rel24": 1.51, "corr7": 0.86, "t4": -1, "t1": -1, "top": false, "ema200": false, "brkDist": 11.26, "setups": [{"pattern": "P4", "side": "short", "level": 0.9044, "dist": 0.3, "label": "4h 壓力（碰 6 次）"}]}, {"base": "INJ", "last": 7.483, "chg24": 5.04, "rel24": 5.09, "corr7": 0.65, "t4": -1, "t1": -1, "top": false, "ema200": false, "brkDist": 11.11, "setups": [{"pattern": "P1", "side": "long", "level": 7.442, "dist": -0.55, "label": "站上前日高後回踩"}, {"pattern": "P4", "side": "long", "level": 7.44369, "dist": -0.53, "label": "4h 支撐（碰 29 次）"}]}, {"base": "OP", "last": 0.11327, "chg24": 4.69, "rel24": 4.73, "corr7": 0.69, "t4": -1, "t1": 1, "top": false, "ema200": false, "brkDist": 7.51, "setups": []}, {"base": "LTC", "last": 55.45, "chg24": -0.48, "rel24": -0.44, "corr7": 0.77, "t4": -1, "t1": -1, "top": false, "ema200": false, "brkDist": 7.79, "setups": [{"pattern": "P4", "side": "long", "level": 55.438, "dist": -0.02, "label": "4h 支撐（碰 5 次）"}]}, {"base": "ADA", "last": 0.1935, "chg24": 0.47, "rel24": 0.51, "corr7": 0.87, "t4": -1, "t1": -1, "top": false, "ema200": false, "brkDist": 12.85, "setups": [{"pattern": "P6", "side": "short", "level": 0.193041, "dist": -0.24, "label": "1h 空頭反彈到均線"}]}, {"base": "KAS", "last": 0.03305, "chg24": -0.27, "rel24": -0.22, "corr7": 0.67, "t4": -1, "t1": -1, "top": false, "ema200": false, "brkDist": 15.77, "setups": []}, {"base": "GALA", "last": 0.001728, "chg24": 1.65, "rel24": 1.69, "corr7": 0.81, "t4": -1, "t1": 1, "top": false, "ema200": false, "brkDist": 10.46, "setups": []}, {"base": "AIN", "last": 0.23234, "chg24": 35.84, "rel24": 35.89, "corr7": -0.05, "t4": 1, "t1": 1, "top": true, "ema200": true, "brkDist": 23.35, "setups": [{"pattern": "P6", "side": "long", "level": 0.228263, "dist": -1.75, "label": "1h 多頭回踩均線"}]}]}}, "intel": {"date": "2026-10-31", "verdict": {"winner": "空方較強", "text": "空方證據較硬（幣安被盜 63 億、ETF 單日流出 6.43 億是 6 月以來最大、Fed 下一步偏升息、大戶事前買 Put），多方只有「200 日 EMA 還沒破、槓桿已清」兩張牌。但三組早已空手、BTC 濾網自動關閉，所以本期差別只在回測優先順序，不在倉位。六位辯手有五位同意「重大事件前後暫停開倉」提到第一順位，裁判採納，本期直接排進第八輪回測；另一個實驗是把成本模型改成依成交額分級（含日內門檻≥5 億U 變體）。進出場規則一律不改，合格才上線。 第八輪結果（當天晚上出爐）：分級成本下三組都還有正期望值；「日內成交額門檻 ≥5 億U」合格，以第 4 組虛擬單「日內 B」上線並列比較；事件暫停開倉在波段 A/B 不合格（勝率沒提高），在日內只有前後 4 小時版剛好過線，先不套用、下期跟日內 B 合併測。"}, "bull": ["200 日 EMA（約 76,470）史上最大駭客案都沒跌破，低點 76,418 刺一下就收回，這是結構訊號", "去槓桿做完了：10/30 爆倉 16 億、85% 是多單，隔天只剩 3.6 億；OI 全市場 -3%、SOL -13%", "目前成績還在回測劇本裡：波段 A 勝率本來就約 25%，連虧 4 筆很正常（蒙地卡羅最大連虧中位數 19 筆）；日內 10 筆 +0.56R 符合預期"], "bear": ["總經逆風加碼：FOMC 10–2 兩票要升息、12 月升息機率 80–85%、10 年期美債 4.93%、油價 104、Nasdaq 單日 -2.86%（6 月以來最大）", "機構買盤斷了：BTC ETF 10/30 單日流出 6.43 億（6 月以來最大）、ETH ETF 五天全流出；CME 基差只剩 4.8%、OI 接近 14 個月低點", "幣安被盜 63 億的二階風險還沒落地（11/1 提幣、11/2 儲備證明）；駭客前 15 分鐘有人買 78K Put、Paradigm 大宗幾乎全 Put，散戶卻 74% 做多；下方 74–76K 是停損池"], "observers": [{"name": "觀察員1｜新聞＋總經", "text": "FOMC 維持 3.75–4.00%（10–2，兩票要升息），官員全在談再緊縮，12/9 升息機率約 80–85%。10 年期美債 4.93%、WTI 104、Nasdaq 10/30 -2.86%。本週最大事件是幣安 10/29 被盜約 63 億美元（史上最大，歸因北韓），幣安自掏補足，目標 11/1 分階段恢復提幣、11/2 公布儲備證明。BTC 從 80,300 跌到 76,418，現約 77,300。判斷：逆風，風險中偏高；最大變數是 11/1–11/2 幣安進度。"}, {"name": "觀察員2｜莊家思維", "text": "10/30 爆倉約 15–16 億（多單 85%），隔天降到 3.6 億。OI 全市場 -3%，HYPE OI 反而 +28%、費率市場第二高、隔日回吐，像拉高出貨前兆；IDOL 單日 +67% 後跌回，是典型拉高出貨；ZEC 偏軋空。大戶：駭客前 15 分鐘有人買 250 口 78K Put、Paradigm 8 小時大宗 5.9 億幾乎全 Put、幣安單日淨流出 2.2 萬 BTC。下方 74–76K 是多單停損＋Put 密集區，有動機先掃再拉。Coinglass 爆倉地圖抓不到。"}, {"name": "觀察員3｜華爾街", "text": "BTC ETF 10/30 流出 6.43 億（6 月以來最大），本週 -2.02 億、10 月約 -5.2 億；ETH ETF 本週 -4.31 億、10 月約 -16 億；ETF 持有人均價約 81,500，現價在水下。CME 已 24/7 交易、沒有週末缺口；基差年化 4.8% 只比國庫券高 0.6 點，對沖基金空單從 7.1 萬降到 3.1 萬 BTC，基差交易資金撤出中。Deribit 11/27 到期痛點 80K、12/25 痛點 75K，前端 skew 偏 Put。Strategy Q3 只淨增 1,666 BTC 並承認賣過幣。判斷：華爾街被動買盤短期不足，市場在為 75–80K 區間與下檔付費。"}, {"name": "觀察員4｜社群情緒", "text": "恐懼貪婪 10/30 從 51 跌到 29（單日 -21，8 月中以來最低），10/31 約 30–31。Binance 帳戶多空比 BTC 2.83（74% 做多）、大戶卻在買 Put，典型多空錯位。X 上主軸是 Musk vs CZ；中文圈全是幣安懶人包、提款進度、釣魚警告；有人喊「像 FTX 一樣是底部」。HYPE 日量 7.8 億→33 億、ZEC 社群提及量週增 46%，有過熱苗頭但未到全網喊。Reddit、PTT、Dcard、Threads 這次抓不到。判斷：怕但沒崩，11/1 提幣順利則恐懼回彈，延遲則 76K 失守看 73K。"}], "risk": [{"when": "11/1（日）午後", "what": "幣安目標分階段恢復提幣（目標時間，非確定）"}, {"when": "11/2（一）", "what": "幣安儲備證明；23:00 美國 ISM 製造業"}, {"when": "11/3（二）", "what": "美國期中選舉投票日"}, {"when": "11/4（三）08:00–14:00", "what": "開票結果陸續公布，最亂時段"}, {"when": "11/6（五）21:30", "what": "10 月非農（美國已進冬令時間，比之前晚一小時）"}, {"when": "11/10（二）21:30", "what": "10 月 CPI"}, {"when": "12/10（四）03:00", "what": "下次 FOMC，市場定價升息"}], "watchCoins": "要小心：HYPE（OI +28%、費率極端、像拉高出貨前兆）、IDOL（單日 +67% 後跌回，典型拉高出貨）、ZEC（軋空＋社群過熱苗頭）、BNB（幣安事件直接受害）。這四顆有三顆正好在機器人的「20 日漲幅前 10」名單裡，濾網重開時請特別注意。關鍵位：BTC 200 日 EMA 約 76,470、下方 74–76K 停損池、上方日線 EMA50 約 80,540。", "queue": [{"item": "過擬合審查：日內 B（成交額≥5億U）", "status": "下期第一優先。把門檻改成 3、4、6、7 億U，以及量能、停損倍數各上下 20% 重跑；大部分變體仍合格才維持上線，否則日內 B 停止新開單、保留紀錄。"}, {"item": "資料工程：資金費率＋未平倉量歷史檔", "status": "下期與審查一起做。完成後 R2（暴漲＋OI 暴增→3 日禁多）才能回測。"}, {"item": "市場狀態分類（趨勢／盤整／恐慌）", "status": "排隊中。先寫死定義再回測，避免事後挑定義。"}, {"item": "滑價壓力測試（成本 0.14%→0.40%→0.70%）", "status": "已完成（10/29）：波段A/B 通過；日內 0.40% 不通過，列為待修。"}, {"item": "流動性／上市天數／資金費率濾網", "status": "已完成：日內版加入「日均成交額≥1億U」（合格已上線）。波段A/B 套用後平均獲利、回撤大幅改善，但後段勝率少約1個百分點，沒過「勝率要提高」這關。決策：不套用，標準就是標準，不為了好看放寬。"}, {"item": "蒙地卡羅 1000 次＋挑最穩的幣", "status": "已完成：三組策略「前段最穩的幣」到後段都沒有比較好，判定只是運氣，不採用；正常波動範圍已放上網站"}, {"item": "重大數據（FOMC、CPI、非農、PCE）前後暫停開新單", "status": "第八輪結果（10/31）：波段 A/B 兩種窗口都不合格（事件幾乎不影響 4h 進場，勝率沒提高）；日內「前 4h～後 4h」剛好過鐵律（勝率 +0.1～1.1 個百分點、平均R +0.004～0.016、回撤略降），但改善幅度很小、且沒跟日內 B 合併測過。決策：先不上線，下期在 run9 與日內 B 合併測，合格再套用於日內 B；波段版結案。"}, {"item": "BTC 跌破 EMA50 時的做空版波段", "status": "排隊中。決策：若回測合格，會以第 4 組虛擬單上線並列比較，不動現有三組。"}, {"item": "突破後回踩再進場", "status": "排隊中"}, {"item": "避開大型代幣解鎖前 30 天", "status": "暫停：待確認可靠的解鎖日程來源"}, {"item": "日內成本模型修正（小幣滑價隨成交額/市值調整）", "status": "已完成（10/31 第八輪）：依成交額分級的滑價模型下，波段 A、波段 B、日內三組都仍有正期望值（通過）。衍生變體「日內成交額門檻 ≥5 億U」合格：勝率 44.7%→48.0%（樣本外 46.1%→51.2%）、平均R +0.029→+0.088（樣本外 +0.176→+0.314）、回撤 19.3%→13%（樣本外 10.2%→2%），樣本外 41 筆。已以第 4 組虛擬單「日內 B」上線並列比較，原日內組不動。"}, {"item": "S1 突破後回踩（SNR/SK 概念，4h 多方）", "status": "待寫 lab/run9.mjs（第八輪被成本模型與事件暫停占用）。定義：4h 收盤突破 55 根高點後，於 10 根內回到突破K高點±0.3ATR，且回踩K收在本身區間上半部才進場；停損為回踩低點−0.2ATR；失效條件：收盤跌破突破價。出場沿用波段A。"}, {"item": "S2 流動性掃盪回收（CTM 課程，4h 多方）", "status": "下期優先。待寫入 lab/run9.mjs（第八輪被成本模型與事件暫停占用）。定義：4h K棒下影刺破前20根低點≥0.1ATR且收回低點之上，次根開盤進場；停損為掃盪低點−0.2ATR；目標為前20根高點，若報酬風險比<1.5 則略過。"}, {"item": "S3 攻擊K 過濾器（SK 課程，套用於現行 A/B 進場）", "status": "待寫入 lab/run9.mjs（第八輪被成本模型與事件暫停占用）。定義：突破K實體≥0.7ATR且收盤位於區間上方25%才算攻擊K，否則略過。只作為現行進場的過濾器測試，不改出場。"}, {"item": "觀察員規則 R2（暴漲＋OI 暴增＋費率極端 → 3 日禁多）、R3（跌破 200 日 EMA＋ETF 大流出 → 做空）、R4（恐懼貪婪暴跌 → 逆勢做多 BTC）", "status": "待資料來源：需要歷史 OI、ETF 日流量、恐懼貪婪指數，目前雲端環境抓不到可靠歷史檔，暫不進回測；R2 可用「24h 漲幅 ≥15% 且隔日收跌」做簡化版，列入下期候選。"}], "decisions": [{"date": "11/01", "text": "新增「BTC 週劇本」（董事長要求）：每週一台北 08:47（週K 收盤後）由 CEO 寫本週三種劇本（多、盤整、空），附機率、目標價位、失效條件，並用攻擊K（實體 ≥0.7×ATR、收在 K 線最高或最低 1/4）標出關鍵價位；下週先檢討上週哪個劇本成真。週劇本是看盤參考，不直接下單、不改機器人規則。"}, {"date": "11/01", "text": "組織確認：董事長是華群；CEO 由 Claude 擔任，負責統籌全隊、研擬賺錢策略、主持並裁決策略會議（原「裁判」改由 CEO 擔任）；米淇是心靈輔導，不參與決策。CEO 新增「網上策略研究」：回測佇列不夠、某組長期不賺、或目前市況沒有合格策略可做時，上網找公開、有明確規則的策略；能寫成規則的送回測，屬於盤面判讀的新增成劇本型態讓盤前室練習。網上宣稱的績效一律不直接採用。"}, {"date": "11/01", "text": "使用者決定取消劇本單的硬性門檻（報酬風險比 ≥1.5、停損最小距離、最多 5 筆、每盤最多 3 筆），改成「依經驗用數字挑」：每筆單必須標固定型態（P0～P9），覆盤員每天按型態＋方向統計，並把資料分成前半、後半驗證。至少 15 筆才判斷；平均R 為正、而且前後兩半都為正的型態列為「優先」，平均R ≤ −0.2 的「暫停」；滿 30 筆、前後都賺的優先型態送去回測，合格才變成機器人規則。排名先看平均R，再看勝率，不單看勝率（勝率可以靠把停利設很近做出來，但會賠錢）。保留：每筆固定賠本金 1%、方向一致、價位只能用真實資料、重大事件前 2 小時不下單、回測鐵律。教訓要有至少 3 筆單或一項統計當證據，14 天內沒被再次驗證就失效。"}, {"date": "10/31", "text": "新增盤前室（使用者要求）：每天東京、倫敦、紐約三個盤前開短會，劇本員依機器人抓的真實價位寫劇本（漲到哪、回調到哪、哪裡做多做空），下單員只照劇本掛虛擬單（可做多做空，進場、停損、停利下單前寫死），每天 08:22 覆盤員復盤寫教訓。每筆固定賠本金 1%；槓桿不設上限，但爆倉價比停損近的單會被拒。劇本單是研究用的獨立一組，不影響四組機器人；累積夠多筆、表現穩定的劇本型態，才寫成規則送回測。監控員每天檢查四個任務有沒有做完，漏了就補跑。另修正網站情報區從 10/30 起讀不出來的錯誤。"}, {"date": "10/31", "text": "流程補強：①開會改成「每天檢查、距上次開會滿 3 天才開」（intel.json 的 lastMeeting），修掉跨月連開兩天的問題；②蒙地卡羅改由獨立排程每月 1 日自動更新，四組都納入、改用分級成本，不再靠開會手動切換；③每期回測上限：策略實驗 2 個，過擬合審查與資料整理不佔名額；④從新編制第 3 次會議起，研究驗證組連續 2 次沒交出可回測成果或資料的角色暫停，寫進決策紀錄；⑤綜合決策員改用跟開會相同等級的模型，並納入日內 B 與覆盤紀錄。"}, {"date": "10/31", "text": "團隊改編（使用者同意）：觀察員 4→2（總經事件、市場籌碼），辯手 6→2（多空各 1），新增研究驗證組 6 人：資料工程師、市場狀態分類員、出場研究員、覆盤員、做空研究員、過擬合審查員。理由：本期觀察員 4 條規則有 3 條因為沒有歷史資料測不了，辯論只能排順序；力氣要從「講市場」移到「驗規則」。鐵律不變，每期回測仍最多 2 個實驗，合格才上線。"}, {"date": "10/31", "text": "第八輪結果：分級成本模型（≥20 億 0.14%、5–20 億 0.25%、1–5 億 0.40%、<1 億 0.70%）下，波段 A、波段 B、日內三組都仍有正期望值，第七輪「日內 0.40% 不通過」的疑慮解除一半——日內的優勢主要來自大幣，小幣那段其實是在倒貼。"}, {"date": "10/31", "text": "上線第 4 組虛擬單「日內 B」：規則同日內，成交額門檻 1 億→5 億 U。回測勝率 44.7%→48.0%、平均R +0.029→+0.088、回撤 19.3%→13%，樣本外（41 筆）勝率 46.1%→51.2%、平均R +0.176→+0.314、回撤 10.2%→2%，四項全過鐵律。依規定「新增一組並列比較、不刪現有組」，原日內組照跑。代價：筆數少六成（636→262），要等累積夠多筆再比。"}, {"date": "10/31", "text": "事件暫停開倉（FOMC／CPI／非農）：波段 A/B 不合格（兩種窗口勝率都沒提高，4h 進場幾乎不受事件影響），結案不再提。日內「前 4h～後 4h」剛好過線但改善很小（勝率 +0.1～1.1 個百分點），且未與日內 B 合併測，先不套用；下期 run9 與日內 B 合併測，合格才加到日內 B。"}, {"date": "10/31", "text": "會議裁判：空方證據較強，但三組已空手、BTC 濾網關閉，不涉及倉位。進出場規則不改。"}, {"date": "10/31", "text": "第八輪回測啟動（lab/run8.mjs）：實驗一「分級成本模型」套用到全部三組，附日內門檻 ≥5 億U 變體；實驗二「FOMC／CPI／非農前後暫停新開倉」（79 個官方日期）。鐵律不變：勝率提高、平均R ≥ 90%、回撤 ≤ 1.2 倍、樣本內外都合格（樣本外 ≥30 筆）才上線。"}, {"date": "10/31", "text": "回測佇列重排：②事件暫停與①成本模型本期執行；下期 S2 流動性掃盪優先於 S1、S3（兩位辯手指出 74–76K 掃盪後回收是本期最可能的真進場點）；⑥做空版續排、不急著上線。"}, {"date": "10/31", "text": "觀察員新規則 R2/R3/R4 需要 OI、ETF 流量、恐懼貪婪歷史資料，目前沒有可靠來源，不進回測；R1 事件暫停已納入實驗二。"}, {"date": "10/31", "text": "統計標註（不改規則）：BTC 濾網重開後的第一筆多單在報告中獨立標註，觀察 76–80K 震盪區的假突破比例。選幣名單目前含 IDOL、HYPE、ZEC、BCH，有拉高出貨特徵，但「成交額濾網」已測過未達標準，不因新聞臨時加規則。"}, {"date": "10/31", "text": "綜合決策員 10/31 開盤前判斷：維持「空方小勝」，今天不下模擬單，記為無單。BTC 最新讀數（10/30 23:31 UTC）約 77,955，仍低於日線 EMA50（約 80,676），BTC 濾網關閉，三組都不開新多單。這次沒有取得即時行情與 K 線形態資料，形態判斷未做。目前沒有任何通過回測的新多單規則：S1、S2、S3 尚未寫入 lab/run8.mjs、也沒有回測；日內組在 0.40% 成本下不通過。風險日期：10/30 選擇權到期已過；11/3 期中選舉、11/6 非農、11/10 CPI 都在 48 小時之外，今天沒有需要暫停的事件。模擬單持倉 0 筆（bot 三組與手動組皆空手）。"}, {"date": "10/30", "text": "綜合決策員補充判斷：今日事件（FOMC 偏鷹維持利率、10/29 GDP/PCE、10/30 約 110 至 120 億美元選擇權到期、ETF 持續流出）下，短線偏向在 77～79K 區間震盪並可能先掃 77K 下方爆倉區，再視能否站回 80.7K（日線 EMA50）決定反彈。不在這個位置追多；做空版尚未回測，不下單。注意：GDP/PCE 實際數據未能讀取，此判斷不含其數字。"}, {"date": "10/30", "text": "綜合決策員判斷 BTC：偏空、短線未止穩。機器人 05:47 UTC 讀數 BTC 約 77,955，低於日線 EMA50（約 80,676），BTC 濾網關閉，不開新多單。不下手動模擬多單。07:00 後若重新站回 EMA50 再重新評估。"}, {"date": "10/30", "text": "會議室擴編：多方、空方各再增 1 名，合計各 3 名辯手。"}, {"date": "10/30", "text": "新增「綜合決策員」：開盤前綜合所有資訊做決策，並可隨時下模擬單（記在 intel.json 的 manualVirtual，不改真倉）。模擬單須寫明進場、停損、目標與理由，且一律不得因此放寬任何鐵律。"}, {"date": "10/30", "text": "今日開盤前會議：空方小勝，決議同上。新增的兩名辯手論點來自既有資料，未含新的市場數據。"}, {"date": "10/30", "text": "會議（全體）：依 SK、SNR、CTM 流動性課與攻擊K 材料，產出三條可回測候選（S1、S2、S3，見 queue）。判定：材料多為主觀教學、無可稽核績效，視為假說，不直接改線上規則。全部須在 lab/run8.mjs 以 0.40% 成本、樣本內外與勝率/平均R/回撤標準測試。"}, {"date": "10/30", "text": "日內組：第七輪 0.40% 不通過（樣本內平均R≈0）。決定：日內維持虛擬運行並標註；先修成本模型，修正前不加新規則、不以此組做任何擴張判斷。"}, {"date": "10/30", "text": "CTM 課程中「流動性獵殺後必漲」「1:30 R:R」「1.13 進場」等說法，沒有可驗證的定義，不採用；只保留能轉為明確規則的部分（即 S2）。"}, {"date": "10/30", "text": "會議室擴編：多方、空方各增加 1 名，共 4 名辯手，由裁判統一評分。資料來源包含使用者提供的研究資料夾（目前尚未能讀取，待使用者連線）。任何從資料推導出的策略，仍須過回測與前後段合格標準才上線。"}, {"date": "10/30", "text": "新增「策略監控員」：每小時檢查一次機器人是否停擺、排程是否失敗、連續停損 4 筆以上、淨值低於 0.85、BTC 濾網翻轉、2 小時內的重大事件。只通知，不做任何決策或改規則。"}, {"date": "10/29", "text": "新增第七輪實驗：滑價壓力測試。成本分別用 0.14%、0.40%、0.70% 重跑現行三組。通過標準：0.40% 下前後段平均R都 > 0，全期平均R ≥ 現行的一半。沒通過就表示現有優勢可能只是低成本假象，會先處理成本模型再談任何新規則。"}, {"date": "10/29", "text": "決定：A、B、日內維持不動，不改進出場規則。觀察員每期必須交出一條具體、可回測的規則，寫不出來的點子不進回測。解鎖日程與歷史未平倉量資料來源尚未確認，在找到可靠來源前，相關點子暫停。"}, {"date": "10/29", "text": "使用者授權：全部以虛擬單為主，策略決策由 Claude 負責。鐵律不變：回測要勝率提高、平均獲利≥原本9成、回撤≤1.2倍、前後段都合格才上線；不動真倉、不用提現權限。"}, {"date": "10/29", "text": "波段 A/B 留哪版：11/24 後、兩版各滿 15 筆時由 Claude 決定。標準：先看平均獲利（R），再看回撤；勝率高的那版若平均獲利不低於另一版 9 成、回撤不更大就留它，否則留平均獲利高的。決定後會說明理由。"}, {"date": "10/29", "text": "「只挑最穩的幣」：蒙地卡羅驗證無效，判定為運氣，不採用。"}, {"date": "10/29", "text": "波段 A/B 加成交額濾網：平均獲利與回撤大幅改善但勝率沒提高，不符合標準，不套用。"}], "synth": {"name": "綜合決策員", "text": "綜合觀察員、辯論、回測與監控結果，負責決策與模擬單。今天開盤前：空方小勝，維持現有三組，不新增真倉動作。只在 S1、S2、S3 任一條回測合格後，才會依條件下模擬單。", "manualVirtual": []}, "manualVirtual": [], "lab": [{"role": "資料工程師", "text": "第一個任務：把 Binance 公開的資金費率、未平倉量（每 5 分鐘）整理成回測用的歷史檔；恐懼貪婪指數、ETF 流量找得到可靠來源才收。這樣觀察員的 R2（暴漲＋OI 暴增禁多）才測得了。"}, {"role": "市場狀態分類員", "text": "先用 BTC 日線把每天分成趨勢、盤整、恐慌三種狀態（定義寫死後才回測），看四組各在哪種狀態勝率高，找出該休息的時段。"}, {"role": "出場研究員", "text": "進場不動，只測出場：分批停利比例、移動停損、持有太久沒動就出場。目標是勝率上升、平均R 不掉。"}, {"role": "覆盤員", "text": "每筆結束的虛擬單都對照回測：滑價有沒有比預期大、是不是買到拉高出貨的幣、是不是被插針。目前 A/B 的 EVAA、BEAT、IRYS 都是小幣停損，第一份覆盤從這裡開始。"}, {"role": "做空研究員", "text": "負責佇列⑥：BTC 跌破日線 EMA50 時的做空版波段。現在正是空頭期，合格就以新一組虛擬單上線。"}, {"role": "過擬合審查員", "text": "所有合格策略上線前，參數各調高調低 20% 也要大致還合格才算數。第一件事：回頭審查剛上線的日內 B（樣本外只有 41 筆）。"}], "review": [], "lastMeeting": "2026-10-31", "scenarioVirtual": [], "scenarios": [], "lessons": [], "sessions": {}, "patterns": [{"id": "P1", "name": "回踩前日高低", "def": "價格回到前日高 pdh 或前日低 pdl 附近（±0.3×atr1h）出現支撐或壓力時進場"}, {"id": "P2", "name": "掃時段高低後收回", "def": "價格刺破今日或昨日某時段（亞洲／倫敦／紐約）的高點或低點，1h 收盤收回區間內後反向進場"}, {"id": "P3", "name": "突破前日高低追單", "def": "用 stop 單在前日高 pdh 上方或前日低 pdl 下方追突破"}, {"id": "P4", "name": "4h 支撐壓力反應", "def": "在 sr4h 的價位（碰觸次數 ≥2）掛回調單，做反彈或回落"}, {"id": "P5", "name": "費波納契回調", "def": "在 fibUp4h 或 fibDown4h 的 0.5～0.618 區間順著 4h 趨勢進場"}, {"id": "P6", "name": "1h 均線回踩順勢", "def": "1h EMA20>EMA50 時回踩 EMA20／50 做多（反之做空）"}, {"id": "P7", "name": "區間上下緣來回", "def": "價格在 24 小時高低（h24／l24）之間震盪時，上緣做空、下緣做多"}, {"id": "P8", "name": "突破後回踩", "def": "突破重要價位後，回踩該價位不破再順勢進場"}, {"id": "P9", "name": "事件後順勢", "def": "重大數據公布 1 小時後，順著數據後第一個 1h 收盤方向進場"}, {"id": "P0", "name": "其他", "def": "不屬於上面任何一種；reason 要說明型態。同一種「其他」累積 5 筆，覆盤員要提議新增編號"}], "patternBoard": [], "weekly": []}};
+let BOT = SNAP ? SNAP.bot : {}, INTEL = SNAP ? SNAP.intel : {}, LIVE = {bot:null, intel:null, err:null};
+
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const fmtP = p => { if (p == null || !isFinite(p)) return "—"; const a = Math.abs(p); const d = a >= 1000 ? 1 : a >= 100 ? 2 : a >= 1 ? 3 : a >= 0.1 ? 4 : 5; return (+p).toLocaleString("en-US",{minimumFractionDigits:d,maximumFractionDigits:d}); };
+const pct = (v, d = 2) => v == null || !isFinite(v) ? "—" : (v > 0 ? "+" : "") + (+v).toFixed(d) + "%";
+const rTxt = r => (r > 0 ? "+" : "") + (+r).toFixed(2) + "R";
+const tw = ms => new Date(ms).toLocaleString("zh-TW", {timeZone:"Asia/Taipei", hour12:false, month:"2-digit", day:"2-digit", hour:"2-digit", minute:"2-digit"});
+const twDate = ms => new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Taipei",year:"numeric",month:"2-digit",day:"2-digit"}).format(ms);
+const twHM = ms => new Date(ms).toLocaleTimeString("zh-TW",{timeZone:"Asia/Taipei",hour12:false,hour:"2-digit",minute:"2-digit"});
+const SN = {tokyo:"東京盤", london:"倫敦盤", ny:"紐約盤"}, SD = {long:"做多", short:"做空"};
+const pName = () => Object.fromEntries((INTEL.patterns || []).map(p => [p.id, p.name]));
+const pStat = () => Object.fromEntries((INTEL.patternBoard || []).map(x => [x.pattern + "|" + x.side, x.status]));
+
+/* ===== 時鐘 ===== */
+function tzOffsetMin(zone, ms) { const p = Object.fromEntries(new Intl.DateTimeFormat("en-US",{timeZone:zone,hourCycle:"h23",year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",second:"2-digit"}).formatToParts(ms).map(x => [x.type, x.value])); return (Date.UTC(+p.year, p.month - 1, +p.day, +p.hour, +p.minute, +p.second) - ms) / 6e4; }
+function nextAt(zone, hh, mm, from) { const p = Object.fromEntries(new Intl.DateTimeFormat("en-CA",{timeZone:zone,year:"numeric",month:"2-digit",day:"2-digit"}).formatToParts(from).map(x => [x.type, x.value]));
+  for (let k = 0; k < 3; k++) { const guess = Date.UTC(+p.year, p.month - 1, +p.day + k, hh, mm); const t = guess - tzOffsetMin(zone, guess) * 6e4; if (t > from) return t; } return null; }
+const TASKS = [["東京盤","Asia/Tokyo",8,37],["每日復盤","Asia/Taipei",8,22],["倫敦盤","Europe/London",7,7],["紐約盤","America/New_York",7,47]];
+function crySession(ms) { const h = new Date(ms).getUTCHours(); return h < 7 ? "亞洲盤" : h < 13 ? "倫敦盤" : h < 21 ? "紐約盤" : "收盤後（亞洲盤前）"; }
+function renderClock() {
+  const now = Date.now(), f = (z, o) => new Date(now).toLocaleTimeString("zh-TW",Object.assign({timeZone:z,hour12:false,hour:"2-digit",minute:"2-digit"}, o || {}));
+  const nxt = TASKS.map(([n, z, h, m]) => [n, nextAt(z, h, m, now)]).filter(x => x[1]).sort((a, b) => a[1] - b[1])[0];
+  const mins = nxt ? Math.round((nxt[1] - now) / 6e4) : null, hm = mins == null ? "" : mins >= 60 ? Math.floor(mins / 60) + " 小時 " + (mins % 60) + " 分" : mins + " 分";
+  $("clocks").innerHTML = `<div class="clk main"><span>台北</span><b>${f("Asia/Taipei",{second:"2-digit"})}</b></div>` +
+    `<div class="clk"><span>東京</span><b>${f("Asia/Tokyo")}</b></div><div class="clk"><span>倫敦</span><b>${f("Europe/London")}</b></div><div class="clk"><span>紐約</span><b>${f("America/New_York")}</b></div>` +
+    `<div class="clk"><span>現在</span><b class="on">${crySession(now)}</b></div>` + (nxt ? `<div class="clk"><span>下一個：${esc(nxt[0])}（${twHM(nxt[1])}）</span><b>${hm}</b></div>` : "");
+}
+
+/* ===== 頂部跑馬燈 ===== */
+function renderTicker() {
+  const B = BOT || {}, m = B.market || {}, age = B.updated ? (Date.now() - Date.parse(B.updated)) / 6e4 : 1e9, alive = age < 40;
+  $("ticker").innerHTML = `<span><i class="dot ${alive ? "g" : "r"}"></i>機器人 <b>${alive ? "正常" : "可能停擺"}</b>（${B.updated ? tw(Date.parse(B.updated)) : "—"}）</span>` +
+    `<span><i class="dot ${m.btcUp ? "g" : "y"}"></i>BTC 濾網 <b>${m.btcUp ? "開" : "關"}</b></span>` +
+    `<span>強勢 <b>${esc((m.top || []).join("、") || "—")}</b></span>` +
+    `<span>策略會議結論 <b>${esc((INTEL.verdict || {}).winner || "—")}</b></span>`;
+}
+
+/* ===== 戰情室 ===== */
+function btcLv() { return ((BOT.levels || {}).coins || {}).BTC || null; }
+function levelList(L) {
+  if (!L) return [];
+  const xs = [["前日高", L.pdh], ["前日低", L.pdl], ["24h 高", L.h24], ["24h 低", L.l24], ["4h EMA50", L.ema4h && L.ema4h.e50], ["4h EMA200", L.ema4h && L.ema4h.e200], ["1h EMA50", L.ema1h && L.ema1h.e50]];
+  (L.sr4h || []).forEach(s => xs.push([`4h 支撐壓力 ×${s.n}`, s.p]));
+  if (L.fibDown4h) xs.push(["回彈 0.618", L.fibDown4h.r618], ["回彈 0.5", L.fibDown4h.r5]);
+  return xs.filter(x => x[1] != null);
+}
+function renderWar() {
+  const L = btcLv(), m = BOT.market || {}, lv = BOT.levels || {};
+  const px = L ? L.last : m.btc;
+  $("btcPx").textContent = px ? "$" + fmtP(px) : "—";
+  const ch = lv.btcChg24; $("btcChg").innerHTML = ch == null ? "" : `<span class="${ch >= 0 ? "up" : "dn"}">${pct(ch)}</span> <span class="note">24h</span>`;
+  $("btcFilter").innerHTML = `<span class="pill ${m.btcUp ? "g" : "y"}">日線 EMA50 ${fmtP(m.btcE50)}｜濾網${m.btcUp ? "開" : "關"}</span>`;
+  // 價位階梯
+  if (L) {
+    const xs = levelList(L).filter(x => Math.abs(x[1] / px - 1) < 0.08).sort((a, b) => b[1] - a[1]);
+    const rows = []; let placed = false;
+    xs.forEach(([n, v]) => { if (!placed && v < px) { rows.push(`<li class="now"><span>現價</span><span class="v">${fmtP(px)}</span><span class="d">—</span></li>`); placed = true; } rows.push(`<li><span>${esc(n)}</span><span class="v">${fmtP(v)}</span><span class="d ${v > px ? "up" : "dn"}">${pct((v / px - 1) * 100)}</span></li>`); });
+    if (!placed) rows.push(`<li class="now"><span>現價</span><span class="v">${fmtP(px)}</span><span class="d">—</span></li>`);
+    $("ladder").innerHTML = rows.join("");
+    const S = (o, k) => o && o[k] ? o[k] : {};
+    $("sess").innerHTML = [["asia","亞洲"],["london","倫敦"],["ny","紐約"]].map(([k, n]) => `<tr><td>${n}</td><td class="n">${fmtP(S(L.sesToday,k).hi)}</td><td class="n">${fmtP(S(L.sesToday,k).lo)}</td><td class="n">${fmtP(S(L.sesYday,k).hi)}</td><td class="n">${fmtP(S(L.sesYday,k).lo)}</td></tr>`).join("");
+    $("ind").innerHTML = `<div><span>1h RSI</span><b>${L.rsi1h ?? "—"}</b></div><div><span>4h RSI</span><b>${L.rsi4h ?? "—"}</b></div><div><span>1h ATR</span><b>${fmtP(L.atr1h)}</b></div>`;
+  } else { $("ladder").innerHTML = `<li class="empty">等機器人下一輪更新（每 15 分鐘）。</li>`; $("sess").innerHTML = ""; $("ind").innerHTML = ""; }
+  drawChart();
+  renderWeekly();
+  // 脫鉤
+  const sc = (BOT.scan || {}).coins || [];
+  const dec = sc.filter(c => (c.corr7 != null && c.corr7 < 0.4) || Math.abs(c.rel24) >= 4).sort((a, b) => Math.abs(b.rel24) - Math.abs(a.rel24)).slice(0, 10);
+  $("decouple").innerHTML = dec.length ? dec.map(c => `<tr><td><b>${esc(c.base)}</b>${c.top ? ' <span class="pill p">強勢</span>' : ""}</td><td class="n ${c.chg24 >= 0 ? "up" : "dn"}">${pct(c.chg24, 1)}</td><td class="n ${c.rel24 >= 0 ? "up" : "dn"}">${pct(c.rel24, 1)}</td><td class="n">${c.corr7 == null ? "—" : c.corr7.toFixed(2)}</td></tr>`).join("") : `<tr><td colspan="4" class="empty">${sc.length ? "目前大家都跟著 BTC 走。" : "等機器人下一輪掃描（每 15 分鐘）。"}</td></tr>`;
+  // 48h 風險（只顯示文字，日期格式由會議寫入）
+  $("risk48").innerHTML = (INTEL.risk || []).slice(0, 6).map(r => `<li><b>${esc(r.when)}</b><span>${esc(r.what)}</span></li>`).join("") || `<li class="empty">沒有登記的風險事件。</li>`;
+  renderEngines();
+}
+function renderWeekly() {
+  const w = (INTEL.weekly || [])[0], lv = BOT.levels || {};
+  if (!w) { $("weekSum").innerHTML = '<span class="empty">第一份週劇本產生後會出現在這裡。</span>'; $("weekSc").innerHTML = ""; $("weekRev").textContent = ""; }
+  else {
+    $("weekLbl").textContent = (w.week || "") + "｜" + (w.at || w.date || "") + " 更新";
+    $("weekSum").textContent = w.summary || "";
+    const cls = n => /多|漲|bull/i.test(n) ? "bull" : /空|跌|bear/i.test(n) ? "bear" : "range";
+    $("weekSc").innerHTML = (w.scenarios || []).map(s => `<div class="sc ${cls(s.name || "")}"><div class="h"><b>${esc(s.name)}</b><span class="prob ${cls(s.name || "") === "bull" ? "up" : cls(s.name || "") === "bear" ? "dn" : ""}">${s.prob != null ? esc(s.prob) + "%" : ""}</span></div><p>${esc(s.path || "")}</p>${(s.targets || []).length ? `<ul>${s.targets.map(x => `<li><span class="n">${fmtP(x.p)}</span>　${esc(x.label || "")}</li>`).join("")}</ul>` : ""}${s.attack ? `<p class="note">攻擊K：${esc(s.attack)}</p>` : ""}${s.invalid ? `<p class="inv">失效：${esc(s.invalid)}</p>` : ""}</div>`).join("");
+    $("weekRev").textContent = w.review ? "上週檢討：" + w.review : "";
+  }
+  const at = lv.btcAttack || [];
+  $("attack").innerHTML = at.length ? at.map(a => `<tr><td class="n">${tw(a.t)}</td><td>${a.tf === "1d" ? "日" : "4 小時"}</td><td><span class="pill ${a.dir === "up" ? "g" : "r"}">${a.dir === "up" ? "多方攻擊" : "空方攻擊"}</span></td><td class="n">${fmtP(a.o)}</td><td class="n">${fmtP(a.h)}</td><td class="n">${fmtP(a.l)}</td><td class="n">${fmtP(a.c)}</td><td class="n">${fmtP(a.mid)}</td><td class="n">${a.bodyAtr}</td></tr>`).join("") : `<tr><td colspan="9" class="empty">${lv.btcAttack ? "最近 20 天沒有符合定義的攻擊K。" : "機器人下一輪更新後出現（每 15 分鐘）。"}</td></tr>`;
+}
+function drawChart() {
+  const c = $("chart"), x = c.getContext("2d"), W = 1100, H = 380, pad = {l:10, r:176, t:16, b:26};
+  x.clearRect(0, 0, W, H); x.fillStyle = "#03040b"; x.fillRect(0, 0, W, H);
+  const sp = (BOT.levels || {}).btcSpark || [], L = btcLv();
+  if (!sp.length) { x.fillStyle = "#8b97bf"; x.font = "500 16px 'Noto Sans TC',sans-serif"; x.textAlign = "center"; x.fillText("BTC 1h K 線會在機器人下一輪更新後出現（每 15 分鐘）", W / 2, H / 2); $("chartNote").textContent = ""; return; }
+  let lo = Math.min(...sp.map(k => k[3])), hi = Math.max(...sp.map(k => k[2]));
+  const lv = levelList(L).filter(([, v]) => v >= lo * 0.985 && v <= hi * 1.015);
+  lv.forEach(([, v]) => { lo = Math.min(lo, v); hi = Math.max(hi, v); });
+  const padv = (hi - lo) * 0.06; lo -= padv; hi += padv;
+  const Y = v => pad.t + (hi - v) / (hi - lo) * (H - pad.t - pad.b), cw = (W - pad.l - pad.r) / sp.length;
+  // 格線
+  x.strokeStyle = "#0f1530"; x.lineWidth = 1; for (let i = 0; i <= 5; i++) { const yy = pad.t + i * (H - pad.t - pad.b) / 5; x.beginPath(); x.moveTo(pad.l, yy); x.lineTo(W - pad.r, yy); x.stroke(); }
+  // 時段底色（UTC 亞洲 0–7、倫敦 7–13、紐約 13–21）
+  sp.forEach((k, i) => { const h = new Date(k[0]).getUTCHours(); const col = h < 7 ? "rgba(0,229,255,.05)" : h < 13 ? "rgba(255,43,214,.05)" : h < 21 ? "rgba(252,238,10,.04)" : null; if (col) { x.fillStyle = col; x.fillRect(pad.l + i * cw, pad.t, cw + 0.5, H - pad.t - pad.b); } });
+  // 價位線
+  x.font = "600 11px 'Noto Sans TC',sans-serif"; x.textAlign = "left";
+  const used = [];
+  lv.forEach(([n, v]) => { const yy = Y(v); x.strokeStyle = /前日/.test(n) ? "rgba(252,238,10,.7)" : /24h/.test(n) ? "rgba(255,43,214,.6)" : /EMA/.test(n) ? "rgba(91,140,255,.6)" : "rgba(0,229,255,.45)"; x.setLineDash([5, 5]); x.beginPath(); x.moveTo(pad.l, yy); x.lineTo(W - pad.r, yy); x.stroke(); x.setLineDash([]);
+    if (used.some(u => Math.abs(u - yy) < 14)) return; used.push(yy); x.fillStyle = x.strokeStyle; x.fillText(n + " " + fmtP(v), W - pad.r + 6, yy + 4); });
+  // K 棒
+  sp.forEach((k, i) => { const [t, o, h, l, cl] = k, up = cl >= o, cxp = pad.l + i * cw + cw / 2; x.strokeStyle = x.fillStyle = up ? "#39ff9e" : "#ff3d6e"; x.beginPath(); x.moveTo(cxp, Y(h)); x.lineTo(cxp, Y(l)); x.stroke(); const yb = Y(Math.max(o, cl)), hb = Math.max(1, Math.abs(Y(o) - Y(cl))); x.fillRect(cxp - cw * 0.32, yb, cw * 0.64, hb); });
+  // 攻擊K 標記（4 小時）：在對應時段上方／下方畫三角形
+  ((BOT.levels || {}).btcAttack || []).filter(a => a.tf === "4h").forEach(a => { for (let i = 0; i < sp.length; i++) { if (sp[i][0] >= a.t && sp[i][0] < a.t + 144e5) { const cxp = pad.l + i * cw + cw / 2, up = a.dir === "up", yy = up ? Y(sp[i][3]) + 12 : Y(sp[i][2]) - 12; x.fillStyle = up ? "#39ff9e" : "#ff3d6e"; x.beginPath(); x.moveTo(cxp, yy + (up ? -6 : 6)); x.lineTo(cxp - 6, yy + (up ? 5 : -5)); x.lineTo(cxp + 6, yy + (up ? 5 : -5)); x.closePath(); x.fill(); break; } } });
+  // 現價
+  const last = (L && L.last) || sp[sp.length - 1][4], yl = Y(last); x.strokeStyle = "#fcee0a"; x.shadowColor = "#fcee0a"; x.shadowBlur = 8; x.beginPath(); x.moveTo(pad.l, yl); x.lineTo(W - pad.r, yl); x.stroke(); x.shadowBlur = 0;
+  x.fillStyle = "#fcee0a"; x.fillRect(W - pad.r + 2, yl - 10, 120, 20); x.fillStyle = "#04050d"; x.font = "800 13px 'Orbitron',sans-serif"; x.fillText(fmtP(last), W - pad.r + 8, yl + 5);
+  // 時間軸
+  x.fillStyle = "#56628c"; x.font = "500 12px 'Noto Sans TC',sans-serif"; x.textAlign = "center";
+  sp.forEach((k, i) => { if (i % 12 === 0) x.fillText(twHM(k[0]), pad.l + i * cw + cw / 2, H - 8); });
+  $("chartNote").textContent = `近 72 小時、1 小時K（台北時間）。底色：青＝亞洲盤、洋紅＝倫敦盤、黃＝紐約盤。虛線：黃＝前日高低、洋紅＝24h 高低、藍＝均線、青＝4h 支撐壓力。三角形＝4 小時攻擊K（綠多紅空）。資料 ${BOT.levels && BOT.levels.updated ? tw(Date.parse(BOT.levels.updated)) : ""}`;
+}
+
+/* ===== 能做的幣 ===== */
+let bf = "all";
+function renderCoins() {
+  const m = BOT.market || {}, w = BOT.watch || [];
+  $("aNote").innerHTML = m.btcUp ? "BTC 濾網開：突破就會自動進場（波段 A／B）。" : `<span class="pill y">BTC 濾網關</span> BTC 在日線 EMA50 之下，機器人不開新多單；下面是「濾網重開時最接近突破」的名單。`;
+  $("listA").innerHTML = w.length ? w.map(c => `<tr><td><b>${esc(c.base)}</b></td><td class="n">${fmtP(c.cur)}</td><td class="n">${fmtP(c.brk)}</td><td class="n ${c.dist <= 3 ? "up" : ""}">${pct(c.dist)}</td><td class="n">${pct(c.mom, 1)}</td><td class="n">${fmtP(c.stopIf)}</td></tr>`).join("") : `<tr><td colspan="6" class="empty">目前沒有同時符合「強勢前 10 名」和「站上 4h EMA200」的幣。</td></tr>`;
+  $("bFil").innerHTML = [["all","全部"],["long","做多"],["short","做空"]].map(([k, n]) => `<button type="button" data-k="${k}" aria-pressed="${bf === k}">${n}</button>`).join("");
+  $("bFil").querySelectorAll("button").forEach(b => b.addEventListener("click", () => { bf = b.dataset.k; renderCoins(); }));
+  const pn = pName(), ps = pStat();
+  const sc = ((BOT.scan || {}).coins || []).map(c => Object.assign({}, c, {setups: (c.setups || []).filter(s => bf === "all" || s.side === bf)})).filter(c => c.setups.length).sort((a, b) => b.setups.length - a.setups.length || Math.abs(b.rel24) - Math.abs(a.rel24));
+  const tr = t => t > 0 ? '<span class="pill g">4h 多頭</span>' : t < 0 ? '<span class="pill r">4h 空頭</span>' : '<span class="pill">4h 盤整</span>';
+  $("listB").innerHTML = sc.length ? sc.map(c => `<div class="coin"><div class="h"><b>${esc(c.base)}</b><span class="n">${fmtP(c.last)}</span><span class="${c.chg24 >= 0 ? "up" : "dn"}">${pct(c.chg24, 1)}</span>${tr(c.t4)}${c.top ? '<span class="pill p">強勢</span>' : ""}<span>連動 ${c.corr7 == null ? "—" : c.corr7.toFixed(2)}</span></div>
+    <ul class="setups">${c.setups.map(s => { const st = ps[s.pattern + "|" + s.side]; return `<li style="${st === "暫停" ? "opacity:.45" : ""}"><span class="pill ${s.side === "long" ? "g" : "r"}">${SD[s.side]}</span><b>${esc(s.pattern)} ${esc(pn[s.pattern] || "")}</b><span>${esc(s.label)}｜價位 <span class="n">${fmtP(s.level)}</span>（${pct(s.dist)}）</span>${st ? `<span class="pill ${st === "優先" ? "g" : st === "暫停" ? "r" : "y"}">${esc(st)}</span>` : ""}</li>`; }).join("")}</ul></div>`).join("")
+    : `<p class="empty">${(BOT.scan || {}).coins ? "現在沒有幣碰到型態，等下一輪（每 15 分鐘）。" : "機器人下一輪更新後會出現（每 15 分鐘）。"}</p>`;
+}
+
+/* ===== 引擎 ===== */
+function agg(closed) { const xs = (closed || []).filter(x => x.amt !== 0 && x.R != null), n = xs.length, w = xs.filter(x => x.R > 0).length, s = xs.reduce((a, x) => a + x.R, 0); let st = 0; for (const x of xs) { if (x.R <= 0) st++; else break; } return {n, win: n ? Math.round(w / n * 100) : null, avg: n ? s / n : null, sum: s, streak: st}; }
+function groups() { const B = BOT || {}; return [
+  {name:"波段 A", note:"4h 突破", g:{equity:B.equity, open:B.open, closed:B.closed}},
+  {name:"波段 B", note:"1R 收 1/3", g:B.b}, {name:"日內", note:"08:00 平倉", g:B.intra}, {name:"日內 B", note:"成交額≥5億U", g:B.intra2}, {name:"劇本單", note:"多空都做", g:B.scen, scen:true}]; }
+function renderEngines() {
+  $("engines").innerHTML = groups().map(G => { const g = G.g || {}, a = agg(g.closed), eq = g.equity != null ? (g.equity - 1) * 100 : 0, open = (g.open || []).length, wait = G.scen ? Object.keys(g.waiting || {}).length : 0;
+    return `<div class="eng"><div class="nm">${esc(G.name)} ${open ? `<span class="pill c">持倉 ${open}</span>` : wait ? `<span class="pill y">掛單 ${wait}</span>` : `<span class="pill">空手</span>`}</div><div class="big ${eq >= 0 ? "up" : "dn"}">${eq >= 0 ? "+" : ""}${eq.toFixed(1)}%</div><div class="row"><span>${a.n} 筆｜勝率</span><b>${a.win == null ? "—" : a.win + "%"}</b></div><div class="row"><span>合計</span><b>${a.n ? rTxt(a.sum) : "—"}</b></div><div class="row"><span>${esc(G.note)}｜連虧</span><b>${a.streak}</b></div></div>`; }).join("");
+}
+
+/* ===== 指揮艙：待決定、任務、劇本、排行 ===== */
+const TODO = [{id:"ab-veto", t:"11/24 後 A/B 留哪版：我會依標準決定並推播，你有否決權（回覆反對就照你的意見）", who:"策略負責人"}];
+function renderTodo() { let done = {}; try { done = JSON.parse(localStorage.getItem("qx-todo") || "{}"); } catch (e) {}
+  $("todo").innerHTML = TODO.map(x => `<li><input type="checkbox" id="td-${x.id}" ${done[x.id] ? "checked" : ""}><label for="td-${x.id}">${esc(x.t)}<span class="who">${esc(x.who)}</span></label></li>`).join("");
+  TODO.forEach(x => $("td-" + x.id).addEventListener("change", e => { done[x.id] = e.target.checked; try { localStorage.setItem("qx-todo", JSON.stringify(done)); } catch (er) {} })); }
+function renderTasks() {
+  const now = Date.now(), today = twDate(now), s = (INTEL.sessions || {})[today] || {};
+  $("todayLbl").textContent = today;
+  const rows = TASKS.map(([n, z, h, m]) => { const key = {"東京盤":"tokyo","每日復盤":"review","倫敦盤":"london","紐約盤":"ny"}[n]; const t = nextAt(z, h, m, now - 864e5 * 0.99); return [key, n, t]; }).sort((a, b) => twHM(a[2]).localeCompare(twHM(b[2])));
+  const last = INTEL.lastMeeting || INTEL.date || "", nm = last ? new Date(Date.parse(last) + 3 * 864e5).toISOString().slice(0, 10) : "";
+  $("tasks").innerHTML = rows.map(([k, n, t]) => `<li><span>${s[k] ? "✅" : "⬜"}</span><span class="t">${twHM(t)}</span><span>${n}<span class="s">　${s[k] ? "完成 " + esc(s[k]) : "還沒跑"}</span></span></li>`).join("") +
+    `<li><span>${today >= nm ? "🟡" : "⏳"}</span><span class="t">19:52</span><span>策略會議<span class="s">　上次 ${esc(last)}，下次 ${esc(nm)}</span></span></li><li><span>🛡️</span><span class="t">每 3 小時</span><span>監控員<span class="s">　漏跑的任務會補跑並通知你</span></span></li>`;
+}
+function renderPlays() {
+  const sc = INTEL.scenarios || [], pn = pName();
+  $("scTime").textContent = sc[0] ? (sc[0].time || "") : "";
+  $("plays").innerHTML = sc.length ? sc.slice(0, 3).map(x => `<div class="plan"><div class="h"><b>${esc(x.sessionName || SN[x.session] || x.session)}</b><span>${esc(x.time || "")}</span></div><div>${esc(x.text || "")}</div>${(x.plans || []).length ? `<ul>${x.plans.map(p => `<li><b>${esc(p.name)}</b>　${esc(p.if)} → ${esc(p.then)}</li>`).join("")}</ul>` : ""}</div>`).join("") : `<p class="empty">第一份劇本 11/1 07:37 東京盤出爐。</p>`;
+  const S = BOT.scen || {};
+  const op = (S.open || []).map(p => `<tr><td>${esc(p.base)}</td><td>${SD[p.side] || ""}</td><td>${esc(p.pattern || "")}</td><td>${SN[p.session] || ""}</td><td class="n">${fmtP(p.e)}</td><td class="n">${fmtP(p.stop)}</td><td class="n">${fmtP(p.target)}</td><td class="${p.curR >= 0 ? "up" : "dn"}">${rTxt(p.curR || 0)}</td></tr>`);
+  const wt = Object.values(S.waiting || {}).map(w => `<tr><td>${esc(w.base)}</td><td>${SD[w.side] || ""}</td><td>${esc(w.pattern || "")}</td><td>${SN[w.session] || ""}</td><td class="n">${fmtP(w.entry)}</td><td class="n">${fmtP(w.stop)}</td><td class="n">${fmtP(w.target)}</td><td>掛單中</td></tr>`);
+  $("scOpen").innerHTML = [...op, ...wt].join("") || `<tr><td colspan="8" class="empty">目前沒有持倉或掛單。</td></tr>`;
+  $("scClosed").innerHTML = (S.closed || []).slice(0, 8).map(t => `<tr><td>${esc(t.base)}</td><td>${SD[t.side] || ""}</td><td>${esc(t.pattern || "")} ${esc(pn[t.pattern] || "")}</td><td class="${t.R > 0 ? "up" : t.amt ? "dn" : ""}">${t.amt ? rTxt(t.R) : "—"}</td><td>${esc(t.why)}</td></tr>`).join("") || `<tr><td colspan="5" class="empty">還沒有結束的劇本單。</td></tr>`;
+}
+function renderBoard() {
+  const bp = ((BOT.scen || {}).stats || {}).byPattern || {}, pn = pName(), st = pStat(), rows = Object.values(bp).sort((a, b) => b.avgR - a.avgR || b.win - a.win), cls = s => s === "優先" ? "g" : s === "暫停" ? "r" : s === "觀察" ? "y" : "";
+  $("board").innerHTML = rows.length ? rows.map(x => { const s = st[x.pattern + "|" + x.side] || (x.n < 15 ? "探索中" : "觀察"); return `<tr><td>${esc(x.pattern)} ${esc(pn[x.pattern] || "")}</td><td>${SD[x.side] || ""}</td><td>${x.n}</td><td>${x.win}%</td><td class="${x.avgR > 0 ? "up" : "dn"}">${rTxt(x.avgR)}</td><td class="n">${x.early && x.early.n ? rTxt(x.early.avgR) : "—"}／${x.late && x.late.n ? rTxt(x.late.avgR) : "—"}</td><td><span class="pill ${cls(s)}">${esc(s)}</span></td></tr>`; }).join("") : `<tr><td colspan="7" class="empty">還沒有結束的劇本單。每種型態滿 15 筆才開始判斷，大約要 2～4 週。</td></tr>`;
+}
+
+/* ===== 霓虹未來工作室（底圖 1672×941；角色只走走廊與房門，不穿牆） ===== */
+const cv = $("cv"), cx = cv.getContext("2d"), SW = 1672, SH = 941;
+const img = s => { const i = new Image(); i.src = s; return i; };
+const BG = img("office.webp");
+const SPR = {}; ["boss", "muse"].forEach(p => { SPR[p] = {}; ["front", "back", "left", "right", "sit"].forEach(v => SPR[p][v] = img(`${p}-${v}.png`)); });
+// 走路網：走廊上下兩條線、各房門、樓梯、泳池、空中花園
+const N = {
+  c1:[230,345], c2:[430,345], c3:[640,345], c4:[850,345], c5:[1060,345], c6:[1235,350],
+  l1:[230,440], l2:[430,440], l3:[700,440], l4:[900,440], l5:[1060,440], l6:[1235,440],
+  dData:[325,298], hData:[250,225], dRes:[540,298], hRes:[650,268], dArc:[1160,298], hArc:[1080,250], dBoss:[1252,300], hBoss:[1340,240],
+  dStu:[330,480], hStu:[250,655], dLeg:[440,480], hLeg:[470,610], dTea:[720,480], hTea:[780,610], dMeet:[960,480], hMeet:[1040,545],
+  dEsp:[1300,445], hEsp:[1440,470], s1:[1236,505], s2:[1245,625], pL:[1290,720], pB:[1320,835], pR:[1560,825], pDeck:[1570,705],
+  g1:[1230,852], g2:[1050,862], g3:[850,862], g4:[650,842], g5:[480,832],
+};
+const E = [["c1","c2"],["c2","c3"],["c3","c4"],["c4","c5"],["c5","c6"],["l1","l2"],["l2","l3"],["l3","l4"],["l4","l5"],["l5","l6"],["c1","l1"],["c2","l2"],["c4","l4"],["c5","l5"],["c6","l6"],
+  ["dData","c2"],["dData","hData"],["dRes","c3"],["dRes","hRes"],["dArc","c5"],["dArc","hArc"],["dBoss","c6"],["dBoss","hBoss"],
+  ["dStu","l2"],["dStu","hStu"],["dLeg","l2"],["dLeg","hLeg"],["dTea","l3"],["dTea","hTea"],["dMeet","l4"],["dMeet","hMeet"],
+  ["dEsp","l6"],["dEsp","hEsp"],["l6","s1"],["s1","s2"],["s2","pL"],["pL","pB"],["pB","pR"],["pR","pDeck"],["pB","g1"],["g1","g2"],["g2","g3"],["g3","g4"],["g4","g5"]];
+const ADJ = {}; E.forEach(([a, b]) => { (ADJ[a] = ADJ[a] || []).push(b); (ADJ[b] = ADJ[b] || []).push(a); });
+// 座位（sit=坐著；swim=在水裡）
+const SPOTS = {
+  data:{hub:"hData", name:"資料室", seats:[[230,212,1],[300,212,1],[160,190,0],[335,170,0]]},
+  res:{hub:"hRes", name:"研究部", seats:[[520,178,1],[590,178,1],[730,178,1],[800,178,1],[515,245,1],[790,245,1],[655,215,0]]},
+  arc:{hub:"hArc", name:"保單檔案室", seats:[[1060,205,1],[960,180,0],[1135,170,0]]},
+  boss:{hub:"hBoss", name:"華群辦公室", seats:[[1392,160,1],[1470,215,0]]},
+  stu:{hub:"hStu", name:"素材工作室", seats:[[195,622,1],[262,622,1],[205,700,1]]},
+  leg:{hub:"hLeg", name:"法務室", seats:[[552,612,1],[470,690,0]]},
+  tea:{hub:"hTea", name:"茶水間", seats:[[738,660,1],[828,660,1],[870,600,0]]},
+  meet:{hub:"hMeet", name:"會議室", seats:[[985,600,1],[1040,578,1],[1098,600,1],[985,662,1],[1098,662,1],[1040,690,1],[940,630,0]]},
+  esp:{hub:"hEsp", name:"電競休閒區", seats:[[1382,548,1],[1532,548,1],[1590,505,0],[1455,400,1]]},
+  pool:{hub:"pL", name:"星光泳池", seats:[[1385,700,2],[1495,690,2],[1555,700,1],[1595,742,1],[1570,640,0]]},
+  garden:{hub:"g2", name:"空中花園", seats:[[1150,852,1],[950,878,1],[640,838,0],[880,830,0]]},
+};
+const HUB2ROOM = Object.fromEntries(Object.entries(SPOTS).map(([k, v]) => [v.hub, k]));
+function path(from, to) { const prev = {[from]: null}, q = [from]; while (q.length) { const n = q.shift(); if (n === to) break; for (const m of ADJ[n] || []) if (!(m in prev)) { prev[m] = n; q.push(m); } } const out = []; for (let n = to; n; n = prev[n]) out.unshift(n); return out[0] === from ? out : [from]; }
+
+function crewDefs() {
+  const I = INTEL || {}, B = BOT || {}, s = (I.sessions || {})[twDate(Date.now())] || {}, lab = Object.fromEntries((I.lab || []).map(x => [x.role, x.text]));
+  const lastDec = re => ((I.decisions || []).find(d => re.test(d.text || "")) || {}).text || "";
+  const sc = B.scen || {}, scs = sc.stats || {}, m = B.market || {};
+  return [
+    {id:"boss", name:"董事長 華群", spr:"boss", home:"boss", seat:0, say:"董事長。看總覽、做最後決定；A/B 去留有否決權。"},
+    {id:"muse", name:"米淇", spr:"muse", home:"pool", seat:0, roam:true, say:"心靈輔導，順便遊手好閒。不上班，整天游泳、曬太陽、打電動，哪裡熱鬧就往哪裡湊。"},
+    {id:"ceo", name:"CEO", col:"#f4f4ff", hair:"#14141f", home:"meet", seat:0, roam:true, say:"我是 Claude，華群的 CEO：統籌全隊、研擬賺錢策略、主持並裁決策略會議；必要時上網研究公開的交易策略，寫成規則送去回測，合格才上線。本期結論：" + ((I.verdict || {}).winner || "—") + "。"},
+    {id:"synth", name:"綜合決策員", col:"#fcee0a", hair:"#2b2320", home:"meet", seat:1, say:"兼任盤前室主持人。" + (lastDec(/^(東京盤|倫敦盤|紐約盤)/) || "今天還沒開盤前會。")},
+    {id:"mon", name:"監控員", col:"#5b8cff", hair:"#1b1b2b", home:"data", seat:0, say:"每 3 小時巡一次：機器人、排程、連虧、淨值、濾網，任務漏跑就補跑。"},
+    {id:"de", name:"資料工程師", col:"#39ff9e", hair:"#3a2a1a", home:"data", seat:1, say:lab["資料工程師"] || "補齊歷史資料。"},
+    {id:"o1", name:"觀察員1", col:"#00e5ff", hair:"#2b2320", home:"data", seat:2, say:((I.observers || [])[0] || {}).text || "總經事件與風險日期。"},
+    {id:"o2", name:"觀察員2", col:"#00b8cc", hair:"#5a3a22", home:"data", seat:3, say:((I.observers || [])[1] || {}).text || "市場籌碼：費率、未平倉量、爆倉。"},
+    {id:"rg", name:"市場狀態分類員", col:"#7dffc0", hair:"#2b2320", home:"res", seat:0, say:lab["市場狀態分類員"] || "趨勢／盤整／恐慌。"},
+    {id:"ex", name:"出場研究員", col:"#b3ffdb", hair:"#6b4a2a", home:"res", seat:1, say:lab["出場研究員"] || "改良出場。"},
+    {id:"sh", name:"做空研究員", col:"#ff8aa6", hair:"#1b1b2b", home:"res", seat:2, say:lab["做空研究員"] || "空頭期策略。"},
+    {id:"of", name:"過擬合審查員", col:"#d6ffe9", hair:"#3a2a1a", home:"res", seat:3, say:lab["過擬合審查員"] || "擋掉運氣好的策略。"},
+    {id:"bt", name:"回測員", col:"#00e5ff", hair:"#2b2320", home:"res", seat:4, say:"每期最多 2 個策略實驗，合格才上線。佇列第一項：" + (((I.queue || [])[0] || {}).item || "—")},
+    {id:"rev", name:"覆盤員", col:"#ffb3f1", hair:"#2b2320", home:"arc", seat:0, say:s.review ? `今天 ${s.review} 已復盤。` + (lab["覆盤員"] || "") : "每天 08:22 逐筆復盤，寫教訓與型態排行。"},
+    {id:"mc", name:"蒙地卡羅", col:"#9ff4ff", hair:"#5a3a22", home:"arc", seat:1, say:"每月 1 日自動重算正常波動範圍。"},
+    {id:"play", name:"劇本員", col:"#ff2bd6", hair:"#2b2320", home:"stu", seat:0, say:((I.scenarios || [])[0] || {}).text || "寫劇本：漲到哪、回調到哪、哪裡做多做空。"},
+    {id:"trader", name:"下單員", col:"#ff7de6", hair:"#1b1b2b", home:"esp", seat:0, say:`持倉 ${(sc.open || []).length}、掛單 ${Object.keys(sc.waiting || {}).length}；劇本單累計 ${scs.n || 0} 筆、勝率 ${scs.n ? scs.win + "%" : "—"}。`},
+    {id:"bull", name:"多方", col:"#39ff9e", hair:"#2b2320", home:"meet", seat:0, say:(I.bull || [])[0] || "找做多理由。"},
+    {id:"bear", name:"空方", col:"#ff3d6e", hair:"#2b2320", home:"meet", seat:2, say:(I.bear || [])[0] || "找風險。"},
+  ];
+}
+const LINES = {
+  muse:["游一圈再說～", "那邊在開會？我也去看看！", "喝杯飲料放鬆一下", "今天心情如何呀？", "電動借我玩一下", "曬太陽中…"],
+  trader:() => [`掛單 ${Object.keys(((BOT.scen) || {}).waiting || {}).length} 筆`, "只照劇本下單", "停損已經寫死了"],
+  o1:() => ["BTC " + fmtP((BOT.market || {}).btc), "看一下風險日期"], o2:["費率還正常", "爆倉單在哪？"],
+  bt:["回測跑起來", "樣本外要 30 筆"], of:["參數上下 20%", "會不會只是運氣？"], play:["回調到哪做多？", "劇本 A、B、C"], rev:["這筆停損放太緊", "教訓要有證據"],
+  mon:["機器人正常", "巡邏中"], boss:["大家辛苦了", "今天賺錢了嗎？"], ceo:["開會囉", "證據呢？", "這條規則能回測嗎？", "我上網查一下這個策略", "沒過就是沒過"], bull:["守住 200 日線"], bear:["下方還有停損池"], synth:["盤前會開始"],
+};
+let CREW = [], hoverId = null, sel = null, bubble = null, meetOn = false, meetT = 0;
+function seatXY(room, i) { const s = SPOTS[room].seats[i % SPOTS[room].seats.length]; return {x:s[0], y:s[1], sit:s[2] === 1, swim:s[2] === 2}; }
+function layoutCrew() {
+  const defs = crewDefs();
+  CREW = defs.map(d => { const old = CREW.find(c => c.id === d.id); if (old) { old.say = d.say; old.name = d.name; return old; }
+    const p = seatXY(d.home, d.seat); return Object.assign(d, {x:p.x, y:p.y, sit:p.sit, swim:p.swim, room:d.home, node:SPOTS[d.home].hub, route:[], goal:null, t:2 + Math.random() * 10, dir:"front"}); });
+  $("crewBtns").innerHTML = CREW.map(c => `<button type="button" data-id="${c.id}" aria-pressed="${sel === c.id}">${esc(c.name)}</button>`).join("");
+  $("crewBtns").querySelectorAll("button").forEach(b => b.addEventListener("click", () => showTip(b.dataset.id)));
+  if (sel) { const c = CREW.find(x => x.id === sel); if (c) $("tip").innerHTML = tipHTML(c); }
+}
+function crowdRoom() { const cnt = {}; CREW.forEach(c => { if (!c.route.length && c.id !== "muse") cnt[c.room] = (cnt[c.room] || 0) + 1; }); return Object.entries(cnt).sort((a, b) => b[1] - a[1])[0]?.[0] || "tea"; }
+function goTo(c, room, seat) { const p = seatXY(room, seat), r = path(c.node, SPOTS[room].hub); c.route = r.slice(1).map(n => ({x:N[n][0], y:N[n][1], n})); c.route.push({x:p.x, y:p.y, n:SPOTS[room].hub, seat:p}); c.sit = false; c.swim = false; c.room = room; }
+function decide(c) {
+  const MEET = ["ceo", "boss", "synth", "bull", "bear", "play"];
+  if (meetOn && MEET.includes(c.id)) { const i = MEET.indexOf(c.id); if (c.room !== "meet") return goTo(c, "meet", i); c.t = 6; return; }
+  if (c.id === "ceo") { const rooms = ["res", "data", "arc", "stu", "esp", "boss", "meet"].filter(x => x !== c.room); const room = rooms[Math.floor(Math.random() * rooms.length)]; goTo(c, room, room === "meet" ? 0 : SPOTS[room].seats.length - 1); return; }
+  if (c.id === "muse") { const r = Math.random(); const room = meetOn && r < 0.5 ? "meet" : r < 0.3 ? "pool" : r < 0.45 ? "garden" : r < 0.6 ? "esp" : r < 0.72 ? "tea" : crowdRoom(); const seat = room === "meet" ? 6 : room === "pool" ? Math.floor(Math.random() * 5) : room === "esp" ? 3 : Math.floor(Math.random() * SPOTS[room].seats.length); goTo(c, room, seat); return; }
+  const r = Math.random();
+  if (c.room !== c.home && r < 0.75) return goTo(c, c.home, c.seat);
+  if (r < 0.7) { c.t = 8 + Math.random() * 18; return; }
+  if (r < 0.85) return goTo(c, Math.random() < 0.6 ? "tea" : "garden", Math.floor(Math.random() * 3));
+  const others = ["res", "data", "arc", "stu", "meet"].filter(x => x !== c.room); goTo(c, others[Math.floor(Math.random() * others.length)], 6);
+}
+function step(c, dt) {
+  if (!c.route.length) { c.t -= dt; if (c.t <= 0) decide(c); return; }
+  const tgt = c.route[0], dx = tgt.x - c.x, dy = tgt.y - c.y, d = Math.hypot(dx, dy), sp = (c.id === "muse" ? 70 : 58) * dt;
+  c.dir = Math.abs(dx) > Math.abs(dy) ? (dx < 0 ? "left" : "right") : (dy < 0 ? "back" : "front");
+  if (d <= sp) { c.x = tgt.x; c.y = tgt.y; if (tgt.n && N[tgt.n]) c.node = tgt.n; c.route.shift(); if (!c.route.length) { const s = tgt.seat || {}; c.sit = !!s.sit; c.swim = !!s.swim; c.dir = "front"; c.t = c.id === "muse" ? 10 + Math.random() * 16 : 12 + Math.random() * 25; } }
+  else { c.x += dx / d * sp; c.y += dy / d * sp; }
+}
+function rr(x, y, w, h, r) { cx.beginPath(); cx.moveTo(x + r, y); cx.arcTo(x + w, y, x + w, y + h, r); cx.arcTo(x + w, y + h, x, y + h, r); cx.arcTo(x, y + h, x, y, r); cx.arcTo(x, y, x + w, y, r); cx.closePath(); }
+function drawChibi(c, T) {
+  const walk = c.route.length > 0, ph = walk ? Math.sin(T * 12 + c.x * 0.05) : 0, bob = walk ? Math.abs(ph) * 2 : 0;
+  cx.save(); cx.translate(c.x, c.y - bob);
+  cx.fillStyle = "rgba(0,0,0,.35)"; cx.beginPath(); cx.ellipse(0, 2 + bob, 13, 4, 0, 0, Math.PI * 2); cx.fill();
+  if (!c.sit) { cx.fillStyle = "#1c2033"; cx.save(); cx.translate(-4, -12); cx.rotate(ph * 0.45); cx.fillRect(-3, 0, 6, 12); cx.restore(); cx.save(); cx.translate(4, -12); cx.rotate(-ph * 0.45); cx.fillRect(-3, 0, 6, 12); cx.restore(); }
+  else { cx.fillStyle = "#1c2033"; cx.fillRect(-8, -9, 16, 6); }
+  cx.shadowColor = c.col; cx.shadowBlur = 8; cx.fillStyle = c.col; rr(-11, -32, 22, 22, 8); cx.fill(); cx.shadowBlur = 0;
+  cx.fillStyle = "#ffffffcc"; if (c.dir === "front") cx.fillRect(-3, -30, 6, 8);
+  cx.fillStyle = "#f3cfae"; cx.beginPath(); cx.arc(0, -42, 12, 0, Math.PI * 2); cx.fill();
+  cx.fillStyle = c.hair; cx.beginPath();
+  if (c.dir === "back") cx.arc(0, -43, 12.5, 0, Math.PI * 2); else { cx.arc(0, -46, 12.5, Math.PI, 0); cx.rect(-12.5, -47, 25, 4); }
+  cx.fill();
+  if (c.dir !== "back") { cx.fillStyle = "#2b2320"; const o = c.dir === "left" ? -4 : c.dir === "right" ? 4 : 0; if (c.dir === "front") { cx.fillRect(-5, -42, 3, 4); cx.fillRect(2, -42, 3, 4); } else cx.fillRect(o - 1, -42, 3, 4); }
+  cx.restore();
+}
+function drawSprite(c, T) {
+  const set = SPR[c.spr], walk = c.route.length > 0, im = c.swim || c.sit ? set.sit : set[c.dir] || set.front;
+  const h = 64, w = im.naturalWidth ? im.naturalWidth * h / im.naturalHeight : 30, bob = walk ? Math.abs(Math.sin(T * 10)) * 3 : c.swim ? Math.sin(T * 2) * 2 : 0;
+  cx.save();
+  if (!c.swim) { cx.fillStyle = "rgba(0,0,0,.35)"; cx.beginPath(); cx.ellipse(c.x, c.y + 2, 15, 5, 0, 0, Math.PI * 2); cx.fill(); }
+  if (c.swim) { // 泡在水裡：只露上半身＋游泳圈＋漣漪
+    cx.beginPath(); cx.rect(c.x - 40, c.y - h - 10, 80, h * 0.62 + 10); cx.clip();
+  }
+  if (im.complete && im.naturalWidth) cx.drawImage(im, c.x - w / 2, c.y - h - bob + (c.swim ? 14 : 0), w, h);
+  cx.restore();
+  if (c.swim) { cx.save(); cx.strokeStyle = "#ff6fae"; cx.lineWidth = 7; cx.beginPath(); cx.ellipse(c.x, c.y - h * 0.32 + 14, 24, 8, 0, 0, Math.PI * 2); cx.stroke();
+    cx.strokeStyle = "rgba(200,250,255,.6)"; cx.lineWidth = 1.5; for (let k = 0; k < 2; k++) { const r = ((T * 18 + k * 14) % 28) + 26; cx.globalAlpha = 1 - (r - 26) / 28; cx.beginPath(); cx.ellipse(c.x, c.y - h * 0.32 + 16, r, r * 0.33, 0, 0, Math.PI * 2); cx.stroke(); } cx.restore(); }
+}
+// 動態特效
+const FX = {dots:Array.from({length:26}, (_, i) => ({lane:i % 2, x:Math.random() * 1050 + 200, v:(i % 2 ? -1 : 1) * (40 + Math.random() * 50)})), fire:Array.from({length:28}, () => ({x:430 + Math.random() * 820, y:790 + Math.random() * 100, p:Math.random() * 6})), spark:Array.from({length:24}, () => ({x:1300 + Math.random() * 270, y:660 + Math.random() * 140, p:Math.random() * 6})), leds:Array.from({length:30}, (_, i) => ({x:128 + (i % 10) * 18, y:86 + Math.floor(i / 10) * 20, p:Math.random() * 6}))};
+function effects(T, dt) {
+  cx.save(); cx.globalCompositeOperation = "lighter";
+  FX.dots.forEach(d => { d.x += d.v * dt; if (d.x > 1250) d.x = 200; if (d.x < 200) d.x = 1250; const y = d.lane ? 432 : 352; const g = cx.createRadialGradient(d.x, y, 0, d.x, y, 10); g.addColorStop(0, d.lane ? "rgba(255,43,214,.9)" : "rgba(0,229,255,.9)"); g.addColorStop(1, "rgba(0,0,0,0)"); cx.fillStyle = g; cx.fillRect(d.x - 10, y - 10, 20, 20); });
+  // 會議桌全息地球
+  const hx = 1040, hy = 628, a = T * 0.9; cx.strokeStyle = `rgba(0,229,255,${0.55 + 0.25 * Math.sin(T * 3)})`; cx.lineWidth = 2; for (let k = 0; k < 3; k++) { cx.beginPath(); cx.ellipse(hx, hy, 46 - k * 10, 14 - k * 3, a + k, 0, Math.PI * 2); cx.stroke(); }
+  if (meetOn) { cx.fillStyle = "rgba(0,229,255,.12)"; cx.beginPath(); cx.moveTo(hx - 50, hy); cx.lineTo(hx + 50, hy); cx.lineTo(hx + 20, hy - 80); cx.lineTo(hx - 20, hy - 80); cx.closePath(); cx.fill(); }
+  // 走廊地球儀
+  cx.strokeStyle = "rgba(255,210,120,.55)"; for (let k = 0; k < 2; k++) { cx.beginPath(); cx.ellipse(132, 372, 62 - k * 16, 18 - k * 5, Math.sin(T * 0.7 + k) * 0.25, 0, Math.PI * 2); cx.stroke(); }
+  // 泳池閃光、花園螢火、伺服器燈
+  FX.spark.forEach(s => { const v = Math.max(0, Math.sin(T * 2.4 + s.p)); cx.fillStyle = `rgba(220,255,255,${v * 0.8})`; cx.fillRect(s.x, s.y, 2, 2); });
+  FX.fire.forEach(f => { f.x += Math.sin(T * 0.6 + f.p) * 0.25; f.y += Math.cos(T * 0.5 + f.p) * 0.2; const v = 0.4 + 0.6 * Math.max(0, Math.sin(T * 1.7 + f.p)); const g = cx.createRadialGradient(f.x, f.y, 0, f.x, f.y, 6); g.addColorStop(0, `rgba(255,236,150,${v})`); g.addColorStop(1, "rgba(0,0,0,0)"); cx.fillStyle = g; cx.fillRect(f.x - 6, f.y - 6, 12, 12); });
+  FX.leds.forEach(l => { if (Math.sin(T * 5 + l.p * 3) > 0.2) { cx.fillStyle = l.p > 3 ? "rgba(57,255,158,.9)" : "rgba(0,229,255,.9)"; cx.fillRect(l.x, l.y, 3, 3); } });
+  // 研究部白板掃描線、電競螢幕閃爍
+  const sy = 62 + ((T * 30) % 44); cx.fillStyle = "rgba(0,229,255,.18)"; cx.fillRect(478, sy, 325, 3);
+  cx.fillStyle = `rgba(255,43,214,${0.12 + 0.12 * Math.sin(T * 7)})`; cx.fillRect(1505, 378, 64, 40);
+  cx.restore();
+  // 招牌霓虹呼吸
+  cx.save(); cx.globalAlpha = 0.08 + 0.06 * Math.sin(T * 2); cx.fillStyle = "#b45cff"; cx.fillRect(0, 0, SW, SH); cx.restore();
+}
+function drawBubble() { if (!bubble) return; const c = CREW.find(x => x.id === bubble.id); if (!c) return; cx.save(); cx.font = "600 17px 'Noto Sans TC',sans-serif"; const w = cx.measureText(bubble.t).width + 22, x = c.x - w / 2, y = c.y - (c.spr ? 94 : 80);
+  cx.fillStyle = "rgba(6,8,20,.92)"; cx.strokeStyle = "#fcee0a"; cx.lineWidth = 1.5; rr(x, y, w, 30, 8); cx.fill(); cx.stroke(); cx.beginPath(); cx.moveTo(c.x - 6, y + 30); cx.lineTo(c.x + 6, y + 30); cx.lineTo(c.x, y + 38); cx.closePath(); cx.fill(); cx.fillStyle = "#e9f1ff"; cx.textAlign = "center"; cx.fillText(bubble.t, c.x, y + 21); cx.restore(); }
+let tPrev = performance.now(), T = 0, shipOn = false, bubT = 3;
+function drawShip(now) {
+  const dt = Math.min(0.05, (now - tPrev) / 1000); tPrev = now; T += dt;
+  if (!shipOn) { requestAnimationFrame(drawShip); return; }
+  meetT += dt; const cyc = meetT % 150; const was = meetOn; meetOn = cyc > 100; if (meetOn !== was) CREW.forEach(c => { if (["ceo","boss","synth","bull","bear","play","muse"].includes(c.id)) c.t = Math.random() * 2; });
+  CREW.forEach(c => step(c, dt));
+  bubT -= dt; if (bubT <= 0) { const c = CREW[Math.floor(Math.random() * CREW.length)], L = LINES[c.id]; const arr = typeof L === "function" ? L() : L; if (arr && arr.length) bubble = {id:c.id, t:arr[Math.floor(Math.random() * arr.length)], until:T + 3.2}; bubT = 3.5 + Math.random() * 2; }
+  if (bubble && T > bubble.until) bubble = null;
+  cx.clearRect(0, 0, SW, SH); if (BG.complete && BG.naturalWidth) cx.drawImage(BG, 0, 0, SW, SH); else { cx.fillStyle = "#0a0e1f"; cx.fillRect(0, 0, SW, SH); }
+  effects(T, dt);
+  [...CREW].sort((a, b) => a.y - b.y).forEach(c => { if (c.spr) drawSprite(c, T); else drawChibi(c, T);
+    const lab = c.name, ly = c.y + 6, big = c.id === "boss" || c.id === "muse" || c.id === "ceo"; cx.save(); cx.font = (big ? "800 15px" : "600 12px") + " 'Noto Sans TC',sans-serif"; const w = cx.measureText(lab).width + 12; cx.fillStyle = c.id === "boss" ? "rgba(252,238,10,.95)" : c.id === "muse" ? "rgba(255,43,214,.95)" : c.id === "ceo" ? "rgba(0,229,255,.95)" : "rgba(6,8,20,.82)"; cx.globalAlpha = big || hoverId === c.id || sel === c.id ? 1 : 0.78; rr(c.x - w / 2, ly, w, big ? 21 : 17, 9); cx.fill();
+      cx.fillStyle = big ? "#120614" : "#e9f1ff"; cx.textAlign = "center"; cx.fillText(lab, c.x, ly + (big ? 15.5 : 12.5)); cx.restore();
+    if (hoverId === c.id || sel === c.id) { cx.save(); cx.strokeStyle = "#fcee0a"; cx.lineWidth = 2.5; cx.shadowColor = "#fcee0a"; cx.shadowBlur = 10; cx.beginPath(); cx.ellipse(c.x, c.y + 2, 24, 8, 0, 0, Math.PI * 2); cx.stroke(); cx.restore(); } });
+  drawBubble();
+  if (meetOn) { cx.save(); cx.font = "800 18px 'Orbitron','Noto Sans TC',sans-serif"; cx.fillStyle = "#00e5ff"; cx.shadowColor = "#00e5ff"; cx.shadowBlur = 12; cx.textAlign = "center"; cx.fillText("會議中", 1040, 520); cx.restore(); }
+  if (sel) placeTip();
+  requestAnimationFrame(drawShip);
+}
+function tipHTML(c) { return `<b>${esc(c.name)}</b>｜${esc(SPOTS[c.room].name)}<br>${esc(c.say)}`; }
+function toLogical(ev) { const r = cv.getBoundingClientRect(); return {x:(ev.clientX - r.left) * SW / r.width, y:(ev.clientY - r.top) * SH / r.height}; }
+function hit(p) { let best = null, bd = 45; CREW.forEach(c => { const d = Math.hypot(c.x - p.x, c.y - 25 - p.y); if (d < bd) { bd = d; best = c; } }); return best; }
+function showTip(id) { sel = sel === id ? null : id; $("crewBtns").querySelectorAll("button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.id === sel))); if (!sel) { $("tip").hidden = true; return; } const c = CREW.find(x => x.id === sel); $("tip").innerHTML = tipHTML(c); $("tip").hidden = false; placeTip(); }
+function placeTip() { const c = CREW.find(x => x.id === sel); if (!c) return; const r = cv.getBoundingClientRect(), sr = $("ship").getBoundingClientRect(), tip = $("tip"); const px = c.x * r.width / SW + (r.left - sr.left) + $("ship").scrollLeft, py = (c.y - 70) * r.height / SH + (r.top - sr.top); tip.style.left = Math.max(140, px) + "px"; tip.style.top = Math.max(tip.offsetHeight + 8, py) + "px"; }
+cv.addEventListener("click", ev => { const c = hit(toLogical(ev)); if (c) showTip(c.id); else { sel = null; $("tip").hidden = true; $("crewBtns").querySelectorAll("button").forEach(b => b.setAttribute("aria-pressed", "false")); } });
+cv.addEventListener("mousemove", ev => { const c = hit(toLogical(ev)); hoverId = c ? c.id : null; });
+
+/* ===== 會議紀錄 ===== */
+const KIND = t => /^(東京盤|倫敦盤|紐約盤)/.test(t) ? "pre" : /^每日復盤/.test(t) ? "rev" : "mtg";
+const FILTERS = [["all","全部"],["mtg","策略會議與決策"],["pre","盤前室"],["rev","每日復盤"]];
+let fil = "all", shown = 20;
+function renderLog() {
+  const I = INTEL || {}, v = I.verdict || {};
+  const roles = [...(I.observers || []).map(o => [o.name, "c", "情報", o.text]), ...(I.bull || []).map((t, i) => ["多方", "g", "理由 " + (i + 1), t]), ...(I.bear || []).map((t, i) => ["空方", "r", "理由 " + (i + 1), t]), ...(I.lab || []).map(x => [x.role, "y", "研究驗證組", x.text])];
+  $("meeting").innerHTML = I.date ? `<details class="mtg" open><summary><span class="d">${esc(I.date)}</span><b>策略會議（每 3 天，CEO 主持）</b><span class="pill p">${esc(v.winner || "")}</span><span class="v">CEO 結論：${esc(v.text || "")}</span></summary><ul class="views">${roles.map(([n, c, s, t]) => `<li><span class="who">${esc(n)} <span class="pill ${c}">${esc(s)}</span></span><p>${esc(t)}</p></li>`).join("")}</ul></details>` : "";
+  $("filters").innerHTML = FILTERS.map(([k, n]) => `<button type="button" data-k="${k}" aria-pressed="${fil === k}">${n}</button>`).join("");
+  $("filters").querySelectorAll("button").forEach(b => b.addEventListener("click", () => { fil = b.dataset.k; shown = 20; renderLog(); }));
+  const ds = (I.decisions || []).filter(d => fil === "all" || KIND(d.text || "") === fil);
+  $("log").innerHTML = ds.slice(0, shown).map(d => { const k = KIND(d.text || ""); return `<li><span class="d">${esc(d.date)}</span><p><span class="pill ${k === "pre" ? "p" : k === "rev" ? "g" : "c"}">${k === "pre" ? "盤前室" : k === "rev" ? "復盤" : "決策"}</span> ${esc(d.text)}</p></li>`; }).join("") || `<li><span class="d">—</span><p>這一類還沒有紀錄。</p></li>`;
+  $("more").hidden = ds.length <= shown;
+  const today = twDate(Date.now()), ls = I.lessons || [];
+  $("lessons").innerHTML = ls.length ? ls.slice(0, 10).map(x => { const dead = x.expires && x.expires < today; return `<li style="${dead ? "opacity:.5" : ""}">${esc(x.text)}<span>${esc(x.date)}${x.expires ? (dead ? "｜已失效" : "｜有效到 " + esc(x.expires)) : ""}${x.evidence ? "｜證據：" + esc(x.evidence) : ""}</span></li>`; }).join("") : `<li class="empty">第一份復盤 11/1 08:22。</li>`;
+  $("risk").innerHTML = (I.risk || []).map(r => `<li><b>${esc(r.when)}</b><span>${esc(r.what)}</span></li>`).join("") || `<li class="empty">沒有登記的風險日期。</li>`;
+  $("watchCoins").textContent = I.watchCoins || "";
+  $("queue").innerHTML = (I.queue || []).map(q => `<li>${esc(q.item)}<span>${esc(q.status)}</span></li>`).join("");
+}
+$("more").addEventListener("click", () => { shown += 20; renderLog(); });
+
+/* ===== 分頁（#war #coins #crew #log） ===== */
+const VIEWS = ["war", "coins", "crew", "log"];
+function route() { const v = VIEWS.includes(location.hash.slice(1)) ? location.hash.slice(1) : "war";
+  VIEWS.forEach(k => { $("v-" + k).hidden = k !== v; }); document.querySelectorAll(".tabs a").forEach(a => a.setAttribute("aria-current", a.dataset.v === v ? "page" : "false")); shipOn = v === "crew"; }
+window.addEventListener("hashchange", route);
+
+function renderAll() { renderTicker(); renderWar(); renderCoins(); renderTasks(); renderPlays(); renderBoard(); renderLog(); layoutCrew();
+  const src = LIVE.bot || LIVE.intel ? "即時（每 5 分鐘自動更新）" : (LIVE.err || "顯示的是發布當下的資料");
+  $("liveNote").textContent = "資料：" + src + (SNAP ? "｜快照 " + tw(Date.parse(SNAP.at)) : ""); }
+route(); renderTodo(); renderClock(); renderAll(); setInterval(renderClock, 1000); setInterval(() => { renderTasks(); }, 60000); requestAnimationFrame(drawShip);
+
+/* ===== 即時資料：直接讀同一個網站上的 bot.json 與 intel.json（每 5 分鐘）；讀不到就維持快照 ===== */
+async function pull() {
+  for (const [path, key] of [["../bot.json", "bot"], ["../intel.json", "intel"]]) {
+    try { const r = await fetch(path + "?t=" + Math.floor(Date.now() / 6e4), {cache: "no-store"}); if (!r.ok) throw 0; const j = await r.json();
+      LIVE[key] = j; if (key === "bot") BOT = j; else INTEL = j; LIVE.err = null; }
+    catch (e) { LIVE.err = "暫時讀不到最新資料，顯示上一次的資料"; }
+  }
+  renderAll();
+}
+pull(); setInterval(pull, 300000);
+</script>
+
+</body></html>
