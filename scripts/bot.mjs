@@ -110,15 +110,30 @@ async function liqOf(b) {
 // 第八輪回測合格（10/31）：新增「日內B」＝同樣規則但成交額門檻拉到 ≥5 億 U，獨立一組並列比較，不動原日內組
 // 回測（分級成本）：勝率 44.7%→48.0%（樣本外 46.1%→51.2%）、平均 +0.029R→+0.088R（樣本外 +0.176→+0.314）、回撤 19.3%→13%（樣本外 10.2%→2%）
 const LIQ_MIN2 = 500e6;
+// 第十二、十三輪回測合格（11/03）：新增「日內 C」＝日內B＋重大總經事件（FOMC 決議、CPI、非農）公布前 4 小時～後 4 小時不開新單（已持倉不受影響）
+// 回測（分級成本，與日內B 比）：勝率 48.4%→48.8%（樣本外 51.4%→54.3%）、平均 +0.104R→+0.113R（樣本外 +0.365→+0.401）、回撤 12.1%→11.0%；窗口 ±20% 四個變體全部合格
+// 事件日曆（美東時間；來源 bls.gov 發布時程、federalreserve.gov FOMC 日曆；2027 FOMC 為暫定）
+const EVENTS_ET = [
+  ["2026-11-06","08:30"],["2026-11-10","08:30"],["2026-12-04","08:30"],["2026-12-09","14:00"],["2026-12-10","08:30"],
+  ["2027-01-08","08:30"],["2027-01-13","08:30"],["2027-01-27","14:00"],["2027-02-05","08:30"],["2027-02-11","08:30"],["2027-03-05","08:30"],["2027-03-10","08:30"],["2027-03-17","14:00"],
+  ["2027-04-02","08:30"],["2027-04-13","08:30"],["2027-04-28","14:00"],["2027-05-07","08:30"],["2027-05-12","08:30"],["2027-06-04","08:30"],["2027-06-09","14:00"],["2027-06-10","08:30"],
+  ["2027-07-02","08:30"],["2027-07-14","08:30"],["2027-07-28","14:00"],["2027-08-06","08:30"],["2027-08-11","08:30"],["2027-09-03","08:30"],["2027-09-14","08:30"],["2027-09-15","14:00"],
+  ["2027-10-08","08:30"],["2027-10-14","08:30"],["2027-10-27","14:00"],["2027-11-05","08:30"],["2027-11-10","08:30"],["2027-12-03","08:30"],["2027-12-08","14:00"],["2027-12-10","08:30"],
+];
+const nthSunday = (y, mo, n) => { const d = new Date(Date.UTC(y, mo, 1)); const first = (7 - d.getUTCDay()) % 7 + 1; return Date.UTC(y, mo, first + 7 * (n - 1)); };
+const etToUtc = (ds, hm) => { const [y, mo, d] = ds.split("-").map(Number), [hh, mm] = hm.split(":").map(Number); const local = Date.UTC(y, mo - 1, d, hh, mm); const dstS = nthSunday(y, 2, 2) + 2 * 36e5, dstE = nthSunday(y, 10, 1) + 2 * 36e5; return local + ((local >= dstS && local < dstE) ? 4 : 5) * 36e5; };
+const EV_T = EVENTS_ET.map(([d, t]) => etToUtc(d, t));
+const EV_WIN = 4 * 36e5, evBlock = t => EV_T.some(e => t >= e - EV_WIN && t < e + EV_WIN);
 const I = st.intra = Object.assign({ equity: 1, open: [], closed: [], lastBar: 0, done: {} }, st.intra || {});
 const I2 = st.intra2 = Object.assign({ equity: 1, open: [], closed: [], lastBar: 0, done: {}, created: now }, st.intra2 || {});
-const IGROUPS = [[I, LIQ_MIN], [I2, LIQ_MIN2]];
+const I3 = st.intra3 = Object.assign({ equity: 1, open: [], closed: [], lastBar: 0, done: {}, created: now }, st.intra3 || {});
+const IGROUPS = [[I, LIQ_MIN, null], [I2, LIQ_MIN2, null], [I3, LIQ_MIN2, evBlock]];
 for (const [S] of IGROUPS) if (!S.lastBar) S.lastBar = Math.floor(now / M15) * M15 - 2 * M15; // 第一次執行不回補舊訊號
-const iNeed = new Set([...top, ...I.open.map(p => p.base), ...I2.open.map(p => p.base)]);
+const iNeed = new Set([...top, ...I.open.map(p => p.base), ...I2.open.map(p => p.base), ...I3.open.map(p => p.base)]);
 for (const b of iNeed) {
   let c; try { c = (await kl(b, "15m", 400)).filter(x => x.t + M15 <= now); } catch (e) { continue; } await sleep(80);
   if (c.length < IN + 20) continue; const a = atr(c, 14), v20 = sma(c.map(x => x.v), 20);
-  for (const [S, lmin] of IGROUPS) for (let i = IN; i < c.length; i++) {
+  for (const [S, lmin, blk] of IGROUPS) for (let i = IN; i < c.length; i++) {
     const bar = c[i], day = Math.floor(bar.t / D1), dayEnd = (day + 1) * D1;
     const p = S.open.find(q => q.base === b);
     if (p) {
@@ -137,7 +152,8 @@ for (const b of iNeed) {
     S.done[b] = day; // 每天只看當天第一次突破（跟回測一致）
     // 第四輪回測合格的品質濾網：突破那根量 > 前 20 根平均 1.5 倍，且收在 K 棒上方 40% 以內
     const rng = bar.h - bar.l; if (!(bar.v > 1.5 * v20[i]) || !(rng > 0 && (bar.c - bar.l) / rng >= 0.6)) continue;
-    const lv = await liqOf(b); if (!(lv >= lmin)) { console.log(S === I ? "日內略過（成交額不足）" : "日內B略過（成交額不足）", b, lv); continue; }
+    if (blk && blk(bar.t + M15)) { console.log("日內C略過（重大事件前後 4 小時）", b); continue; }
+    const lv = await liqOf(b); if (!(lv >= lmin)) { console.log(S === I ? "日內略過（成交額不足）" : S === I2 ? "日內B略過（成交額不足）" : "日內C略過（成交額不足）", b, lv); continue; }
     const e = i + 1 < c.length ? c[i + 1].o : bar.c, r = IK * a[i]; if (!(r > 0) || r / e < 0.002) continue;
     S.open.push({ base: b, t: bar.t + M15, e, r, stop: e - r, amt: S.equity * RISK, lastBar: bar.t, dayEnd, cur: bar.c, curR: 0 });
   }
