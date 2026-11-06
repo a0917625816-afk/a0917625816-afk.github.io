@@ -1,5 +1,6 @@
 <!doctype html>
 <html lang="zh-Hant">
+<script>(function(){var q=new URLSearchParams(location.search);if(q.get("theme"))document.documentElement.setAttribute("data-theme",q.get("theme"));if(q.get("embed"))document.documentElement.classList.add("embed");})();</script>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
@@ -66,6 +67,10 @@ header a{color:var(--blue);font-size:14px;text-decoration:none}
 .hist td{padding:8px 6px;border-bottom:1px solid var(--line);white-space:nowrap}
 .tw{overflow-x:auto}
 .foot{font-size:12px;color:var(--muted)}
+.embed header{display:none}.embed .wrap{padding-top:4px}
+.rbtn{font:700 13px inherit;font-family:inherit;padding:5px 12px;border-radius:99px;border:1px solid var(--blue);background:var(--blue);color:#fff;cursor:pointer}
+.rbtn.stop{background:transparent;color:var(--blue)}
+.replay{font-size:12px;font-weight:700;color:var(--blue);background:var(--soft);border-radius:99px;padding:2px 10px;margin-left:6px}
 </style>
 </head>
 <body>
@@ -83,7 +88,7 @@ header a{color:var(--blue);font-size:14px;text-decoration:none}
       <p class="rules" id="rules"></p>
     </div>
     <div class="card" style="display:grid;gap:8px">
-      <div style="display:flex;justify-content:space-between;align-items:center"><b>執行過程</b><span class="foot" id="runAt"></span></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap"><b>執行過程</b><span style="display:flex;gap:8px;align-items:center"><span class="foot" id="runAt"></span><button type="button" class="rbtn" id="rp">▶ 重播最近 5 筆</button></span></div>
       <div class="term" id="term" aria-live="polite"></div>
     </div>
   </section>
@@ -125,7 +130,7 @@ function sizing(p, G) {
   const qty = p.r > 0 ? risk / p.r : 0, notional = qty * p.e;
   return { risk, qty, notional };
 }
-function markOf(p) { const k = (p.sym || "").toUpperCase(); return live[k] ?? p.cur ?? p.e; }
+function markOf(p) { if (p.replayMark != null) return p.replayMark; const k = (p.sym || "").toUpperCase(); return live[k] ?? p.cur ?? p.e; }
 function posCard(p0, G) {
   const p = norm(p0), L = p.lev0 || +$("lev").value, s = sizing(p, G), mk = markOf(p);
   const margin = s.notional / L, pnl = p.dir * (mk - p.e) * s.qty + (p.real ? p.real * s.risk : 0), pnlPct = margin > 0 ? pnl / margin * 100 : 0;
@@ -172,16 +177,18 @@ function render() {
   if (!BOT) return;
   $("tabs").innerHTML = DEPTS.map(d => { const G = d.get(BOT) || {}; const n = (G.open || []).length + Object.keys(G.waiting || {}).length; return `<button type="button" data-k="${d.key}" aria-pressed="${d.key === cur}">${d.name}<span class="dot ${n ? "on" : ""}"></span></button>`; }).join("");
   const D = DEPTS.find(d => d.key === cur) || DEPTS[0], G = D.get(BOT) || { open: [], closed: [], stats: {} }, st = G.stats || {};
-  const eq = equityOf(G), ret = (eq / ACC - 1) * 100;
-  const opens = (G.open || []).map(p => norm(p)), used = opens.reduce((a, p) => a + sizing(p, G).notional / +$("lev").value, 0);
+  const RP = REPLAY && REPLAY.dept === cur ? REPLAY : null;
+  const eq = RP ? RP.eq : equityOf(G), ret = (eq / ACC - 1) * 100;
+  const openRaw = RP ? (RP.pos ? [RP.pos] : []) : (G.open || []);
+  const opens = openRaw.map(p => norm(p)), used = opens.reduce((a, p) => a + sizing(p, G).notional / +$("lev").value, 0);
   const upnl = opens.reduce((a, p) => a + p.dir * (markOf(p) - p.e) * sizing(p, G).qty, 0);
-  $("gName").textContent = D.name;
+  $("gName").innerHTML = esc(D.name) + (RP ? `<span class="replay">重播中 ${RP.i}/${RP.n}</span>` : "");
   $("gChg").innerHTML = `<span class="${ret >= 0 ? "up" : "dn"}">${ret >= 0 ? "+" : ""}${ret.toFixed(2)}%</span>`;
-  $("acct").innerHTML = `<dt>帳戶權益</dt><dd>${usd(eq + upnl)} USDT</dd><dt>可用</dt><dd>${usd(eq - used)} USDT</dd><dt>未實現盈虧</dt><dd class="${upnl >= 0 ? "up" : "dn"}">${upnl >= 0 ? "+" : ""}${usd(upnl)}</dd><dt>已結束</dt><dd>${st.n || 0} 筆・勝率 ${st.n ? st.win + "%" : "—"}・合計 ${st.n ? ((st.sumR > 0 ? "+" : "") + (+st.sumR).toFixed(2) + "R") : "—"}</dd>`;
+  $("acct").innerHTML = `<dt>帳戶權益</dt><dd>${usd(eq + upnl)} USDT</dd><dt>可用</dt><dd>${usd(eq - used)} USDT</dd><dt>未實現盈虧</dt><dd class="${upnl >= 0 ? "up" : "dn"}">${upnl >= 0 ? "+" : ""}${usd(upnl)}</dd>${RP ? `<dt>重播成績</dt><dd>${RP.done} 筆・合計 ${(RP.sumR >= 0 ? "+" : "") + RP.sumR.toFixed(2)}R</dd>` : `<dt>已結束</dt><dd>${st.n || 0} 筆・勝率 ${st.n ? st.win + "%" : "—"}・合計 ${st.n ? ((st.sumR > 0 ? "+" : "") + (+st.sumR).toFixed(2) + "R") : "—"}</dd>`}`;
   $("rules").textContent = D.rules;
   const ords = orders(cur, G);
   $("sub").innerHTML = [["pos", `持倉 (${opens.length})`], ["ord", `委託 (${ords.length})`], ["his", `歷史 (${(G.closed || []).length})`]].map(([k, l]) => `<button type="button" data-s="${k}" aria-pressed="${k === sub}">${l}</button>`).join("");
-  $("body").innerHTML = sub === "pos" ? (opens.length ? `<div class="list">${(G.open || []).map(p => posCard(p, G)).join("")}</div>` : `<div class="empty">目前沒有持倉。看右上「執行過程」可以知道機器人為什麼還沒進場。</div>`)
+  $("body").innerHTML = sub === "pos" ? (opens.length ? `<div class="list">${openRaw.map(p => posCard(p, G)).join("")}</div>` : `<div class="empty">目前沒有持倉。看右上「執行過程」可以知道機器人為什麼還沒進場。</div>`)
     : sub === "ord" ? (ords.length ? `<div class="list">${ords.map(o => orderCard(o, cur)).join("")}</div>` : `<div class="empty">${cur === "scen" || cur === "fib" ? "目前沒有掛單" : "這個部門是收盤確認後直接市價進場，不掛單"}</div>`)
     : histRows(G);
 }
@@ -237,17 +244,65 @@ function connect() {
     ws.onmessage = ev => { const d = JSON.parse(ev.data).data; if (!d) return; live[d.s.replace(/USDT$/, "")] = +d.p; };
   } catch (e) {}
 }
-setInterval(() => { if (BOT && sub !== "his") render(); }, 2000);
+setInterval(() => { if (BOT && sub !== "his" && !REPLAY) render(); }, 2000);
+// ===== 重播：用當時的真實 K 線，把最近幾筆單從開倉到平倉播一次 =====
+let REPLAY = null;
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+function logLine(html) { const term = $("term"); term.querySelectorAll(".cur").forEach(e => e.classList.remove("cur")); const d = document.createElement("div"); d.innerHTML = html; d.classList.add("cur"); term.appendChild(d); term.scrollTop = term.scrollHeight; }
+async function pathOf(p) {
+  const dur = Math.max(9e5, (p.tx || Date.now()) - p.t), ivs = [["5m", 3e5], ["15m", 9e5], ["1h", 36e5], ["4h", 144e5]];
+  const iv = (ivs.find(([, ms]) => dur / ms <= 90) || ivs[3]);
+  if (!/黃金|那指/.test(p.sym)) {
+    try { const r = await fetch(`https://fapi.binance.com/fapi/v1/klines?symbol=${p.sym.toUpperCase()}USDT&interval=${iv[0]}&startTime=${p.t}&endTime=${p.tx}&limit=500`);
+      if (r.ok) { const j = await r.json(); if (Array.isArray(j) && j.length) return { bars: j.map(x => ({ t: +x[0], h: +x[2], l: +x[3], c: +x[4] })), iv: iv[0], real: true }; } } catch (e) {}
+  }
+  const n = 40, bars = []; for (let i = 0; i <= n; i++) { const f = i / n, c = p.e + (p.x - p.e) * f + (i && i < n ? (Math.random() - 0.5) * Math.abs(p.e - p.stop) * 0.6 : 0); bars.push({ t: p.t + (p.tx - p.t) * f, h: c, l: c, c }); }
+  return { bars, iv: "示意", real: false };
+}
+async function replay() {
+  if (REPLAY) { REPLAY.stop = true; return; }
+  const D = DEPTS.find(d => d.key === cur), G = D.get(BOT) || {};
+  const C = (G.closed || []).filter(t => t.x != null && (t.e ?? t.entry) != null && t.why !== "未成交過期").slice(0, 5).reverse();
+  if (!C.length) { $("term").innerHTML = `<div class="no">這個部門還沒有已結束的單可以重播。</div>`; return; }
+  clearInterval(typing); $("term").innerHTML = ""; sub = "pos";
+  REPLAY = { dept: cur, eq: ACC, sumR: 0, done: 0, i: 0, n: C.length, pos: null, stop: false };
+  $("rp").textContent = "■ 停止重播"; $("rp").classList.add("stop");
+  logLine(`<span class="hi">▶ 重播 ${esc(D.name)} 最近 ${C.length} 筆（帳戶從 10,000 USDT 開始）</span>`);
+  for (const t0 of C) {
+    if (REPLAY.stop) break;
+    const t = norm(t0); REPLAY.i++;
+    logLine(`<span class="t">[${tw(t.t)}]</span> ${t.dir > 0 ? '<span class="ok">開多</span>' : '<span class="no">開空</span>'} <span class="cy">${esc(t.sym)}</span> @ ${fmt(t.e)}　止損 ${fmt(t.stop)}${t.target != null ? "　止盈 " + fmt(t.target) : ""}`);
+    const P = await pathOf(t);
+    logLine(`<span class="t">  </span> 讀取當時 ${P.real ? P.iv + " K 線 " + P.bars.length + " 根（Binance 真實行情）" : "價格（這個商品沒有公開即時 K 線，用進出場價畫示意路徑）"}`);
+    REPLAY.pos = { ...t0, replayMark: t.e, cur: t.e }; render();
+    const step = Math.max(1, Math.floor(P.bars.length / 45));
+    for (let k = 0; k < P.bars.length; k++) {
+      if (REPLAY.stop) break;
+      const b = P.bars[k]; REPLAY.pos.replayMark = b.c;
+      if (k % step === 0 || k === P.bars.length - 1) { render(); await sleep(90); }
+      if (k > 0 && k % Math.max(1, Math.floor(P.bars.length / 4)) === 0) { const R = t.dir * (b.c - t.e) / t.r; logLine(`<span class="t">[${tw(b.t)}]</span> ${esc(t.sym)} 現價 ${fmt(b.c)} → ${R >= 0 ? '<span class="ok">+' : '<span class="no">'}${R.toFixed(2)}R</span>`); }
+    }
+    REPLAY.pos.replayMark = t.x; render(); await sleep(250);
+    const R = +t0.R, usdv = R * 0.01 * REPLAY.eq; REPLAY.eq += usdv; REPLAY.sumR += R; REPLAY.done++;
+    logLine(`<span class="t">[${tw(t.tx)}]</span> <b>${esc(t.why || "平倉")}</b> @ ${fmt(t.x)} → ${R > 0 ? '<span class="ok">+' : '<span class="no">'}${R.toFixed(2)}R（${usdv >= 0 ? "+" : ""}${usd(usdv)} USDT）</span>　帳戶 ${usd(REPLAY.eq)}`);
+    REPLAY.pos = null; render(); await sleep(700);
+  }
+  logLine(`<span class="hi">■ 重播結束：${REPLAY.done} 筆，合計 ${(REPLAY.sumR >= 0 ? "+" : "") + REPLAY.sumR.toFixed(2)}R，帳戶 10,000 → ${usd(REPLAY.eq)} USDT</span>`);
+  await sleep(2500);
+  REPLAY = null; $("rp").textContent = "▶ 重播最近 5 筆"; $("rp").classList.remove("stop"); render();
+}
+$("rp").addEventListener("click", replay);
 async function load() {
   try { const [a, b] = await Promise.all([fetch("../bot.json?t=" + Math.floor(Date.now() / 6e4), { cache: "no-store" }), fetch("../intel.json?t=" + Math.floor(Date.now() / 6e4), { cache: "no-store" })]);
     const nb = await a.json(); try { INTEL = await b.json(); } catch (e) {}
     const changed = !BOT || nb.updated !== BOT.updated; BOT = nb; render(); if (changed) { play(); connect(); }
   } catch (e) { $("term").innerHTML = `<div class="no">暫時讀不到機器人資料，稍後自動重試</div>`; }
 }
-$("tabs").addEventListener("click", e => { const b = e.target.closest("button"); if (!b) return; cur = b.dataset.k; try { localStorage.setItem("simDept", cur); } catch (x) {} sub = "pos"; render(); play(); });
+$("tabs").addEventListener("click", e => { const b = e.target.closest("button"); if (!b) return; if (REPLAY) { REPLAY.stop = true; } cur = b.dataset.k; try { localStorage.setItem("simDept", cur); } catch (x) {} sub = "pos"; render(); play(); });
 $("sub").addEventListener("click", e => { const b = e.target.closest("button"); if (!b) return; sub = b.dataset.s; render(); });
 $("lev").addEventListener("change", render);
 load(); setInterval(load, 60000);
+if (document.documentElement.classList.contains("embed")) setInterval(() => { try { parent.postMessage({ simH: document.documentElement.scrollHeight }, "*"); } catch (e) {} }, 700);
 </script>
 </body>
 </html>

@@ -180,9 +180,9 @@ footer{font-size:13px;color:var(--dim);border-top:1px dashed var(--line);padding
       <a href="#war" data-v="war">戰情室</a>
       <a href="#coins" data-v="coins">能做的幣</a>
       <a href="#gn" data-v="gn">黃金・那指</a>
+      <a href="#sim" data-v="sim">模擬器</a>
       <a href="#crew" data-v="crew">工作室</a>
       <a href="#log" data-v="log">會議紀錄</a>
-      <a href="sim.html">模擬器 ↗</a>
     </nav>
     <div class="ticker" id="ticker"></div>
   </header>
@@ -283,6 +283,12 @@ footer{font-size:13px;color:var(--dim);border-top:1px dashed var(--line);padding
       <div class="tbl"><table><thead><tr><th>商品</th><th>開盤</th><th>方向</th><th>進場</th><th>停損</th><th>目標</th><th>出場</th><th>原因</th><th>結果</th><th>若開 500 倍</th></tr></thead><tbody id="fbBody"></tbody></table></div>
       <p class="note">「若開 500 倍」＝同一筆單用 500 倍的結果（占保證金）：反向約 0.1% 就爆倉（−100%），手續費按名目收、來回約吃掉保證金 50%。</p>
     </section>
+  </main>
+
+  <!-- 模擬器（11/06）-->
+  <main class="view" id="v-sim" hidden>
+    <p class="note" style="margin:0">各部門的虛擬帳戶做成交易所畫面：持倉、委託、歷史，右上「執行過程」會播出機器人每一輪怎麼判斷；按「▶ 重播最近 5 筆」可以看每筆單從開倉到平倉的過程。<a href="sim.html" target="_blank" rel="noopener">另開全螢幕 ↗</a></p>
+    <iframe id="simFrame" title="部門交易模擬器" src="sim.html?embed=1&amp;theme=dark" style="width:100%;height:1400px;border:1px solid var(--line);border-radius:12px;background:#0b0d12" loading="lazy"></iframe>
   </main>
 
   <!-- 指揮艙 -->
@@ -759,7 +765,8 @@ function renderGN() {
     ...(F.closed || []).slice(0, 60).map(t => `<tr><td>${esc(t.sym)}</td><td>${esc(t.session)} ${tw(t.t)}</td><td>${sd(t.side === "long" ? 1 : -1)}</td><td class="n">${fmtP(t.e)}</td><td class="n dn">${fmtP(t.stop)}</td><td class="n up">${fmtP(t.target)}</td><td class="n">${fmtP(t.x)}</td><td>${esc(t.why)}</td><td class="n ${t.R > 0 ? "up" : "dn"}">${rTxt(t.R)}</td><td>${lv5(t)}</td></tr>`)];
   $("fbBody").innerHTML = fr.join("") || `<tr><td colspan="10" class="empty">11/02 開始，等第一個開盤訊號。</td></tr>`;
 }
-const VIEWS = ["war", "coins", "gn", "crew", "log"];
+const VIEWS = ["war", "coins", "gn", "sim", "crew", "log"];
+window.addEventListener("message", e => { if (e.data && e.data.simH && $("simFrame")) $("simFrame").style.height = Math.max(900, e.data.simH + 20) + "px"; });
 function route() { const v = VIEWS.includes(location.hash.slice(1)) ? location.hash.slice(1) : "war";
   VIEWS.forEach(k => { $("v-" + k).hidden = k !== v; }); document.querySelectorAll(".tabs a").forEach(a => a.setAttribute("aria-current", a.dataset.v === v ? "page" : "false")); shipOn = v === "crew"; }
 window.addEventListener("hashchange", route);
