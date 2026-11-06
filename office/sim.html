@@ -1,0 +1,253 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>部門交易模擬器</title>
+<meta name="robots" content="noindex,nofollow">
+<link rel="icon" href="data:,">
+<style>
+:root{--bg:#f5f6f8;--card:#fff;--ink:#16181d;--muted:#7c828d;--line:#eceef1;--soft:#f3f4f6;--green:#0ab84f;--red:#ef4d63;--greenS:#e6f7ec;--redS:#fde9ec;--blue:#2a6df5;--warn:#e88a00;--term:#0d1117;--termInk:#c9d1d9}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0b0d12;--card:#151821;--ink:#eef0f4;--muted:#8b93a3;--line:#232836;--soft:#1c2030;--greenS:#0f2a1a;--redS:#2c1218}}
+:root[data-theme="dark"]{--bg:#0b0d12;--card:#151821;--ink:#eef0f4;--muted:#8b93a3;--line:#232836;--soft:#1c2030;--greenS:#0f2a1a;--redS:#2c1218}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 -apple-system,BlinkMacSystemFont,"PingFang TC","Noto Sans TC","Microsoft JhengHei",sans-serif;font-variant-numeric:tabular-nums}
+.wrap{max-width:1100px;margin:0 auto;padding:12px 16px 40px;display:grid;gap:12px}
+.wrap>*{min-width:0}
+header{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+header h1{margin:0;font-size:19px;font-weight:800}
+header a{color:var(--blue);font-size:14px;text-decoration:none}
+.tabs{display:flex;gap:8px;overflow-x:auto;padding-bottom:2px;scrollbar-width:none}
+.tabs button{flex:none;font:700 14px inherit;font-family:inherit;padding:7px 14px;border-radius:99px;border:1px solid var(--line);background:var(--card);color:var(--muted);cursor:pointer}
+.tabs button[aria-pressed="true"]{background:var(--ink);color:var(--card);border-color:var(--ink)}
+.tabs button .dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-left:6px;vertical-align:1px;background:var(--muted)}
+.tabs button .dot.on{background:var(--green)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px;min-width:0}
+.top{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:12px}
+@media (max-width:760px){.top{grid-template-columns:1fr}}
+.pair{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.pair b{font-size:24px;font-weight:900;letter-spacing:.01em}
+.chg{font-weight:700}
+.up{color:var(--green)}.dn{color:var(--red)}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:14px;margin-top:8px}
+.kv dt{color:var(--muted);border-bottom:1px dashed var(--line)}.kv dd{margin:0;text-align:right;font-weight:600}
+.rules{font-size:13px;color:var(--muted);margin:10px 0 0;line-height:1.6}
+.lev{display:flex;align-items:center;gap:8px;margin-top:10px;font-size:14px;flex-wrap:wrap}
+.lev select{font:inherit;font-weight:700;padding:4px 8px;border-radius:8px;border:1px solid var(--line);background:var(--soft);color:var(--ink)}
+.term{background:var(--term);color:var(--termInk);border-radius:12px;padding:12px 14px;font:13px/1.65 ui-monospace,SFMono-Regular,Menlo,Consolas,"PingFang TC",monospace;height:330px;overflow:auto}
+.term .t{color:#6e7681}.term .ok{color:#3fb950}.term .no{color:#f85149}.term .hi{color:#e3b341}.term .cy{color:#58a6ff}
+.term .cur::after{content:"▌";animation:blink 1s steps(1) infinite;color:#58a6ff}
+@keyframes blink{50%{opacity:0}}
+@media (prefers-reduced-motion:reduce){.term .cur::after{animation:none}}
+.subtabs{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.subtabs button{font:700 15px inherit;font-family:inherit;padding:7px 16px;border-radius:99px;border:1px solid var(--line);background:var(--card);color:var(--muted);cursor:pointer}
+.subtabs button[aria-pressed="true"]{background:var(--soft);color:var(--ink);border-color:var(--soft)}
+.list{display:grid;gap:0}
+.pos{padding:14px 0;border-top:1px solid var(--line);display:grid;gap:10px}
+.pos:first-child{border-top:0}
+.ph{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;flex-wrap:wrap}
+.ph b{font-size:18px;font-weight:900}
+.tags{display:flex;gap:6px;margin-top:4px;flex-wrap:wrap}
+.tag{font-size:13px;font-weight:700;padding:1px 8px;border-radius:6px;background:var(--soft)}
+.tag.long{background:var(--greenS);color:var(--green)}.tag.short{background:var(--redS);color:var(--red)}
+.pnl{text-align:right}
+.pnl span{font-size:12px;color:var(--muted);border-bottom:1px dashed var(--line)}
+.pnl b{display:block;font-size:22px;font-weight:800}
+.grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px 10px}
+.grid3 div{display:grid}
+.grid3 span{font-size:12px;color:var(--muted)}
+.grid3 b{font-size:16px;font-weight:700;overflow-wrap:anywhere}
+.grid3 div:nth-child(3n){text-align:right}
+.warnline{font-size:13px;font-weight:700;color:var(--red);background:var(--redS);border-radius:8px;padding:6px 10px}
+.okline{font-size:13px;color:var(--muted);background:var(--soft);border-radius:8px;padding:6px 10px}
+.empty{color:var(--muted);padding:18px 0;text-align:center}
+.hist{width:100%;border-collapse:collapse;font-size:14px}
+.hist th{font-size:12px;color:var(--muted);text-align:left;font-weight:600;padding:6px 6px;border-bottom:1px solid var(--line);white-space:nowrap}
+.hist td{padding:8px 6px;border-bottom:1px solid var(--line);white-space:nowrap}
+.tw{overflow-x:auto}
+.foot{font-size:12px;color:var(--muted)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>部門交易模擬器</h1>
+    <a href="./">← 群星指揮艙</a>
+  </header>
+  <nav class="tabs" id="tabs" aria-label="部門"></nav>
+  <section class="top">
+    <div class="card">
+      <div class="pair"><b id="gName">—</b><span class="chg" id="gChg"></span></div>
+      <dl class="kv" id="acct"></dl>
+      <div class="lev"><label for="lev">顯示槓桿</label><select id="lev"><option>5</option><option selected>10</option><option>20</option><option>50</option><option>100</option><option>200</option><option>500</option></select><span class="foot">只影響「保證金、強平價、風險率」怎麼算（劇本單用它自己寫的槓桿）；每筆實際風險固定是本金 1%</span></div>
+      <p class="rules" id="rules"></p>
+    </div>
+    <div class="card" style="display:grid;gap:8px">
+      <div style="display:flex;justify-content:space-between;align-items:center"><b>執行過程</b><span class="foot" id="runAt"></span></div>
+      <div class="term" id="term" aria-live="polite"></div>
+    </div>
+  </section>
+  <section class="card" style="display:grid;gap:8px">
+    <div class="subtabs" id="sub"></div>
+    <div id="body"></div>
+  </section>
+  <p class="foot">全部是虛擬單（每個部門一個 10,000 USDT 的模擬帳戶，每筆最多賠本金 1%），由雲端機器人每 5 分鐘自動執行；標記價格每 5 分鐘更新，加密貨幣持倉另外接 Binance 即時標記價。不是投資建議。</p>
+</div>
+<script>
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const fmt = (p, d) => { if (p == null || !isFinite(p)) return "—"; const a = Math.abs(p); d = d ?? (a >= 1000 ? 2 : a >= 10 ? 3 : a >= 1 ? 4 : a >= 0.01 ? 5 : 7); return (+p).toLocaleString("en-US", { minimumFractionDigits: d, maximumFractionDigits: d }); };
+const usd = v => (v == null || !isFinite(v)) ? "—" : (+v).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const tw = t => t ? new Date(t).toLocaleString("zh-TW", { timeZone: "Asia/Taipei", hour12: false, month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" }) : "—";
+const hm = t => new Date(t).toLocaleTimeString("zh-TW", { timeZone: "Asia/Taipei", hour12: false, hour: "2-digit", minute: "2-digit" });
+const ACC = 10000, MMR = 0.005;
+const DEPTS = [
+  { key: "A", name: "波段 A", get: B => B, rules: "4 小時 K 突破 55 根新高才做多，且要：BTC 日線在 EMA50 之上、該幣 20 天漲幅前 10 名、4h 在 EMA200 之上。停損 2 倍 ATR，跌破前 27 根低點出場。" },
+  { key: "b", name: "波段 B", get: B => B.b, rules: "進場同波段 A；漲到 1R 先平 1/3，剩下停損移到成本。" },
+  { key: "intra", name: "日內", get: B => B.intra, rules: "15 分 K 突破 48 小時新高＋同濾網＋量能放大、收在 K 棒上半段；台灣 04:00 後不進場、08:00 平倉。" },
+  { key: "intra2", name: "日內 B", get: B => B.intra2, rules: "同日內，只做日均成交額 ≥5 億 U 的大幣。" },
+  { key: "intra3", name: "日內 C", get: B => B.intra3, rules: "同日內 B，加上 FOMC／CPI／非農公布前後 4 小時不開新單。" },
+  { key: "scen", name: "劇本單", get: B => B.scen, rules: "盤前室（東京／倫敦／紐約）AI 劇本員寫劇本、下單員照劇本掛單，可多可空；每筆固定賠本金 1%。" },
+  { key: "fib", name: "斐波下單員", get: B => B.fib, rules: "黃金、那指在各開盤：開盤前 2 小時區間，破區間後在 -0.5 反向掛單、停損 -1.0、目標回到 0 線；最多抱 4 小時。（回測扣成本不賺，實驗觀察組）" },
+  { key: "gnSwing", name: "黃金波段", get: B => B.gnSwing, rules: "黃金 4h 收盤突破 55 根新高（在 EMA200 之上）做多、跌破新低（在 EMA200 之下）做空；停損 2ATR。（觀察組）" },
+];
+let BOT = null, INTEL = {}, cur = "A", sub = "pos", live = {}, ws = null, typing = null;
+try { cur = localStorage.getItem("simDept") || "A"; } catch (e) {}
+
+function norm(p, dept) {
+  const side = p.side || (p.dir < 0 ? "short" : "long"), dir = side === "short" ? -1 : 1;
+  const e = p.e ?? p.entry, stop = p.stop, sym = p.base || p.sym, r = p.r ?? Math.abs(e - stop);
+  return { ...p, side, dir, e, stop, sym, r, target: p.target, lev0: p.lev, t: p.t };
+}
+function equityOf(G) { return ACC * (G && G.equity != null ? G.equity : 1); }
+function sizing(p, G) {
+  const risk = (p.amt != null ? p.amt : 0.01 * (G && G.equity || 1)) * ACC; // 這筆最多賠多少 USDT
+  const qty = p.r > 0 ? risk / p.r : 0, notional = qty * p.e;
+  return { risk, qty, notional };
+}
+function markOf(p) { const k = (p.sym || "").toUpperCase(); return live[k] ?? p.cur ?? p.e; }
+function posCard(p0, G) {
+  const p = norm(p0), L = p.lev0 || +$("lev").value, s = sizing(p, G), mk = markOf(p);
+  const margin = s.notional / L, pnl = p.dir * (mk - p.e) * s.qty + (p.real ? p.real * s.risk : 0), pnlPct = margin > 0 ? pnl / margin * 100 : 0;
+  const liq = p.dir > 0 ? p.e * (1 - 1 / L + MMR) : p.e * (1 + 1 / L - MMR);
+  const liqFirst = p.dir > 0 ? liq >= p.stop : liq <= p.stop;
+  const riskRate = margin > 0 ? Math.max(0, (s.notional * MMR) / (margin + pnl) * 100) : 0;
+  const isCrypto = !/黃金|那指/.test(p.sym);
+  return `<div class="pos">
+    <div class="ph"><div><b>${esc(p.sym)}${isCrypto ? "USDT" : ""}</b><div class="tags"><span class="tag ${p.side}">${p.dir > 0 ? "多" : "空"}</span><span class="tag">逐倉</span><span class="tag">${L}x</span>${p.took ? `<span class="tag">已先平 1/3</span>` : ""}${p.session ? `<span class="tag">${esc(p.session)}</span>` : ""}</div></div>
+      <div class="pnl"><span>未實現盈虧 (USDT)</span><b class="${pnl >= 0 ? "up" : "dn"}">${pnl >= 0 ? "+" : ""}${usd(pnl)} <small style="font-size:15px">(${pnlPct >= 0 ? "+" : ""}${pnlPct.toFixed(2)}%)</small></b></div></div>
+    <div class="grid3">
+      <div><span>持倉 (USDT)</span><b>${usd(s.notional)}</b></div><div><span>保證金 (USDT)</span><b>${usd(margin)}</b></div><div><span>風險率</span><b class="${riskRate > 80 ? "dn" : "up"}">${riskRate.toFixed(2)}%</b></div>
+      <div><span>開倉均價</span><b>${fmt(p.e)}</b></div><div><span>標記價格</span><b>${fmt(mk)}</b></div><div><span>預估強平價</span><b class="${liqFirst ? "dn" : "up"}">${fmt(liq)}</b></div>
+      <div><span>止損</span><b class="dn">${fmt(p.stop)}</b></div><div><span>止盈</span><b class="up">${p.target != null ? fmt(p.target) : "跟著通道走"}</b></div><div><span>開倉時間</span><b>${tw(p.t)}</b></div>
+    </div>
+    ${liqFirst ? `<div class="warnline">⚠️ ${L} 倍時，強平價 ${fmt(liq)} 比止損 ${fmt(p.stop)} 還近：價格還沒到止損就會先爆倉，損失整筆保證金。</div>` : `<div class="okline">這筆最多賠 ${usd(s.risk)} USDT（本金約 1%）；${L} 倍下強平價在止損外面，安全。</div>`}
+  </div>`;
+}
+function orders(dk, G) {
+  if (dk === "scen") return Object.values(G.waiting || {});
+  if (dk === "fib") return (G.plan || []).map(p => ({ sym: p.sym, session: p.session, plan: p }));
+  return [];
+}
+function orderCard(o, dk) {
+  if (o.plan) { const p = o.plan; return `<div class="pos"><div class="ph"><div><b>${esc(p.sym)}</b><div class="tags"><span class="tag">${esc(p.session)} ${hm(p.T)}</span><span class="tag">${p.building ? "盤前・區間形成中" : p.armed ? (p.armed === "long" ? "已跌破・等多單" : "已突破・等空單") : "開盤中・等破區間"}</span></div></div></div>
+    <div class="grid3"><div><span>區間高</span><b>${fmt(p.H)}</b></div><div><span>區間低</span><b>${fmt(p.L)}</b></div><div><span>&nbsp;</span><b></b></div>
+    <div><span>多單掛單價</span><b class="up">${fmt(p.longE)}</b></div><div><span>多單止損</span><b class="dn">${fmt(p.longS)}</b></div><div><span>目標</span><b>${fmt(p.L)}</b></div>
+    <div><span>空單掛單價</span><b class="dn">${fmt(p.shortE)}</b></div><div><span>空單止損</span><b class="dn">${fmt(p.shortS)}</b></div><div><span>目標</span><b>${fmt(p.H)}</b></div></div></div>`; }
+  const d = o.side === "short" ? -1 : 1, L = o.lev || +$("lev").value, liq = d > 0 ? o.entry * (1 - 1 / L + MMR) : o.entry * (1 + 1 / L - MMR), liqFirst = d > 0 ? liq >= o.stop : liq <= o.stop;
+  const rr = Math.abs(o.target - o.entry) / Math.abs(o.entry - o.stop);
+  return `<div class="pos"><div class="ph"><div><b>${esc(o.base)}USDT</b><div class="tags"><span class="tag ${o.side}">${d > 0 ? "限價開多" : "限價開空"}</span><span class="tag">${L}x</span><span class="tag">型態 ${esc(o.pattern)}</span><span class="tag">${esc(o.session)}</span></div></div>
+    <div class="pnl"><span>有效</span><b style="font-size:16px">${o.expireH} 小時</b></div></div>
+    <div class="grid3"><div><span>委託價</span><b>${fmt(o.entry)}</b></div><div><span>止損</span><b class="dn">${fmt(o.stop)}</b></div><div><span>止盈</span><b class="up">${fmt(o.target)}</b></div>
+    <div><span>報酬風險比</span><b>${rr.toFixed(2)}</b></div><div><span>預估強平價</span><b class="${liqFirst ? "dn" : "up"}">${fmt(liq)}</b></div><div><span>現價</span><b>${fmt(markOf({ sym: o.base, cur: null, e: o.entry }))}</b></div></div>
+    <div class="okline">${esc((o.reason || "").slice(0, 160))}${(o.reason || "").length > 160 ? "…" : ""}</div></div>`;
+}
+function histRows(G) {
+  const C = (G.closed || []).slice(0, 80);
+  if (!C.length) return `<div class="empty">還沒有結束的單</div>`;
+  return `<div class="tw"><table class="hist"><thead><tr><th>幣種</th><th>方向</th><th>開倉</th><th>平倉</th><th>開倉價</th><th>平倉價</th><th>原因</th><th>盈虧</th></tr></thead><tbody>${C.map(t0 => { const t = norm(t0), usdv = t.R * 0.01 * ACC;
+    return `<tr><td><b>${esc(t.sym)}</b></td><td><span class="tag ${t.side}">${t.dir > 0 ? "多" : "空"}</span></td><td>${tw(t.t)}</td><td>${tw(t.tx)}</td><td>${fmt(t.e)}</td><td>${fmt(t.x)}</td><td>${esc(t.why)}</td><td class="${t.R > 0 ? "up" : t.R < 0 ? "dn" : ""}"><b>${t.R > 0 ? "+" : ""}${(+t.R).toFixed(2)}R</b><br><small>${usdv >= 0 ? "+" : ""}${usd(usdv)}</small></td></tr>`; }).join("")}</tbody></table></div>`;
+}
+function render() {
+  if (!BOT) return;
+  $("tabs").innerHTML = DEPTS.map(d => { const G = d.get(BOT) || {}; const n = (G.open || []).length + Object.keys(G.waiting || {}).length; return `<button type="button" data-k="${d.key}" aria-pressed="${d.key === cur}">${d.name}<span class="dot ${n ? "on" : ""}"></span></button>`; }).join("");
+  const D = DEPTS.find(d => d.key === cur) || DEPTS[0], G = D.get(BOT) || { open: [], closed: [], stats: {} }, st = G.stats || {};
+  const eq = equityOf(G), ret = (eq / ACC - 1) * 100;
+  const opens = (G.open || []).map(p => norm(p)), used = opens.reduce((a, p) => a + sizing(p, G).notional / +$("lev").value, 0);
+  const upnl = opens.reduce((a, p) => a + p.dir * (markOf(p) - p.e) * sizing(p, G).qty, 0);
+  $("gName").textContent = D.name;
+  $("gChg").innerHTML = `<span class="${ret >= 0 ? "up" : "dn"}">${ret >= 0 ? "+" : ""}${ret.toFixed(2)}%</span>`;
+  $("acct").innerHTML = `<dt>帳戶權益</dt><dd>${usd(eq + upnl)} USDT</dd><dt>可用</dt><dd>${usd(eq - used)} USDT</dd><dt>未實現盈虧</dt><dd class="${upnl >= 0 ? "up" : "dn"}">${upnl >= 0 ? "+" : ""}${usd(upnl)}</dd><dt>已結束</dt><dd>${st.n || 0} 筆・勝率 ${st.n ? st.win + "%" : "—"}・合計 ${st.n ? ((st.sumR > 0 ? "+" : "") + (+st.sumR).toFixed(2) + "R") : "—"}</dd>`;
+  $("rules").textContent = D.rules;
+  const ords = orders(cur, G);
+  $("sub").innerHTML = [["pos", `持倉 (${opens.length})`], ["ord", `委託 (${ords.length})`], ["his", `歷史 (${(G.closed || []).length})`]].map(([k, l]) => `<button type="button" data-s="${k}" aria-pressed="${k === sub}">${l}</button>`).join("");
+  $("body").innerHTML = sub === "pos" ? (opens.length ? `<div class="list">${(G.open || []).map(p => posCard(p, G)).join("")}</div>` : `<div class="empty">目前沒有持倉。看右上「執行過程」可以知道機器人為什麼還沒進場。</div>`)
+    : sub === "ord" ? (ords.length ? `<div class="list">${ords.map(o => orderCard(o, cur)).join("")}</div>` : `<div class="empty">${cur === "scen" || cur === "fib" ? "目前沒有掛單" : "這個部門是收盤確認後直接市價進場，不掛單"}</div>`)
+    : histRows(G);
+}
+// ===== 執行過程：把機器人這一輪的判斷一步一步播出來 =====
+function steps() {
+  const B = BOT, m = B.market || {}, D = DEPTS.find(d => d.key === cur), G = D.get(B) || {}, out = [], up = m.btcUp;
+  const at = B.updated ? hm(B.updated) : "—";
+  out.push(`<span class="t">[${at}]</span> 雲端機器人啟動，讀取 BingX 行情…`);
+  const flt = () => { out.push(`<span class="t">[${at}]</span> 檢查大盤：BTC <span class="cy">${fmt(m.btc)}</span> vs 日線 EMA50 <span class="cy">${fmt(m.btcE50)}</span> → ${up ? '<span class="ok">✓ 在上方，可以做多</span>' : '<span class="no">✗ 在下方，暫停做多</span>'}`); };
+  const top = () => out.push(`<span class="t">[${at}]</span> 20 天漲幅前 10 名：<span class="hi">${(m.top || []).join("、") || "（沒有正報酬的幣）"}</span>`);
+  if (["A", "b"].includes(cur)) {
+    flt(); top();
+    (B.watch || []).slice(0, 8).forEach(w => out.push(`<span class="t">[${at}]</span> 掃描 <span class="cy">${esc(w.base)}</span>：現價 ${fmt(w.cur)}，55 根新高 ${fmt(w.brk)}，還差 ${w.dist}% → ${w.dist <= 0 ? '<span class="ok">已突破</span>' : '<span class="no">未突破</span>'}${w.ema200 ? "" : "（在 EMA200 下）"}`));
+    if (!(B.watch || []).length) out.push(`<span class="t">[${at}]</span> 沒有幣同時符合「強勢＋在 EMA200 之上」`);
+  } else if (cur.startsWith("intra")) {
+    flt(); top();
+    const h = +new Date().toLocaleString("en-US", { timeZone: "Asia/Taipei", hour: "numeric", hour12: false });
+    out.push(`<span class="t">[${at}]</span> 現在台灣 ${h} 點 → ${h >= 4 && h < 8 ? '<span class="no">04:00～08:00 不進場</span>' : '<span class="ok">可進場時段</span>'}`);
+    out.push(`<span class="t">[${at}]</span> 逐一檢查強勢幣的 15 分 K：有沒有收盤突破過去 48 小時高點、量能 >1.5 倍、收在上半段…`);
+    if (cur === "intra2") out.push(`<span class="t">[${at}]</span> 只留日均成交額 ≥5 億 U 的大幣`);
+    if (cur === "intra3") out.push(`<span class="t">[${at}]</span> 檢查重大數據窗口（FOMC／CPI／非農前後 4 小時）`);
+  } else if (cur === "scen") {
+    const sc = (INTEL.scenarios || [])[0];
+    if (sc) { out.push(`<span class="t">[${esc(sc.time || "")}]</span> 盤前室開會：<span class="hi">${esc(sc.sessionName || sc.session)}</span>`); out.push(`<span class="t">  </span> 劇本員：${esc((sc.text || "").slice(0, 140))}`); (sc.plans || []).slice(0, 4).forEach(p => out.push(`<span class="t">  </span> <span class="cy">${esc(p.name)}</span>：若 ${esc(p.if)} → ${esc(p.then)}`)); }
+    const w = Object.values(G.waiting || {}); out.push(`<span class="t">[${at}]</span> 下單員：目前掛單 ${w.length} 筆`); w.slice(0, 4).forEach(o => out.push(`<span class="t">  </span> ${o.side === "short" ? '<span class="no">空</span>' : '<span class="ok">多</span>'} ${esc(o.base)} @ ${fmt(o.entry)}（損 ${fmt(o.stop)}／利 ${fmt(o.target)}，${o.lev || "—"}x）`));
+    out.push(`<span class="t">[${at}]</span> 機器人每 5 分鐘檢查：價格有沒有碰到委託價、止損、止盈，或掛單過期`);
+  } else if (cur === "fib") {
+    out.push(`<span class="t">[${at}]</span> 讀取黃金、那指 15 分 K（週末休市不做）`);
+    (G.plan || []).forEach(p => out.push(`<span class="t">  </span> ${esc(p.sym)} ${esc(p.session)}：區間 ${fmt(p.L)}～${fmt(p.H)} → 多單掛 <span class="ok">${fmt(p.longE)}</span>、空單掛 <span class="no">${fmt(p.shortE)}</span>`));
+    if (!(G.plan || []).length) out.push(`<span class="t">[${at}]</span> 現在不在開盤時段，等下一個開盤前 2 小時`);
+  } else if (cur === "gnSwing") {
+    const w = G.watch; if (w) { out.push(`<span class="t">[${at}]</span> 黃金現價 <span class="cy">${fmt(w.cur)}</span>，4h EMA200 ${fmt(w.ema200)} → ${w.above ? '<span class="ok">在上方：只等做多</span>' : '<span class="no">在下方：只等做空</span>'}`); out.push(`<span class="t">  </span> 做多觸發：收盤站上 ${fmt(w.brkUp)}｜做空觸發：收盤跌破 ${fmt(w.brkDn)}`); }
+  }
+  const op = (G.open || []).map(p => norm(p));
+  out.push(`<span class="t">[${at}]</span> 管理持倉：${op.length} 張${op.length ? "（" + op.map(p => `${p.sym} ${p.dir > 0 ? "多" : "空"}`).join("、") + "）" : ""}`);
+  op.forEach(p => { const mk = markOf(p), R = p.dir * (mk - p.e) / p.r; out.push(`<span class="t">  </span> ${esc(p.sym)}：現價 ${fmt(mk)}，止損 ${fmt(p.stop)} → ${R >= 0 ? '<span class="ok">' : '<span class="no">'}${R >= 0 ? "+" : ""}${R.toFixed(2)}R</span>，繼續持有`); });
+  out.push(`<span class="t">[${at}]</span> 完成。下一輪約 5 分鐘後`);
+  return out;
+}
+function play() {
+  clearInterval(typing); const lines = steps(), term = $("term"); term.innerHTML = ""; let i = 0;
+  const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (reduce) { term.innerHTML = lines.map(l => `<div>${l}</div>`).join(""); return; }
+  typing = setInterval(() => { term.querySelectorAll(".cur").forEach(e => e.classList.remove("cur")); if (i >= lines.length) { clearInterval(typing); return; } const div = document.createElement("div"); div.innerHTML = lines[i++]; div.classList.add("cur"); term.appendChild(div); term.scrollTop = term.scrollHeight; }, 420);
+  $("runAt").textContent = BOT.updated ? `本輪 ${hm(BOT.updated)}` : "";
+}
+// ===== 即時標記價（加密貨幣持倉，Binance 永續）=====
+function connect() {
+  const syms = new Set(); DEPTS.forEach(d => { const G = d.get(BOT) || {}; (G.open || []).forEach(p => { const s = norm(p).sym; if (s && !/黃金|那指/.test(s)) syms.add(s.toLowerCase() + "usdt"); }); Object.values(G.waiting || {}).forEach(o => syms.add(o.base.toLowerCase() + "usdt")); });
+  if (ws) { try { ws.close(); } catch (e) {} ws = null; }
+  if (!syms.size) return;
+  try { ws = new WebSocket("wss://fstream.binance.com/stream?streams=" + [...syms].map(s => s + "@markPrice@1s").join("/"));
+    ws.onmessage = ev => { const d = JSON.parse(ev.data).data; if (!d) return; live[d.s.replace(/USDT$/, "")] = +d.p; };
+  } catch (e) {}
+}
+setInterval(() => { if (BOT && sub !== "his") render(); }, 2000);
+async function load() {
+  try { const [a, b] = await Promise.all([fetch("../bot.json?t=" + Math.floor(Date.now() / 6e4), { cache: "no-store" }), fetch("../intel.json?t=" + Math.floor(Date.now() / 6e4), { cache: "no-store" })]);
+    const nb = await a.json(); try { INTEL = await b.json(); } catch (e) {}
+    const changed = !BOT || nb.updated !== BOT.updated; BOT = nb; render(); if (changed) { play(); connect(); }
+  } catch (e) { $("term").innerHTML = `<div class="no">暫時讀不到機器人資料，稍後自動重試</div>`; }
+}
+$("tabs").addEventListener("click", e => { const b = e.target.closest("button"); if (!b) return; cur = b.dataset.k; try { localStorage.setItem("simDept", cur); } catch (x) {} sub = "pos"; render(); play(); });
+$("sub").addEventListener("click", e => { const b = e.target.closest("button"); if (!b) return; sub = b.dataset.s; render(); });
+$("lev").addEventListener("change", render);
+load(); setInterval(load, 60000);
+</script>
+</body>
+</html>
