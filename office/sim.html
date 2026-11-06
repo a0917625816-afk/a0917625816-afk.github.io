@@ -67,6 +67,8 @@ header a{color:var(--blue);font-size:14px;text-decoration:none}
 .hist td{padding:8px 6px;border-bottom:1px solid var(--line);white-space:nowrap}
 .tw{overflow-x:auto}
 .foot{font-size:12px;color:var(--muted)}
+#board tr[data-k]{cursor:pointer}#board tr[data-k]:hover td{background:var(--soft)}#board tr.sel td{background:var(--soft)}
+.badge{font-size:11px;font-weight:700;padding:1px 7px;border-radius:99px;background:var(--soft);color:var(--muted)}.badge.g{background:var(--greenS);color:var(--green)}.badge.r{background:var(--redS);color:var(--red)}
 .embed header{display:none}.embed .wrap{padding-top:4px}
 .rbtn{font:700 13px inherit;font-family:inherit;padding:5px 12px;border-radius:99px;border:1px solid var(--blue);background:var(--blue);color:#fff;cursor:pointer}
 .rbtn.stop{background:transparent;color:var(--blue)}
@@ -79,6 +81,10 @@ header a{color:var(--blue);font-size:14px;text-decoration:none}
     <h1>部門交易模擬器</h1>
     <a href="./">← 群星指揮艙</a>
   </header>
+  <section class="card" style="display:grid;gap:6px">
+    <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap"><b>部門排行</b><span class="foot">先比平均每筆賺幾 R（期望值），再比勝率；未滿 15 筆的「樣本不足」，排名僅供參考。點一列可切換部門</span></div>
+    <div class="tw"><table class="hist" id="board"></table></div>
+  </section>
   <nav class="tabs" id="tabs" aria-label="部門"></nav>
   <section class="top">
     <div class="card">
@@ -173,8 +179,18 @@ function histRows(G) {
   return `<div class="tw"><table class="hist"><thead><tr><th>幣種</th><th>方向</th><th>開倉</th><th>平倉</th><th>開倉價</th><th>平倉價</th><th>原因</th><th>盈虧</th></tr></thead><tbody>${C.map(t0 => { const t = norm(t0), usdv = t.R * 0.01 * ACC;
     return `<tr><td><b>${esc(t.sym)}</b></td><td><span class="tag ${t.side}">${t.dir > 0 ? "多" : "空"}</span></td><td>${tw(t.t)}</td><td>${tw(t.tx)}</td><td>${fmt(t.e)}</td><td>${fmt(t.x)}</td><td>${esc(t.why)}</td><td class="${t.R > 0 ? "up" : t.R < 0 ? "dn" : ""}"><b>${t.R > 0 ? "+" : ""}${(+t.R).toFixed(2)}R</b><br><small>${usdv >= 0 ? "+" : ""}${usd(usdv)}</small></td></tr>`; }).join("")}</tbody></table></div>`;
 }
+function board() {
+  const rows = DEPTS.map(d => { const G = d.get(BOT) || {}, C = (G.closed || []).filter(t => t.R != null && t.why !== "未成交過期" && t.why !== "拒單");
+    const n = C.length, w = C.filter(t => t.R > 0).length, sum = C.reduce((a, t) => a + +t.R, 0);
+    let eq = 0, pk = 0, dd = 0, streak = 0, ms = 0; [...C].reverse().forEach(t => { eq += +t.R; pk = Math.max(pk, eq); dd = Math.max(dd, pk - eq); streak = t.R < 0 ? streak + 1 : 0; ms = Math.max(ms, streak); });
+    const half = Math.floor(n / 2), late = C.slice(0, half), early = C.slice(half), avg = a => a.length ? a.reduce((x, t) => x + +t.R, 0) / a.length : 0;
+    return { d, n, win: n ? w / n * 100 : 0, avg: n ? sum / n : 0, sum, dd, ms, open: (G.open || []).length + Object.keys(G.waiting || {}).length, stable: n >= 15 && avg(early) > 0 && avg(late) > 0 }; });
+  rows.sort((a, b) => (b.n > 0) - (a.n > 0) || b.avg - a.avg || b.win - a.win);
+  $("board").innerHTML = `<thead><tr><th>#</th><th>部門</th><th>已結束</th><th>勝率</th><th>平均每筆</th><th>合計</th><th>最大回落</th><th>最多連虧</th><th>持倉/掛單</th><th>判定</th></tr></thead><tbody>${rows.map((r, i) => `<tr data-k="${r.d.key}" class="${r.d.key === cur ? "sel" : ""}"><td>${r.n ? i + 1 : "—"}</td><td><b>${esc(r.d.name)}</b></td><td>${r.n}</td><td>${r.n ? r.win.toFixed(0) + "%" : "—"}</td><td class="${r.avg > 0 ? "up" : r.avg < 0 ? "dn" : ""}"><b>${r.n ? (r.avg > 0 ? "+" : "") + r.avg.toFixed(2) + "R" : "—"}</b></td><td class="${r.sum > 0 ? "up" : r.sum < 0 ? "dn" : ""}">${r.n ? (r.sum > 0 ? "+" : "") + r.sum.toFixed(1) + "R" : "—"}</td><td>${r.n ? r.dd.toFixed(1) + "R" : "—"}</td><td>${r.n ? r.ms : "—"}</td><td>${r.open}</td><td>${!r.n ? '<span class="badge">還沒有單</span>' : r.n < 15 ? '<span class="badge">樣本不足</span>' : r.stable ? '<span class="badge g">穩定賺錢</span>' : r.avg > 0 ? '<span class="badge">賺但不穩</span>' : '<span class="badge r">虧損</span>'}</td></tr>`).join("")}</tbody>`;
+}
 function render() {
   if (!BOT) return;
+  board();
   $("tabs").innerHTML = DEPTS.map(d => { const G = d.get(BOT) || {}; const n = (G.open || []).length + Object.keys(G.waiting || {}).length; return `<button type="button" data-k="${d.key}" aria-pressed="${d.key === cur}">${d.name}<span class="dot ${n ? "on" : ""}"></span></button>`; }).join("");
   const D = DEPTS.find(d => d.key === cur) || DEPTS[0], G = D.get(BOT) || { open: [], closed: [], stats: {} }, st = G.stats || {};
   const RP = REPLAY && REPLAY.dept === cur ? REPLAY : null;
@@ -299,6 +315,7 @@ async function load() {
   } catch (e) { $("term").innerHTML = `<div class="no">暫時讀不到機器人資料，稍後自動重試</div>`; }
 }
 $("tabs").addEventListener("click", e => { const b = e.target.closest("button"); if (!b) return; if (REPLAY) { REPLAY.stop = true; } cur = b.dataset.k; try { localStorage.setItem("simDept", cur); } catch (x) {} sub = "pos"; render(); play(); });
+$("board").addEventListener("click", e => { const tr = e.target.closest("tr[data-k]"); if (!tr) return; if (REPLAY) REPLAY.stop = true; cur = tr.dataset.k; try { localStorage.setItem("simDept", cur); } catch (x) {} sub = "pos"; render(); play(); });
 $("sub").addEventListener("click", e => { const b = e.target.closest("button"); if (!b) return; sub = b.dataset.s; render(); });
 $("lev").addEventListener("change", render);
 load(); setInterval(load, 60000);
