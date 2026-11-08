@@ -118,6 +118,7 @@ const DEPTS = [
   { key: "intra", name: "日內", get: B => B.intra, rules: "15 分 K 突破 48 小時新高＋同濾網＋量能放大、收在 K 棒上半段；台灣 04:00 後不進場、08:00 平倉。" },
   { key: "intra2", name: "日內 B", get: B => B.intra2, rules: "同日內，只做日均成交額 ≥5 億 U 的大幣。" },
   { key: "intra3", name: "日內 C", get: B => B.intra3, rules: "同日內 B，加上 FOMC／CPI／非農公布前後 4 小時不開新單。" },
+  { key: "intra4", name: "日內 D", get: B => B.intra4, rules: "同日內（成交額 ≥1 億 U），但前一天 BTC 收盤「趨勢上」（高於日線 EMA50 達 3%、非恐慌）不開新單——追已經漲多的市場不划算（11/08 第十七輪審查通過）。" },
   { key: "scen", name: "劇本單", get: B => B.scen, rules: "盤前室（東京／倫敦／紐約）AI 劇本員寫劇本、下單員照劇本掛單，可多可空；每筆固定賠本金 1%。" },
   { key: "fib", name: "斐波下單員", get: B => B.fib, rules: "黃金、那指在各開盤：開盤前 2 小時區間，破區間後在 -0.5 反向掛單、停損 -1.0、目標回到 0 線；最多抱 4 小時。（回測扣成本不賺，實驗觀察組）" },
   { key: "gnSwing", name: "黃金波段", get: B => B.gnSwing, rules: "黃金 4h 收盤突破 55 根新高（在 EMA200 之上）做多、跌破新低（在 EMA200 之下）做空；停損 2ATR。（觀察組）" },
@@ -226,6 +227,7 @@ function steps() {
     out.push(`<span class="t">[${at}]</span> 逐一檢查強勢幣的 15 分 K：有沒有收盤突破過去 48 小時高點、量能 >1.5 倍、收在上半段…`);
     if (cur === "intra2") out.push(`<span class="t">[${at}]</span> 只留日均成交額 ≥5 億 U 的大幣`);
     if (cur === "intra3") out.push(`<span class="t">[${at}]</span> 檢查重大數據窗口（FOMC／CPI／非農前後 4 小時）`);
+    if (cur === "intra4") out.push(`<span class="t">[${at}]</span> 檢查 BTC 市場狀態：${m.state ? `<span class="hi">${esc(m.state)}</span>` : "—"} → ${m.state === "趨勢上" ? '<span class="no">趨勢上不開新單</span>' : '<span class="ok">可開單</span>'}`);
   } else if (cur === "scen") {
     const sc = (INTEL.scenarios || [])[0];
     if (sc) { out.push(`<span class="t">[${esc(sc.time || "")}]</span> 盤前室開會：<span class="hi">${esc(sc.sessionName || sc.session)}</span>`); out.push(`<span class="t">  </span> 劇本員：${esc((sc.text || "").slice(0, 140))}`); (sc.plans || []).slice(0, 4).forEach(p => out.push(`<span class="t">  </span> <span class="cy">${esc(p.name)}</span>：若 ${esc(p.if)} → ${esc(p.then)}`)); }

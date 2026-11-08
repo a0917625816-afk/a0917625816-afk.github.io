@@ -34,6 +34,9 @@ const closedBars = c => c.filter(x => x.t + H4 <= now);
 const lastDayClosed = c => c.filter(x => x.t + D1 <= now);
 const bD = lastDayClosed(D.BTC.d), bE = ema(bD.map(x => x.c), 50), bI = bD.length - 1;
 const btcUp = bD[bI].c > bE[bI];
+// 市場狀態（第十二／十六／十七輪定義，日內 D 用）：恐慌＝BTC 5 日報酬 ≤ −8% 或 ATR14/收盤 ≥ 4.5%；趨勢上＝非恐慌且收盤 > EMA50×1.03
+const bATR = atr(bD, 14), btcR5 = bI >= 5 ? bD[bI].c / bD[bI - 5].c - 1 : 0, btcAP = bATR[bI] / bD[bI].c;
+const btcPanic = btcR5 <= -0.08 || btcAP >= 0.045, btcTrendUp = !btcPanic && bD[bI].c > bE[bI] * 1.03;
 const mom = coins.map(b => { const d = lastDayClosed(D[b].d); return d.length > LB ? [b, d.at(-1).c / d.at(-1 - LB).c - 1] : [b, -9]; }).sort((x, y) => y[1] - x[1]);
 const top = new Set(mom.slice(0, TOPK).filter(x => x[1] > 0).map(x => x[0]));
 
@@ -127,13 +130,16 @@ const EV_WIN = 4 * 36e5, evBlock = t => EV_T.some(e => t >= e - EV_WIN && t < e 
 const I = st.intra = Object.assign({ equity: 1, open: [], closed: [], lastBar: 0, done: {} }, st.intra || {});
 const I2 = st.intra2 = Object.assign({ equity: 1, open: [], closed: [], lastBar: 0, done: {}, created: now }, st.intra2 || {});
 const I3 = st.intra3 = Object.assign({ equity: 1, open: [], closed: [], lastBar: 0, done: {}, created: now }, st.intra3 || {});
-const IGROUPS = [[I, LIQ_MIN, null], [I2, LIQ_MIN2, null], [I3, LIQ_MIN2, evBlock]];
+// 日內 D（11/08 第十七輪審查通過）：同日內（成交額 ≥1 億U），但前一天 BTC 收盤「趨勢上」（高於日線 EMA50 達 3%、非恐慌）不開新單
+const I4 = st.intra4 = Object.assign({ equity: 1, open: [], closed: [], lastBar: 0, done: {}, created: now }, st.intra4 || {});
+const trendBlk = () => btcTrendUp;
+const IGROUPS = [[I, LIQ_MIN, null, "日內"], [I2, LIQ_MIN2, null, "日內B"], [I3, LIQ_MIN2, evBlock, "日內C"], [I4, LIQ_MIN, trendBlk, "日內D"]];
 for (const [S] of IGROUPS) if (!S.lastBar) S.lastBar = Math.floor(now / M15) * M15 - 2 * M15; // 第一次執行不回補舊訊號
-const iNeed = new Set([...top, ...I.open.map(p => p.base), ...I2.open.map(p => p.base), ...I3.open.map(p => p.base)]);
+const iNeed = new Set([...top, ...I.open.map(p => p.base), ...I2.open.map(p => p.base), ...I3.open.map(p => p.base), ...I4.open.map(p => p.base)]);
 for (const b of iNeed) {
   let c; try { c = (await kl(b, "15m", 400)).filter(x => x.t + M15 <= now); } catch (e) { continue; } await sleep(80);
   if (c.length < IN + 20) continue; const a = atr(c, 14), v20 = sma(c.map(x => x.v), 20);
-  for (const [S, lmin, blk] of IGROUPS) for (let i = IN; i < c.length; i++) {
+  for (const [S, lmin, blk, nm] of IGROUPS) for (let i = IN; i < c.length; i++) {
     const bar = c[i], day = Math.floor(bar.t / D1), dayEnd = (day + 1) * D1;
     const p = S.open.find(q => q.base === b);
     if (p) {
@@ -152,8 +158,8 @@ for (const b of iNeed) {
     S.done[b] = day; // 每天只看當天第一次突破（跟回測一致）
     // 第四輪回測合格的品質濾網：突破那根量 > 前 20 根平均 1.5 倍，且收在 K 棒上方 40% 以內
     const rng = bar.h - bar.l; if (!(bar.v > 1.5 * v20[i]) || !(rng > 0 && (bar.c - bar.l) / rng >= 0.6)) continue;
-    if (blk && blk(bar.t + M15)) { console.log("日內C略過（重大事件前後 4 小時）", b); continue; }
-    const lv = await liqOf(b); if (!(lv >= lmin)) { console.log(S === I ? "日內略過（成交額不足）" : S === I2 ? "日內B略過（成交額不足）" : "日內C略過（成交額不足）", b, lv); continue; }
+    if (blk && blk(bar.t + M15)) { console.log(`${nm}略過（${S === I4 ? "BTC 趨勢上不開單" : "重大事件前後 4 小時"}）`, b); continue; }
+    const lv = await liqOf(b); if (!(lv >= lmin)) { console.log(`${nm}略過（成交額不足）`, b, lv); continue; }
     const e = i + 1 < c.length ? c[i + 1].o : bar.c, r = IK * a[i]; if (!(r > 0) || r / e < 0.002) continue;
     S.open.push({ base: b, t: bar.t + M15, e, r, stop: e - r, amt: S.equity * RISK, lastBar: bar.t, dayEnd, cur: bar.c, curR: 0 });
   }
@@ -475,7 +481,7 @@ try {
   } catch (e) { console.log("黃金波段觀察組略過", e.message); }
   st.gn = { updated: new Date().toISOString(), ...GN };
 } catch (e) { console.log("黃金那指資料略過（錯誤）", e.message); }
-st.market = { btcUp, btc: bD[bI].c, btcE50: +bE[bI].toFixed(1), top: [...top] };
+st.market = { btcUp, btc: bD[bI].c, btcE50: +bE[bI].toFixed(1), top: [...top], state: btcPanic ? "恐慌" : btcTrendUp ? "趨勢上" : bD[bI].c < bE[bI] * 0.97 ? "趨勢下" : "盤整" };
 st.watch = watch.filter(w => w.top && w.ema200).sort((a, b) => a.dist - b.dist).slice(0, 12);
 st.updated = new Date().toISOString();
 await fs.writeFile(FILE, JSON.stringify(st));

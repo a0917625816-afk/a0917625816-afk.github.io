@@ -41,6 +41,9 @@ const dc = {}; coins.forEach(cn => { const m = new Map(); data[cn].d.forEach(b =
 const rk = new Map();
 function top(day) { if (rk.has(day)) return rk.get(day); const sc = []; for (const cn of coins) { const a = dc[cn].get(day), b = dc[cn].get(day - 20); if (a && b) sc.push([cn, a / b - 1]); } sc.sort((x, y) => y[1] - x[1]); const s = new Set(sc.slice(0, 10).filter(x => x[1] > 0).map(x => x[0])); rk.set(day, s); return s; }
 const okF = (cn, t) => btcUp.get(dk(t) - 1) === true && top(dk(t) - 1).has(cn);
+// 市場狀態「趨勢上」（第十七輪日內 D 用）：非恐慌（5 日報酬 ≤ −8% 或 ATR14/收盤 ≥ 4.5%）且收盤 > EMA50×1.03，以前一天判定
+const bA6 = atr(bD, 14), trendUp6 = new Map(); bD.forEach((b, i) => { if (i < 50) return; const r5 = i >= 5 ? b.c / bD[i - 5].c - 1 : 0, ap = bA6[i] / b.c; trendUp6.set(dk(b.t), !(r5 <= -0.08 || ap >= 0.045) && b.c > bE[i] * 1.03); });
+const trendBlock6 = t => trendUp6.get(dk(t) - 1) === true;
 
 // 指標預先算好
 const pre = {};
@@ -117,6 +120,7 @@ function trades(cn, kind, q, x, f) {
     if (!quality(P, i, q)) continue;
     if (!passF(cn, t, f)) continue;
     if (f.ev && evBlock6(t)) continue;
+    if (f.trend && trendBlock6(t)) continue;
     const e = c[i + 1].o, r = stopK * a[i]; if (!(r > 0) || r / e < 0.002) continue;
     pos = { e, r, st: e - r, t, real: 0, took: false, dayEnd: (dk(b.t) + 1) * D1, cost: tieredCost(cn, t) };
   }
@@ -138,6 +142,7 @@ const STRATS = [
   { key: "I", name: "日內（量能＋收盤強度＋成交額≥1億U）", kind: "intra", q: { vol: 1.5, cs: 0.6 }, x: { tp: 0, f: 0, be: false }, f: { liq: 100 } },
   { key: "I2", name: "日內B（同日內，成交額≥5億U）", kind: "intra", q: { vol: 1.5, cs: 0.6 }, x: { tp: 0, f: 0, be: false }, f: { liq: 500 } },
   { key: "I3", name: "日內C（日內B＋重大事件前後4h不開單）", kind: "intra", q: { vol: 1.5, cs: 0.6 }, x: { tp: 0, f: 0, be: false }, f: { liq: 500, ev: true } },
+  { key: "I4", name: "日內D（日內＋BTC趨勢上不開單）", kind: "intra", q: { vol: 1.5, cs: 0.6 }, x: { tp: 0, f: 0, be: false }, f: { liq: 100, trend: true } },
 ];
 const SIMS = +(process.env.SIMS || 1000);
 let seed = 12345; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
