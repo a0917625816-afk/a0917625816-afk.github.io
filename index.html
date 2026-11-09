@@ -366,7 +366,7 @@ canvas.chart{background:#070C16;border-color:var(--line)}
         <li><b>日內 C</b>（11/03 新增）：規則同日內 B，另外 FOMC 決議、CPI、非農公布前 4 小時到後 4 小時不開新單（已持倉不受影響）。第十二輪回測合格、第十三輪窗口 ±20% 審查全過，與日內 B 並列比較，不刪原組。</li>
         <li><b>日內 D</b>（11/08 新增）：規則同日內（成交額 ≥1 億 U），另外前一天 BTC 收盤「趨勢上」（高於日線 EMA50 達 3%、而且不是恐慌狀態）就不開新單——回測發現日內突破在 BTC 已經漲多時是虧的、在盤整時是賺的。第十六輪兩段都合格、第十七輪 ±20% 完整審查 5/8 過（沒過的 3 個只是樣本外筆數差 1～3 筆、數字一樣好），與日內並列比較，不刪原組。</li>
         <li>五組都要先過濾：BTC 日線站上 EMA50、該幣 20 天漲幅前 10 名。每筆最多賠本金 1%。</li></ul></div>
-      <div class="intel-card"><h4>② 情報團＋多空辯論＋研究驗證組（每 3 天）</h4><ul>
+      <div class="intel-card"><h4>② 情報團＋多空辯論＋研究驗證組（每天）</h4><ul>
         <li>全隊共同任務：<b>在平均獲利不變差、回撤不變大的前提下，把勝率拉高</b>。</li>
         <li>2 名觀察員：總經事件（含風險日期）、市場籌碼（資金費率、未平倉量、爆倉、拉高出貨的幣）。</li>
         <li>多方、空方各一位辯手根據情報互相反駁，裁判下結論。</li>
@@ -438,8 +438,8 @@ canvas.chart{background:#070C16;border-color:var(--line)}
   </section>
 
   <section class="paper bot" id="intel">
-    <h2>🧠 情報團＋多空辯論（每 3 天開會）</h2>
-    <p class="lead">每 3 天由 4 名觀察員（新聞總經、莊家思維、華爾街、社群情緒）收集情報，再由多方、空方各三位辯手各自提出理由互相反駁，最後裁判下結論。<b>情報只用來提醒風險、決定要回測哪些點子，不會直接改機器人的進出場規則</b>；任何新規則都要回測做到「勝率提高、平均獲利不低於原本 9 成、回撤不超過 1.2 倍」才會上線。內容僅供參考，不是投資建議。</p>
+    <h2>🧠 情報團＋多空辯論（每天開會）</h2>
+    <p class="lead">每天晚上 19:52 由 4 名觀察員（新聞總經、莊家思維、華爾街、社群情緒）收集情報，再由多方、空方各三位辯手各自提出理由互相反駁，最後裁判下結論。<b>情報只用來提醒風險、決定要回測哪些點子，不會直接改機器人的進出場規則</b>；任何新規則都要回測做到「勝率提高、平均獲利不低於原本 9 成、回撤不超過 1.2 倍」才會上線。內容僅供參考，不是投資建議。</p>
     <div id="intelBody"><p class="lead">讀取中…</p></div>
   </section>
 
@@ -927,10 +927,59 @@ async function loadBot(){try{const r=await fetch("https://a0917625816-afk.github
   $("scClosed").innerHTML=(SC.closed||[]).length?SC.closed.slice(0,100).map(t=>`<tr><td><span class="coin">${esc(t.base)}</span></td><td>${SD[t.side]||esc(t.side)}</td><td style="font-family:var(--sans)">${SN[t.session]||esc(t.session||"")}</td><td>${fmtP(t.e)}</td><td>${t.x==null?"—":fmtP(t.x)}</td><td style="font-family:var(--sans)">${esc(t.why)}</td><td class="${t.R>0?"out-win":t.amt?"out-loss":""}">${t.amt?rTxt(t.R):"—"}</td><td style="font-family:var(--sans);font-size:.85em">${esc(t.reason||"")}</td></tr>`).join(""):`<tr><td colspan="8" class="empty">劇本單 11/1 東京盤開始。</td></tr>`;
 }catch(e){$("botChips").innerHTML=`<span class="chip">主力策略資料讀取失敗，稍後自動重試</span>`}}
 loadBot().then(()=>{if(typeof loadIntel==="function")loadIntel()});setInterval(loadBot,3*6e4);
+/* ===== 多空進場點位（11/09 董事長要求）：用機器人抓的真實價位（支撐壓力、前日高低、均線、斐波）自動算，每 5 分鐘跟著更新 ===== */
+function entryPlans(B, I) {
+  const L = B && B.levels && B.levels.coins; if (!L) return null;
+  const up = !!(B.market && B.market.btcUp), verdict = (I && I.verdict && I.verdict.winner) || "";
+  const pref = !up ? "short" : /空/.test(verdict) && !/多/.test(verdict) ? "short" : "long";
+  const out = [];
+  const MAJ = ["BTC", "ETH", "SOL", "XRP", "BNB"]; // 只算主流幣：小幣波動太大，算出來的點位離現價太遠、沒有參考價值
+  for (const [sym, c] of Object.entries(L).filter(([k]) => MAJ.includes(k)).sort((x, y) => MAJ.indexOf(x[0]) - MAJ.indexOf(y[0]))) {
+    const last = c.last, a1 = c.atr1h, a4 = c.atr4h; if (!(last > 0 && a1 > 0 && a4 > 0)) continue;
+    const raw = [];
+    const add = (p, w, lab) => { if (p > 0 && isFinite(p)) raw.push({ p: +p, w, lab }); };
+    (c.sr1h || []).forEach(x => add(x.p, Math.min(4, x.n) * 0.6, `1h 支撐壓力（碰 ${x.n} 次）`));
+    (c.sr4h || []).forEach(x => add(x.p, Math.min(4, x.n) * 1.0, `4h 支撐壓力（碰 ${x.n} 次）`));
+    add(c.pdh, 2.5, "前日高"); add(c.pdl, 2.5, "前日低"); add(c.h24, 1.5, "24h 高"); add(c.l24, 1.5, "24h 低");
+    if (c.ema1h) { add(c.ema1h.e50, 1.2, "1h EMA50"); add(c.ema1h.e200, 1.8, "1h EMA200"); }
+    if (c.ema4h) { add(c.ema4h.e20, 1.5, "4h EMA20"); add(c.ema4h.e50, 2, "4h EMA50"); add(c.ema4h.e200, 2.5, "4h EMA200"); }
+    for (const [k, f] of [["fibDown4h", "4h 下跌段回彈"], ["fibUp4h", "4h 上漲段回檔"]]) { const F = c[k]; if (F) { add(F.r382, 1.5, f + " 0.382"); add(F.r5, 2, f + " 0.5"); add(F.r618, 2.5, f + " 0.618"); } }
+    raw.sort((x, y) => x.p - y.p);
+    const lv = []; // 相距 0.25×ATR1h 以內的價位合併成一個「共振區」，分數相加
+    for (const x of raw) { const g = lv[lv.length - 1]; if (g && x.p - g.hiP <= 0.25 * a1) { g.items.push(x); g.hiP = x.p; g.w += x.w; } else lv.push({ items: [x], loP: x.p, hiP: x.p, w: x.w }); }
+    lv.forEach(g => { g.p = g.items.reduce((s, x) => s + x.p * x.w, 0) / g.items.reduce((s, x) => s + x.w, 0); g.lab = g.items.map(x => x.lab).slice(0, 3).join("＋"); });
+    const plan = dir => {
+      const far = Math.min(3 * a4, 0.05 * last); // 最遠只看距現價 3 倍 4h ATR、而且不超過 5%
+      const side = lv.filter(g => dir > 0 ? (g.p < last - 0.2 * a1 && g.p > last - far) : (g.p > last + 0.2 * a1 && g.p < last + far));
+      if (!side.length) return null;
+      const best = side.map(g => ({ g, s: g.w / (1 + Math.abs(last - g.p) / a4 * 0.35) })).sort((x, y) => y.s - x.s)[0].g;
+      const e = best.p;
+      const beyond = lv.filter(g => dir > 0 ? (g.p < e - 0.5 * a1 && g.p > e - 2 * a1) : (g.p > e + 0.5 * a1 && g.p < e + 2 * a1)).sort((x, y) => dir > 0 ? y.p - x.p : x.p - y.p)[0];
+      let stop = beyond ? beyond.p - dir * 0.2 * a1 : e - dir * a1;
+      if (Math.abs(e - stop) < 0.6 * a1) stop = e - dir * 0.6 * a1;
+      const r = Math.abs(e - stop);
+      const tg = lv.filter(g => dir > 0 ? g.p > e + 1.5 * r : g.p < e - 1.5 * r).sort((x, y) => dir > 0 ? x.p - y.p : y.p - x.p).find(g => g.w >= 2);
+      const target = tg ? tg.p : e + dir * 2 * r;
+      return { dir, e, stop, target, rr: Math.abs(target - e) / r, why: best.lab, tWhy: tg ? tg.lab : "2 倍風險", dist: (e / last - 1) * 100, score: best.w };
+    };
+    out.push({ sym, last, long: plan(1), short: plan(-1) });
+  }
+  return { pref, up, rows: out };
+}
+function entryHTML(E, fmt) {
+  if (!E) return "";
+  const row = (sym, p, preferred) => !p ? "" : `<tr${preferred ? ' style="font-weight:700"' : ' style="opacity:.75"'}><td>${sym}</td><td>${p.dir > 0 ? '<span style="color:#0ab84f">做多</span>' : '<span style="color:#ef4d63">做空</span>'}${preferred ? " ★" : ""}</td><td>${fmt(p.e)}<br><small>${p.dist > 0 ? "+" : ""}${p.dist.toFixed(2)}%</small></td><td style="color:#ef4d63">${fmt(p.stop)}</td><td style="color:#0ab84f">${fmt(p.target)}</td><td>${p.rr.toFixed(1)}</td><td style="white-space:normal;min-width:180px"><small>進場：${p.why}<br>目標：${p.tWhy}</small></td></tr>`;
+  const rows = E.rows.map(x => row(x.sym, E.pref === "long" ? x.long : x.short, true) + row(x.sym, E.pref === "long" ? x.short : x.long, false)).join("");
+  return `<p style="margin:6px 0">${E.up ? "BTC 在日線 EMA50 之上" : "BTC 在日線 EMA50 之下"}，目前<b>${E.pref === "long" ? "做多優先" : "做空優先"}</b>（★＝順勢方向，另一方向只在劇本反轉時參考）。進場價用「掛單等回來」，不追價；停損放在下一個支撐壓力外面，目標取報酬風險比 ≥1.5 的下一個強價位。</p>
+  <div style="overflow-x:auto"><table class="list ep" style="width:100%;min-width:640px"><thead><tr><th>幣</th><th>方向</th><th>進場（距現價）</th><th>停損</th><th>目標</th><th>報酬風險比</th><th>依據</th></tr></thead><tbody>${rows}</tbody></table></div>
+  <p style="margin:6px 0;font-size:13px;opacity:.75">全部用機器人抓的真實價位自動計算（支撐壓力碰觸次數、前日高低、均線、斐波，相近價位合併成共振區），每 5 分鐘跟著更新。這是看盤參考、不是下單建議；實際虛擬單以盤前室劇本單為準。</p>`;
+}
+
 async function loadIntel(){const el=$("intelBody");if(!el)return;const B=window.__BOT||null;try{const r=await fetch("https://a0917625816-afk.github.io/intel.json?t="+Math.floor(Date.now()/36e5),{cache:"no-store"});if(!r.ok)throw 0;const I=await r.json();
   const li=a=>(a||[]).map(x=>`<li>${esc(x)}</li>`).join("");
   el.innerHTML=`<div class="intel-card"><h4>⚖️ 本週裁判結論（${esc(I.date)}）：${esc(I.verdict.winner)}</h4><p>${esc(I.verdict.text)}</p></div>
   <div class="intel-grid" style="margin-top:10px"><div class="intel-card"><h4>🐂 多方理由</h4><ul>${li(I.bull)}</ul></div><div class="intel-card"><h4>🐻 空方理由</h4><ul>${li(I.bear)}</ul></div></div>
+  ${B&&B.levels?`<div class="intel-card" style="margin-top:10px"><h4>🎯 適合的進場點位（多空各一）</h4>${entryHTML(entryPlans(B,I),fmtP)}</div>`:""}
   ${I.synth?`<div class="intel-card" style="margin-top:10px"><h4>🧠 ${esc(I.synth.name)}</h4><p>${esc(I.synth.text)}</p><p><b>模擬單：</b>${B&&B.manual&&B.manual.open&&B.manual.open.length?B.manual.open.length+" 張持倉中":"目前沒有持倉"}（紀錄見下方決策）</p></div>`:""}
   <div class="intel-grid" style="margin-top:10px">${(I.observers||[]).map(o=>`<div class="intel-card"><h4>${esc(o.name)}</h4><p>${esc(o.text)}</p></div>`).join("")}</div>
   ${(I.sessions&&Object.keys(I.sessions).length)?(()=>{const d=Object.keys(I.sessions).sort().pop(),x=I.sessions[d],N=[["review","每日復盤"],["tokyo","東京盤"],["london","倫敦盤"],["ny","紐約盤"]];return `<div class="intel-card" style="margin-top:10px"><h4>✅ 今日任務（${esc(d)}）</h4><p>${N.map(([k,n])=>`${x[k]?"✅":"⬜"} ${n}${x[k]?"（"+esc(x[k])+"）":""}`).join("　")}</p></div>`})():""}
@@ -971,16 +1020,16 @@ async function loadOffice(){const fl=$("officeFloor");if(!fl)return;
   const pad=n=>String(n).padStart(2,"0"),hm=ms=>{const d=new Date(ms);return pad(d.getMonth()+1)+"/"+pad(d.getDate())+" "+pad(d.getHours())+":"+pad(d.getMinutes())};
   const botSt=(o,label)=>{if(!B)return["r","讀不到資料"];if(!alive)return["r",`${ago} 分鐘沒回報`];const n=(o&&o.open||[]).length;if(n)return["g",`${label} ${n} 張`];return btcUp?["g","盯盤中"]:["y","待命（BTC 濾網關）"]};
   const lab=LAB&&LAB.workflow_runs&&LAB.workflow_runs[0],labBusy=lab&&lab.status!=="completed";
-  const nextSun=(()=>{const d=new Date();for(let k=0;k<5;k++){const n=new Date(d.getFullYear(),d.getMonth(),d.getDate()+k,19,52);if(n>d&&n.getDate()%3===1)return pad(n.getMonth()+1)+"/"+pad(n.getDate())+" 19:52"}return"3 天內"})();
+  const nextSun=(()=>{const d=new Date();for(let k=0;k<5;k++){const n=new Date(d.getFullYear(),d.getMonth(),d.getDate()+k,19,52);if(n>d)return pad(n.getMonth()+1)+"/"+pad(n.getDate())+" 19:52"}return"今晚"})();
   const meet=["y",`下次開會 ${nextSun}`];
   const D=(av,nm,rl,st,busy)=>`<div class="desk"><span class="av${busy?" busy":""}" aria-hidden="true">${av}</span><span class="nm">${esc(nm)}</span><span class="rl">${esc(rl)}</span><span class="stt ${st[0]}"><i></i>${esc(st[1])}</span></div>`;
   const R=(t,d)=>`<div class="room"><h5>${t}</h5><div class="desks">${d.join("")}</div></div>`;
   const sA=botSt(B,"持倉"),sB=botSt(B&&B.b,"持倉"),sI=botSt(B&&B.intra,"持倉"),sI2=botSt(B&&B.intra2,"持倉"),sI3=botSt(B&&B.intra3,"持倉"),sI4=botSt(B&&B.intra4,"持倉");
   fl.innerHTML=R("💹 交易區（24 小時）",[D("🤖","波段 A","4h 突破・讓利潤跑",sA,alive),D("🦾","波段 B","1R 先收 1/3",sB,alive),D("⚡","日內","15m 突破・08:00 平倉",sI,alive),D("⚡","日內 B","同日內・只做成交額≥5億U",sI2,alive),D("⚡","日內 C","日內B・重大事件前後4h不開單",sI3,alive),D("⚡","日內 D","日內・BTC趨勢上不開單",sI4,alive),D("🧠","綜合決策員","綜合所有資訊・可下模擬單",I&&I.synth?["g",B&&B.manual&&B.manual.open&&B.manual.open.length?"模擬單 "+B.manual.open.length+" 張":"待命"]:meet,false),D("🛡️","監控員","盯全部人＋催任務",["g","巡邏中"],false)])
    +R("🕰️ 盤前室（東京・倫敦・紐約）",[D("🗺️","劇本員","漲到哪・回調到哪",meet),D("🎯","下單員","只照劇本下單",B&&B.scen&&B.scen.open&&B.scen.open.length?["g","持倉 "+B.scen.open.length+" 張"]:["y","待命"],false),D("🔁","覆盤員","每天 08:22 復盤",meet)])
-   +R("🔭 情報室（每 3 天）",[D("🗞️","觀察員1","總經＋事件日期",meet),D("🎲","觀察員2","籌碼（費率・OI・爆倉）",meet)])
-   +R("⚖️ 會議室（每 3 天）",[D("🐂","多方","找做多理由",meet),D("🐻","空方","找風險",meet),D("🧑‍⚖️","裁判","下結論",I?["g",esc(I.verdict.winner)]:meet)])
-   +R("🧪 研究驗證組（每 3 天）",[D("🗄️","資料工程師","補齊歷史資料",meet),D("🌦️","市場狀態分類員","趨勢／盤整／恐慌",meet),D("🚪","出場研究員","分批・移動停損",meet),D("🔁","覆盤員","每筆單對照回測",meet),D("🐻","做空研究員","空頭期也有事做",meet),D("🧯","過擬合審查員","擋掉運氣好的策略",meet)])
+   +R("🔭 情報室（每天）",[D("🗞️","觀察員1","總經＋事件日期",meet),D("🎲","觀察員2","籌碼（費率・OI・爆倉）",meet)])
+   +R("⚖️ 會議室（每天）",[D("🐂","多方","找做多理由",meet),D("🐻","空方","找風險",meet),D("🧑‍⚖️","裁判","下結論",I?["g",esc(I.verdict.winner)]:meet)])
+   +R("🧪 研究驗證組（每天）",[D("🗄️","資料工程師","補齊歷史資料",meet),D("🌦️","市場狀態分類員","趨勢／盤整／恐慌",meet),D("🚪","出場研究員","分批・移動停損",meet),D("🔁","覆盤員","每筆單對照回測",meet),D("🐻","做空研究員","空頭期也有事做",meet),D("🧯","過擬合審查員","擋掉運氣好的策略",meet)])
    +R("🧪 實驗室",[D("🔬","回測員","歷史資料驗證",lab?(labBusy?["g","回測中…"]:["y","待命"]):["y","待命"],labBusy),D("🎰","蒙地卡羅","模擬 1000 次",labBusy?["g","計算中…"]:["y","待命"],labBusy)]);
   if(!B)return;
   const all=[...(B.open||[]).map(p=>({k:"A",p})),...((B.b||{}).open||[]).map(p=>({k:"B",p})),...((B.intra||{}).open||[]).map(p=>({k:"日內",p})),...((B.intra2||{}).open||[]).map(p=>({k:"日內B",p})),...((B.intra3||{}).open||[]).map(p=>({k:"日內C",p})),...((B.intra4||{}).open||[]).map(p=>({k:"日內D",p}))];

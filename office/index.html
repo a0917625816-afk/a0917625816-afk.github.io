@@ -328,6 +328,7 @@ footer{font-size:13px;color:var(--dim);border-top:1px dashed var(--line);padding
   <!-- 會議紀錄 -->
   <main class="view" id="v-log" hidden>
     <div id="meeting"></div>
+    <section class="card hot"><h2>🎯 適合的進場點位 <small>多空各一，依真實價位自動計算</small></h2><div id="entryPlan"></div></section>
     <div class="filters" id="filters"></div>
     <ul class="log" id="log"></ul>
     <button class="more" id="more" type="button" hidden>看更多</button>
@@ -707,7 +708,7 @@ let fil = "all", shown = 20;
 function renderLog() {
   const I = INTEL || {}, v = I.verdict || {};
   const roles = [...(I.observers || []).map(o => [o.name, "c", "情報", o.text]), ...(I.bull || []).map((t, i) => ["多方", "g", "理由 " + (i + 1), t]), ...(I.bear || []).map((t, i) => ["空方", "r", "理由 " + (i + 1), t]), ...(I.lab || []).map(x => [x.role, "y", "研究驗證組", x.text])];
-  $("meeting").innerHTML = I.date ? `<details class="mtg" open><summary><span class="d">${esc(I.date)}</span><b>策略會議（每 3 天，CEO 主持）</b><span class="pill p">${esc(v.winner || "")}</span><span class="v">CEO 結論：${esc(v.text || "")}</span></summary><ul class="views">${roles.map(([n, c, s, t]) => `<li><span class="who">${esc(n)} <span class="pill ${c}">${esc(s)}</span></span><p>${esc(t)}</p></li>`).join("")}</ul></details>` : "";
+  $("meeting").innerHTML = I.date ? `<details class="mtg" open><summary><span class="d">${esc(I.date)}</span><b>策略會議（每天，CEO 主持）</b><span class="pill p">${esc(v.winner || "")}</span><span class="v">CEO 結論：${esc(v.text || "")}</span></summary><ul class="views">${roles.map(([n, c, s, t]) => `<li><span class="who">${esc(n)} <span class="pill ${c}">${esc(s)}</span></span><p>${esc(t)}</p></li>`).join("")}</ul></details>` : "";
   $("filters").innerHTML = FILTERS.map(([k, n]) => `<button type="button" data-k="${k}" aria-pressed="${fil === k}">${n}</button>`).join("");
   $("filters").querySelectorAll("button").forEach(b => b.addEventListener("click", () => { fil = b.dataset.k; shown = 20; renderLog(); }));
   const ds = (I.decisions || []).filter(d => fil === "all" || KIND(d.text || "") === fil);
@@ -765,13 +766,61 @@ function renderGN() {
     ...(F.closed || []).slice(0, 60).map(t => `<tr><td>${esc(t.sym)}</td><td>${esc(t.session)} ${tw(t.t)}</td><td>${sd(t.side === "long" ? 1 : -1)}</td><td class="n">${fmtP(t.e)}</td><td class="n dn">${fmtP(t.stop)}</td><td class="n up">${fmtP(t.target)}</td><td class="n">${fmtP(t.x)}</td><td>${esc(t.why)}</td><td class="n ${t.R > 0 ? "up" : "dn"}">${rTxt(t.R)}</td><td>${lv5(t)}</td></tr>`)];
   $("fbBody").innerHTML = fr.join("") || `<tr><td colspan="10" class="empty">11/02 開始，等第一個開盤訊號。</td></tr>`;
 }
+/* ===== 多空進場點位（11/09 董事長要求）：用機器人抓的真實價位（支撐壓力、前日高低、均線、斐波）自動算，每 5 分鐘跟著更新 ===== */
+function entryPlans(B, I) {
+  const L = B && B.levels && B.levels.coins; if (!L) return null;
+  const up = !!(B.market && B.market.btcUp), verdict = (I && I.verdict && I.verdict.winner) || "";
+  const pref = !up ? "short" : /空/.test(verdict) && !/多/.test(verdict) ? "short" : "long";
+  const out = [];
+  const MAJ = ["BTC", "ETH", "SOL", "XRP", "BNB"]; // 只算主流幣：小幣波動太大，算出來的點位離現價太遠、沒有參考價值
+  for (const [sym, c] of Object.entries(L).filter(([k]) => MAJ.includes(k)).sort((x, y) => MAJ.indexOf(x[0]) - MAJ.indexOf(y[0]))) {
+    const last = c.last, a1 = c.atr1h, a4 = c.atr4h; if (!(last > 0 && a1 > 0 && a4 > 0)) continue;
+    const raw = [];
+    const add = (p, w, lab) => { if (p > 0 && isFinite(p)) raw.push({ p: +p, w, lab }); };
+    (c.sr1h || []).forEach(x => add(x.p, Math.min(4, x.n) * 0.6, `1h 支撐壓力（碰 ${x.n} 次）`));
+    (c.sr4h || []).forEach(x => add(x.p, Math.min(4, x.n) * 1.0, `4h 支撐壓力（碰 ${x.n} 次）`));
+    add(c.pdh, 2.5, "前日高"); add(c.pdl, 2.5, "前日低"); add(c.h24, 1.5, "24h 高"); add(c.l24, 1.5, "24h 低");
+    if (c.ema1h) { add(c.ema1h.e50, 1.2, "1h EMA50"); add(c.ema1h.e200, 1.8, "1h EMA200"); }
+    if (c.ema4h) { add(c.ema4h.e20, 1.5, "4h EMA20"); add(c.ema4h.e50, 2, "4h EMA50"); add(c.ema4h.e200, 2.5, "4h EMA200"); }
+    for (const [k, f] of [["fibDown4h", "4h 下跌段回彈"], ["fibUp4h", "4h 上漲段回檔"]]) { const F = c[k]; if (F) { add(F.r382, 1.5, f + " 0.382"); add(F.r5, 2, f + " 0.5"); add(F.r618, 2.5, f + " 0.618"); } }
+    raw.sort((x, y) => x.p - y.p);
+    const lv = []; // 相距 0.25×ATR1h 以內的價位合併成一個「共振區」，分數相加
+    for (const x of raw) { const g = lv[lv.length - 1]; if (g && x.p - g.hiP <= 0.25 * a1) { g.items.push(x); g.hiP = x.p; g.w += x.w; } else lv.push({ items: [x], loP: x.p, hiP: x.p, w: x.w }); }
+    lv.forEach(g => { g.p = g.items.reduce((s, x) => s + x.p * x.w, 0) / g.items.reduce((s, x) => s + x.w, 0); g.lab = g.items.map(x => x.lab).slice(0, 3).join("＋"); });
+    const plan = dir => {
+      const far = Math.min(3 * a4, 0.05 * last); // 最遠只看距現價 3 倍 4h ATR、而且不超過 5%
+      const side = lv.filter(g => dir > 0 ? (g.p < last - 0.2 * a1 && g.p > last - far) : (g.p > last + 0.2 * a1 && g.p < last + far));
+      if (!side.length) return null;
+      const best = side.map(g => ({ g, s: g.w / (1 + Math.abs(last - g.p) / a4 * 0.35) })).sort((x, y) => y.s - x.s)[0].g;
+      const e = best.p;
+      const beyond = lv.filter(g => dir > 0 ? (g.p < e - 0.5 * a1 && g.p > e - 2 * a1) : (g.p > e + 0.5 * a1 && g.p < e + 2 * a1)).sort((x, y) => dir > 0 ? y.p - x.p : x.p - y.p)[0];
+      let stop = beyond ? beyond.p - dir * 0.2 * a1 : e - dir * a1;
+      if (Math.abs(e - stop) < 0.6 * a1) stop = e - dir * 0.6 * a1;
+      const r = Math.abs(e - stop);
+      const tg = lv.filter(g => dir > 0 ? g.p > e + 1.5 * r : g.p < e - 1.5 * r).sort((x, y) => dir > 0 ? x.p - y.p : y.p - x.p).find(g => g.w >= 2);
+      const target = tg ? tg.p : e + dir * 2 * r;
+      return { dir, e, stop, target, rr: Math.abs(target - e) / r, why: best.lab, tWhy: tg ? tg.lab : "2 倍風險", dist: (e / last - 1) * 100, score: best.w };
+    };
+    out.push({ sym, last, long: plan(1), short: plan(-1) });
+  }
+  return { pref, up, rows: out };
+}
+function entryHTML(E, fmt) {
+  if (!E) return "";
+  const row = (sym, p, preferred) => !p ? "" : `<tr${preferred ? ' style="font-weight:700"' : ' style="opacity:.75"'}><td>${sym}</td><td>${p.dir > 0 ? '<span style="color:#0ab84f">做多</span>' : '<span style="color:#ef4d63">做空</span>'}${preferred ? " ★" : ""}</td><td>${fmt(p.e)}<br><small>${p.dist > 0 ? "+" : ""}${p.dist.toFixed(2)}%</small></td><td style="color:#ef4d63">${fmt(p.stop)}</td><td style="color:#0ab84f">${fmt(p.target)}</td><td>${p.rr.toFixed(1)}</td><td style="white-space:normal;min-width:180px"><small>進場：${p.why}<br>目標：${p.tWhy}</small></td></tr>`;
+  const rows = E.rows.map(x => row(x.sym, E.pref === "long" ? x.long : x.short, true) + row(x.sym, E.pref === "long" ? x.short : x.long, false)).join("");
+  return `<p style="margin:6px 0">${E.up ? "BTC 在日線 EMA50 之上" : "BTC 在日線 EMA50 之下"}，目前<b>${E.pref === "long" ? "做多優先" : "做空優先"}</b>（★＝順勢方向，另一方向只在劇本反轉時參考）。進場價用「掛單等回來」，不追價；停損放在下一個支撐壓力外面，目標取報酬風險比 ≥1.5 的下一個強價位。</p>
+  <div style="overflow-x:auto"><table class="list ep" style="width:100%;min-width:640px"><thead><tr><th>幣</th><th>方向</th><th>進場（距現價）</th><th>停損</th><th>目標</th><th>報酬風險比</th><th>依據</th></tr></thead><tbody>${rows}</tbody></table></div>
+  <p style="margin:6px 0;font-size:13px;opacity:.75">全部用機器人抓的真實價位自動計算（支撐壓力碰觸次數、前日高低、均線、斐波，相近價位合併成共振區），每 5 分鐘跟著更新。這是看盤參考、不是下單建議；實際虛擬單以盤前室劇本單為準。</p>`;
+}
+
 const VIEWS = ["war", "coins", "gn", "sim", "crew", "log"];
 window.addEventListener("message", e => { if (e.data && e.data.simH && $("simFrame")) $("simFrame").style.height = Math.max(900, e.data.simH + 20) + "px"; });
 function route() { const v = VIEWS.includes(location.hash.slice(1)) ? location.hash.slice(1) : "war";
   VIEWS.forEach(k => { $("v-" + k).hidden = k !== v; }); document.querySelectorAll(".tabs a").forEach(a => a.setAttribute("aria-current", a.dataset.v === v ? "page" : "false")); shipOn = v === "crew"; }
 window.addEventListener("hashchange", route);
 
-function renderAll() { renderTicker(); renderWar(); renderCoins(); try { renderGN(); } catch (e) { console.log(e); } renderTasks(); renderPlays(); renderBoard(); renderLog(); layoutCrew();
+function renderAll() { renderTicker(); renderWar(); renderCoins(); try { renderGN(); } catch (e) { console.log(e); } try { $("entryPlan").innerHTML = entryHTML(entryPlans(BOT, INTEL), fmtP) || `<p class="note">等機器人價位資料。</p>`; } catch (e) { console.log(e); } renderTasks(); renderPlays(); renderBoard(); renderLog(); layoutCrew();
   const src = LIVE.bot || LIVE.intel ? "即時（每 5 分鐘自動更新）" : (LIVE.err || "顯示的是發布當下的資料");
   $("liveNote").textContent = "資料：" + src + (SNAP ? "｜快照 " + tw(Date.parse(SNAP.at)) : ""); }
 route(); renderTodo(); renderClock(); renderAll(); setInterval(renderClock, 1000); setInterval(() => { renderTasks(); }, 60000); requestAnimationFrame(drawShip);
