@@ -140,13 +140,13 @@ function sizing(p, G) {
 function markOf(p) { if (p.replayMark != null) return p.replayMark; const k = (p.sym || "").toUpperCase(); return live[k] ?? p.cur ?? p.e; }
 function posCard(p0, G) {
   const p = norm(p0), L = p.lev0 || +$("lev").value, s = sizing(p, G), mk = markOf(p);
-  const margin = s.notional / L, pnl = p.dir * (mk - p.e) * s.qty + (p.real ? p.real * s.risk : 0), pnlPct = margin > 0 ? pnl / margin * 100 : 0;
+  const margin = s.notional / L, pnl = p.dir * (mk - p.e) * s.qty * (p.left ?? (p.took ? 2 / 3 : 1)) + (p.real ? p.real * s.risk : 0), pnlPct = margin > 0 ? pnl / margin * 100 : 0;
   const liq = p.dir > 0 ? p.e * (1 - 1 / L + MMR) : p.e * (1 + 1 / L - MMR);
   const liqFirst = p.dir > 0 ? liq >= p.stop : liq <= p.stop;
   const riskRate = margin > 0 ? Math.max(0, (s.notional * MMR) / (margin + pnl) * 100) : 0;
   const isCrypto = !/黃金|那指/.test(p.sym);
   return `<div class="pos">
-    <div class="ph"><div><b>${esc(p.sym)}${isCrypto ? "USDT" : ""}</b><div class="tags"><span class="tag ${p.side}">${p.dir > 0 ? "多" : "空"}</span><span class="tag">逐倉</span><span class="tag">${L}x</span>${p.took ? `<span class="tag">已先平 1/3</span>` : ""}${p.session ? `<span class="tag">${esc(p.session)}</span>` : ""}</div></div>
+    <div class="ph"><div><b>${esc(p.sym)}${isCrypto ? "USDT" : ""}</b><div class="tags"><span class="tag ${p.side}">${p.dir > 0 ? "多" : "空"}</span><span class="tag">逐倉</span><span class="tag">${L}x</span>${p.took ? `<span class="tag">已先平 1/3</span>` : ""}${p.protected === "half" ? `<span class="tag">事件保護：已先平一半＋保本</span>` : p.protected === "be" ? `<span class="tag">事件保護：停損移到保本</span>` : ""}${p.protectAt && !p.protected ? `<span class="tag">事件保護 ${tw(p.protectAt)}</span>` : ""}${p.session ? `<span class="tag">${esc(p.session)}</span>` : ""}</div></div>
       <div class="pnl"><span>未實現盈虧 (USDT)</span><b class="${pnl >= 0 ? "up" : "dn"}">${pnl >= 0 ? "+" : ""}${usd(pnl)} <small style="font-size:15px">(${pnlPct >= 0 ? "+" : ""}${pnlPct.toFixed(2)}%)</small></b></div></div>
     <div class="grid3">
       <div><span>持倉 (USDT)</span><b>${usd(s.notional)}</b></div><div><span>保證金 (USDT)</span><b>${usd(margin)}</b></div><div><span>風險率</span><b class="${riskRate > 80 ? "dn" : "up"}">${riskRate.toFixed(2)}%</b></div>

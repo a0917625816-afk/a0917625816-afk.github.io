@@ -315,7 +315,7 @@ try {
   const tierCost = v => v == null ? 0.004 : v >= 2000e6 ? 0.0014 : v >= 500e6 ? 0.0025 : v >= 100e6 ? 0.004 : 0.007;
   for (const o of orders) if (!SC.waiting[o.id] && !SC.open.find(q => q.id === o.id) && Object.keys(SC.waiting).length < MAXWAIT) SC.waiting[o.id] = { ...o, t0: now };
   const close = (p, x, why, tx) => {
-    const dir = p.side === "long" ? 1 : -1, R = dir * (x - p.e) / p.r - p.cost * p.e / p.r;
+    const dir = p.side === "long" ? 1 : -1, left = p.left ?? 1, R = (p.real || 0) + left * dir * (x - p.e) / p.r - p.cost * p.e / p.r;
     SC.equity += p.amt * R; SC.done[p.id] = 1; SC.open = SC.open.filter(q => q !== p);
     SC.closed.unshift({ id: p.id, base: p.base, side: p.side, type: p.type, session: p.session, scenario: p.scenario, pattern: p.pattern, e: p.e, stop: p.stop, target: p.target, x, R: +R.toFixed(3), why, reason: p.reason, lev: p.lev, levNeeded: p.levNeeded, t: p.t, tx, amt: p.amt });
   };
@@ -335,7 +335,7 @@ try {
     const levNeeded = +(RISK * e / r).toFixed(2); // 用全部本金當保證金時需要的槓桿
     if (w.lev && !(L ? e <= w.stop : e >= w.stop) && (1 / w.lev - MMR) <= dist / e) { SC.done[id] = 1; SC.closed.unshift({ id, base: w.base, side: w.side, session: w.session, e, x: null, R: 0, why: `槓桿 ${w.lev} 倍太高：停損前會先爆倉，拒單`, reason: w.reason || "", t: hit.t, tx: now, amt: 0 }); continue; }
     const lv = await liqOf(w.base);
-    const p = { id, base: w.base, side: w.side, type: w.type || "limit", session: w.session || "", scenario: w.scenario || "", pattern: w.pattern || "P0", e, r, plannedE: w.entry, stop: w.stop, target: w.target, reason: w.reason || "", lev: w.lev || null, levNeeded, cost: tierCost(lv), t: hit.t + M15, lastBar: hit.t, amt: SC.equity * RISK, maxHold: Math.min(168, w.maxHoldH || 48) * H1, cur: hit.c, curR: 0 };
+    const p = { id, base: w.base, side: w.side, type: w.type || "limit", session: w.session || "", scenario: w.scenario || "", pattern: w.pattern || "P0", e, r, plannedE: w.entry, stop: w.stop, target: w.target, reason: w.reason || "", lev: w.lev || null, levNeeded, cost: tierCost(lv), t: hit.t + M15, lastBar: hit.t, amt: SC.equity * RISK, maxHold: Math.min(168, w.maxHoldH || 48) * H1, cur: hit.c, curR: 0, protectAt: w.protectAt ? Date.parse(w.protectAt) || null : null, left: 1, real: 0 };
     SC.open.push(p);
     // 跳空越過停損：成交後停損立刻觸發，以成交價出場（只賠成本）；成交當根又碰到停損：算停損
     if (L ? e <= p.stop : e >= p.stop) close(p, e, "跳空越過停損，成交即出場", hit.t + M15);
@@ -346,10 +346,21 @@ try {
     const L = p.side === "long";
     for (const b of c) {
       if (b.t <= p.lastBar) continue;
-      p.lastBar = b.t; p.cur = b.c; p.curR = +((L ? 1 : -1) * (b.c - p.e) / p.r).toFixed(2);
-      if (L ? b.l <= p.stop : b.h >= p.stop) { close(p, L ? Math.min(b.o, p.stop) : Math.max(b.o, p.stop), "停損", b.t + M15); break; }
+      p.lastBar = b.t; p.cur = b.c; p.curR = +((p.real || 0) + (p.left ?? 1) * (L ? 1 : -1) * (b.c - p.e) / p.r).toFixed(2);
+      if (L ? b.l <= p.stop : b.h >= p.stop) { close(p, L ? Math.min(b.o, p.stop) : Math.max(b.o, p.stop), p.protected === "be" || p.protected === "half" ? "保本出場（事件保護後）" : "停損", b.t + M15); break; }
       if (L ? b.h >= p.target : b.l <= p.target) { close(p, L ? Math.max(b.o, p.target) : Math.min(b.o, p.target), "停利", b.t + M15); break; }
       if (b.t + M15 - p.t >= p.maxHold) { close(p, b.c, "超時平倉", b.t + M15); break; }
+      // 事件保護（11/10 董事長要求，取代「數據前強制平倉」）：到 protectAt（通常是重大數據前 30 分鐘）那根 K 收盤時——
+      //   浮盈 ≥0.5R：先平一半鎖住獲利，剩下一半停損移到保本（+0.05R），讓它抱過數據；
+      //   浮盈 0～0.5R：不減碼，停損移到保本；
+      //   虧損中：直接平倉，不帶著虧損單賭數據。
+      // 不用「反向開一張對沖單」：在同一個商品上等量對沖＝把淨部位歸零，效果跟平倉一樣，卻要多付一次手續費和資金費率。
+      if (p.protectAt && !p.protected && b.t + M15 >= p.protectAt) {
+        const R0 = (L ? 1 : -1) * (b.c - p.e) / p.r;
+        if (R0 >= 0.5) { p.real = 0.5 * R0; /* 成本在最後平倉時一次扣（整筆一個來回） */ p.left = 0.5; p.stop = p.e + (L ? 1 : -1) * 0.05 * p.r; p.protected = "half"; }
+        else if (R0 > 0) { p.stop = p.e + (L ? 1 : -1) * 0.05 * p.r; p.protected = "be"; }
+        else { p.protected = "cut"; close(p, b.c, "事件前保護：虧損中先平倉", b.t + M15); break; }
+      }
     }
   }
   SC.closed = SC.closed.slice(0, 500);
