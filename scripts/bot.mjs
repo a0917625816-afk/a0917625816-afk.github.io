@@ -313,17 +313,51 @@ try {
   const valid = o => o && o.id && o.base && o.entry > 0 && o.stop > 0 && o.target > 0 && okSide(o) && !SC.done[o.id];
   const orders = sv.filter(valid);
   const tierCost = v => v == null ? 0.004 : v >= 2000e6 ? 0.0014 : v >= 500e6 ? 0.0025 : v >= 100e6 ? 0.004 : 0.007;
+  // 時光機（11/11 董事長同意）：掛單一出現就用「這個幣最近約 10 天的 15 分K」做區塊重抽（一次抽 16 根＝4 小時，保留波動群聚），
+  // 模擬 2000 條未來路徑，估計：有效時間內成交機率、成交後先到停利／先到停損／到期平倉的機率、每張單的期望R（未成交算 0）。
+  // 判定規則跟實盤虛擬單一樣保守：成交那根若碰到停損算停損；同一根停損停利都碰到算停損。事件保護不模擬。
+  // 只是機率估計，不改變下單；之後用實際結果比對「預估準不準」（stats.tm）。
+  const timeMachine = (o, bars, cost, elapsed) => {
+    const B = bars.filter(x => x.o > 0 && x.c > 0); if (B.length < 200) return null;
+    const rel = []; for (let i = 1; i < B.length; i++) { const pc = B[i - 1].c; rel.push([B[i].h / pc, B[i].l / pc, B[i].c / pc, B[i].o / pc]); }
+    const N = 2000, BL = 16, L = o.side === "long", lim = (o.type || "limit") === "limit", r = Math.abs(o.entry - o.stop);
+    const fillN = Math.max(1, Math.round((Math.min(72, o.expireH || 8) * H1 - elapsed) / M15)), holdN = Math.round(Math.min(168, o.maxHoldH || 48) * H1 / M15);
+    let seed = 0; for (const ch of String(o.id)) seed = (seed * 31 + ch.charCodeAt(0)) >>> 0;
+    const rnd = () => { seed = (seed + 0x6D2B79F5) >>> 0; let t = seed; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+    let fill = 0, tgt = 0, stp = 0, tim = 0, sumR = 0;
+    for (let k = 0; k < N; k++) {
+      let px = B[B.length - 1].c, j = 0, left = 0, filled = false, e = 0, done = false;
+      const next = () => { if (left <= 0) { j = Math.floor(rnd() * (rel.length - BL)); left = BL; } const q = rel[j++]; left--; const pc = px; px = pc * q[2]; return { o: pc * q[3], h: pc * q[0], l: pc * q[1], c: px }; };
+      for (let i = 0; i < fillN && !filled; i++) {
+        const b = next();
+        if (lim ? (L ? b.l <= o.entry : b.h >= o.entry) : (L ? b.h >= o.entry : b.l <= o.entry)) {
+          filled = true; e = lim ? (L ? Math.min(b.o, o.entry) : Math.max(b.o, o.entry)) : (L ? Math.max(b.o, o.entry) : Math.min(b.o, o.entry));
+          if (L ? (e <= o.stop || b.l <= o.stop) : (e >= o.stop || b.h >= o.stop)) { const x = (L ? e <= o.stop : e >= o.stop) ? e : o.stop; stp++; sumR += (L ? 1 : -1) * (x - e) / r - cost * e / r; done = true; }
+        }
+      }
+      if (!filled) continue; fill++; if (done) continue;
+      for (let i = 0; i < holdN; i++) {
+        const b = next();
+        if (L ? b.l <= o.stop : b.h >= o.stop) { const x = L ? Math.min(b.o, o.stop) : Math.max(b.o, o.stop); stp++; sumR += (L ? 1 : -1) * (x - e) / r - cost * e / r; done = true; break; }
+        if (L ? b.h >= o.target : b.l <= o.target) { const x = L ? Math.max(b.o, o.target) : Math.min(b.o, o.target); tgt++; sumR += (L ? 1 : -1) * (x - e) / r - cost * e / r; done = true; break; }
+      }
+      if (!done) { tim++; sumR += (L ? 1 : -1) * (px - e) / r - cost * e / r; }
+    }
+    const pc = v => Math.round(v / N * 100);
+    return { at: now, paths: N, days: +(B.length * 15 / 1440).toFixed(1), pFill: pc(fill), pTarget: pc(tgt), pStop: pc(stp), pTime: pc(tim), evR: +(sumR / N).toFixed(2), evRFilled: fill ? +(sumR / fill).toFixed(2) : null };
+  };
   for (const o of orders) if (!SC.waiting[o.id] && !SC.open.find(q => q.id === o.id) && Object.keys(SC.waiting).length < MAXWAIT) SC.waiting[o.id] = { ...o, t0: now };
   const close = (p, x, why, tx) => {
     const dir = p.side === "long" ? 1 : -1, left = p.left ?? 1, R = (p.real || 0) + left * dir * (x - p.e) / p.r - p.cost * p.e / p.r;
     SC.equity += p.amt * R; SC.done[p.id] = 1; SC.open = SC.open.filter(q => q !== p);
-    SC.closed.unshift({ id: p.id, base: p.base, side: p.side, type: p.type, session: p.session, scenario: p.scenario, pattern: p.pattern, e: p.e, stop: p.stop, target: p.target, x, R: +R.toFixed(3), why, reason: p.reason, lev: p.lev, levNeeded: p.levNeeded, t: p.t, tx, amt: p.amt });
+    SC.closed.unshift({ id: p.id, base: p.base, side: p.side, type: p.type, session: p.session, scenario: p.scenario, pattern: p.pattern, e: p.e, stop: p.stop, target: p.target, x, R: +R.toFixed(3), why, reason: p.reason, lev: p.lev, levNeeded: p.levNeeded, t: p.t, tx, amt: p.amt, tm: p.tm || null });
   };
   for (const id of Object.keys(SC.waiting)) {
     const w = SC.waiting[id];
     if (!orders.find(o => o.id === id)) { delete SC.waiting[id]; continue; }
     const exp = Math.min(72, w.expireH || 8) * H1;
-    if (now - w.t0 > exp) { SC.done[id] = 1; delete SC.waiting[id]; SC.closed.unshift({ id, base: w.base, side: w.side, session: w.session, scenario: w.scenario, e: w.entry, x: null, R: 0, why: "未成交過期", reason: w.reason || "", t: w.t0, tx: now, amt: 0 }); continue; }
+    if (now - w.t0 > exp) { SC.done[id] = 1; delete SC.waiting[id]; SC.closed.unshift({ id, base: w.base, side: w.side, session: w.session, scenario: w.scenario, e: w.entry, x: null, R: 0, why: "未成交過期", reason: w.reason || "", t: w.t0, tx: now, amt: 0, stop: w.stop, target: w.target, type: w.type || "limit", pattern: w.pattern || "P0", tm: w.tm || null }); continue; }
+    if (!w.tm) { try { const tmBars = await kl(w.base, "15m", 1000); await sleep(80); w.tm = timeMachine(w, tmBars.filter(x => x.t + M15 <= now), tierCost(await liqOf(w.base)), now - w.t0) || { err: "資料不足" }; } catch (e) { w.tm = { err: "抓不到K線" }; } }
     if (SC.open.length >= MAXOPEN) continue;
     let c; try { c = (await kl(w.base, "15m", 400)).filter(x => x.t + M15 <= now); } catch (e) { continue; } await sleep(80);
     const lim = (w.type || "limit") === "limit", L = w.side === "long";
@@ -335,7 +369,7 @@ try {
     const levNeeded = +(RISK * e / r).toFixed(2); // 用全部本金當保證金時需要的槓桿
     if (w.lev && !(L ? e <= w.stop : e >= w.stop) && (1 / w.lev - MMR) <= dist / e) { SC.done[id] = 1; SC.closed.unshift({ id, base: w.base, side: w.side, session: w.session, e, x: null, R: 0, why: `槓桿 ${w.lev} 倍太高：停損前會先爆倉，拒單`, reason: w.reason || "", t: hit.t, tx: now, amt: 0 }); continue; }
     const lv = await liqOf(w.base);
-    const p = { id, base: w.base, side: w.side, type: w.type || "limit", session: w.session || "", scenario: w.scenario || "", pattern: w.pattern || "P0", e, r, plannedE: w.entry, stop: w.stop, target: w.target, reason: w.reason || "", lev: w.lev || null, levNeeded, cost: tierCost(lv), t: hit.t + M15, lastBar: hit.t, amt: SC.equity * RISK, maxHold: Math.min(168, w.maxHoldH || 48) * H1, cur: hit.c, curR: 0, protectAt: w.protectAt ? Date.parse(w.protectAt) || null : null, left: 1, real: 0 };
+    const p = { id, base: w.base, side: w.side, type: w.type || "limit", session: w.session || "", scenario: w.scenario || "", pattern: w.pattern || "P0", e, r, plannedE: w.entry, stop: w.stop, target: w.target, reason: w.reason || "", lev: w.lev || null, levNeeded, cost: tierCost(lv), t: hit.t + M15, lastBar: hit.t, amt: SC.equity * RISK, maxHold: Math.min(168, w.maxHoldH || 48) * H1, cur: hit.c, curR: 0, protectAt: w.protectAt ? Date.parse(w.protectAt) || null : null, left: 1, real: 0, tm: w.tm || null };
     SC.open.push(p);
     // 跳空越過停損：成交後停損立刻觸發，以成交價出場（只賠成本）；成交當根又碰到停損：算停損
     if (L ? e <= p.stop : e >= p.stop) close(p, e, "跳空越過停損，成交即出場", hit.t + M15);
@@ -366,6 +400,12 @@ try {
   SC.closed = SC.closed.slice(0, 500);
   const real = SC.closed.filter(x => x.amt), agg = xs => { const w = xs.filter(x => x.R > 0).length; return { n: xs.length, win: xs.length ? Math.round(w / xs.length * 100) : 0, sumR: +xs.reduce((q, x) => q + x.R, 0).toFixed(2), avgR: xs.length ? +(xs.reduce((q, x) => q + x.R, 0) / xs.length).toFixed(2) : 0 }; };
   SC.stats = { ...agg(real), ret: +((SC.equity - 1) * 100).toFixed(1), bySession: Object.fromEntries(["tokyo", "london", "ny"].map(k => [k, agg(real.filter(x => x.session === k))])), bySide: { long: agg(real.filter(x => x.side === "long")), short: agg(real.filter(x => x.side === "short")) }, byType: { limit: agg(real.filter(x => (x.type || "limit") === "limit")), stop: agg(real.filter(x => x.type === "stop")) }, expired: SC.closed.filter(x => !x.amt).length };
+  // 時光機準不準：拿有預估的單，比「預估平均」跟「實際比例」
+  { const T = SC.closed.filter(x => x.tm && x.tm.pFill != null && !/拒單/.test(x.why || "")), F = T.filter(x => x.amt), avg = (a, f) => a.length ? +(a.reduce((q, x) => q + f(x), 0) / a.length).toFixed(2) : null;
+    SC.stats.tm = { n: T.length, filledN: F.length, predFill: avg(T, x => x.tm.pFill), realFill: T.length ? Math.round(F.length / T.length * 100) : null,
+      predTarget: avg(F, x => x.tm.evRFilled == null ? 0 : x.tm.pTarget / Math.max(1, x.tm.pFill) * 100), realTarget: F.length ? Math.round(F.filter(x => x.why === "停利").length / F.length * 100) : null,
+      predStop: avg(F, x => x.tm.pStop / Math.max(1, x.tm.pFill) * 100), realStop: F.length ? Math.round(F.filter(x => /停損/.test(x.why || "")).length / F.length * 100) : null,
+      predEvR: avg(T, x => x.tm.evR), realAvgR: avg(T, x => +x.R || 0) }; }
   // 按型態＋方向統計；early＝較舊的一半、late＝較新的一半（用來驗證：只有前後兩半都賺的型態才算真的有效）
   const keys = [...new Set(real.map(x => (x.pattern || "P0") + "|" + x.side))];
   SC.stats.byPattern = Object.fromEntries(keys.map(k => { const [pt, sd] = k.split("|"); const xs = real.filter(x => (x.pattern || "P0") === pt && x.side === sd).sort((a, b) => a.tx - b.tx), h = Math.floor(xs.length / 2); return [k, { pattern: pt, side: sd, ...agg(xs), early: agg(xs.slice(0, h)), late: agg(xs.slice(h)) }]; }));

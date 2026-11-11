@@ -153,8 +153,19 @@ function posCard(p0, G) {
       <div><span>開倉均價</span><b>${fmt(p.e)}</b></div><div><span>標記價格</span><b>${fmt(mk)}</b></div><div><span>預估強平價</span><b class="${liqFirst ? "dn" : "up"}">${fmt(liq)}</b></div>
       <div><span>止損</span><b class="dn">${fmt(p.stop)}</b></div><div><span>止盈</span><b class="up">${p.target != null ? fmt(p.target) : "跟著通道走"}</b></div><div><span>開倉時間</span><b>${tw(p.t)}</b></div>
     </div>
-    ${liqFirst ? `<div class="warnline">⚠️ ${L} 倍時，強平價 ${fmt(liq)} 比止損 ${fmt(p.stop)} 還近：價格還沒到止損就會先爆倉，損失整筆保證金。</div>` : `<div class="okline">這筆最多賠 ${usd(s.risk)} USDT（本金約 1%）；${L} 倍下強平價在止損外面，安全。</div>`}
+    ${liqFirst ? `<div class="warnline">⚠️ ${L} 倍時，強平價 ${fmt(liq)} 比止損 ${fmt(p.stop)} 還近：價格還沒到止損就會先爆倉，損失整筆保證金。</div>` : `<div class="okline">這筆最多賠 ${usd(s.risk)} USDT（本金約 1%）；${L} 倍下強平價在止損外面，安全。</div>`}${tmLine(p0.tm)}
   </div>`;
+}
+function tmLine(tm) {
+  if (!tm) return "";
+  if (tm.err) return `<div class="okline">⏳ 時光機：${esc(tm.err)}</div>`;
+  const f = tm.pFill || 1, tg = Math.round(tm.pTarget / f * 100), sp = Math.round(tm.pStop / f * 100), ti = Math.max(0, 100 - tg - sp);
+  return `<div class="okline">⏳ 時光機（重演近 ${tm.days} 天走勢 ${tm.paths} 次）：成交機率 <b>${tm.pFill}%</b>；成交後 先到止盈 <b class="up">${tg}%</b>・先到止損 <b class="dn">${sp}%</b>・到期平倉 ${ti}%；每張期望 <b class="${tm.evR > 0 ? "up" : tm.evR < 0 ? "dn" : ""}">${tm.evR > 0 ? "+" : ""}${tm.evR}R</b>${tm.evRFilled != null ? `（成交的話 ${tm.evRFilled > 0 ? "+" : ""}${tm.evRFilled}R）` : ""}</div>`;
+}
+function tmCal(G) {
+  const t = G.stats && G.stats.tm; if (!t || !t.n) return `<div class="okline">⏳ 時光機：新掛單會自動估算成交與止盈止損機率；累積結束的單後，這裡會顯示「預估 vs 實際」準不準。</div>`;
+  const c = (a, b) => `預估 ${a == null ? "—" : Math.round(a) + "%"}／實際 ${b == null ? "—" : b + "%"}`;
+  return `<div class="okline">⏳ 時光機準不準（${t.n} 張已結束，${t.filledN} 張有成交）：成交率 ${c(t.predFill, t.realFill)}；止盈率 ${c(t.predTarget, t.realTarget)}；止損率 ${c(t.predStop, t.realStop)}；每張平均 預估 ${t.predEvR ?? "—"}R／實際 ${t.realAvgR ?? "—"}R${t.n < 20 ? "（不滿 20 張，先參考）" : ""}</div>`;
 }
 function orders(dk, G) {
   if (dk === "scen") return Object.values(G.waiting || {});
@@ -172,13 +183,13 @@ function orderCard(o, dk) {
     <div class="pnl"><span>有效</span><b style="font-size:16px">${o.expireH} 小時</b></div></div>
     <div class="grid3"><div><span>委託價</span><b>${fmt(o.entry)}</b></div><div><span>止損</span><b class="dn">${fmt(o.stop)}</b></div><div><span>止盈</span><b class="up">${fmt(o.target)}</b></div>
     <div><span>報酬風險比</span><b>${rr.toFixed(2)}</b></div><div><span>預估強平價</span><b class="${liqFirst ? "dn" : "up"}">${fmt(liq)}</b></div><div><span>現價</span><b>${fmt(markOf({ sym: o.base, cur: null, e: o.entry }))}</b></div></div>
-    <div class="okline">${esc((o.reason || "").slice(0, 160))}${(o.reason || "").length > 160 ? "…" : ""}</div></div>`;
+    ${tmLine(o.tm)}<div class="okline">${esc((o.reason || "").slice(0, 160))}${(o.reason || "").length > 160 ? "…" : ""}</div></div>`;
 }
 function histRows(G) {
   const C = (G.closed || []).slice(0, 80);
   if (!C.length) return `<div class="empty">還沒有結束的單</div>`;
   return `<div class="tw"><table class="hist"><thead><tr><th>幣種</th><th>方向</th><th>開倉</th><th>平倉</th><th>開倉價</th><th>平倉價</th><th>原因</th><th>盈虧</th></tr></thead><tbody>${C.map(t0 => { const t = norm(t0), usdv = t.R * 0.01 * ACC;
-    return `<tr><td><b>${esc(t.sym)}</b></td><td><span class="tag ${t.side}">${t.dir > 0 ? "多" : "空"}</span></td><td>${tw(t.t)}</td><td>${tw(t.tx)}</td><td>${fmt(t.e)}</td><td>${fmt(t.x)}</td><td>${esc(t.why)}</td><td class="${t.R > 0 ? "up" : t.R < 0 ? "dn" : ""}"><b>${t.R > 0 ? "+" : ""}${(+t.R).toFixed(2)}R</b><br><small>${usdv >= 0 ? "+" : ""}${usd(usdv)}</small></td></tr>`; }).join("")}</tbody></table></div>`;
+    return `<tr><td><b>${esc(t.sym)}</b></td><td><span class="tag ${t.side}">${t.dir > 0 ? "多" : "空"}</span></td><td>${tw(t.t)}</td><td>${tw(t.tx)}</td><td>${fmt(t.e)}</td><td>${fmt(t.x)}</td><td>${esc(t.why)}${t0.tm && t0.tm.pFill != null ? `<br><small>時光機：成交 ${t0.tm.pFill}%・止盈 ${t0.tm.pTarget}%・止損 ${t0.tm.pStop}%</small>` : ""}</td><td class="${t.R > 0 ? "up" : t.R < 0 ? "dn" : ""}"><b>${t.R > 0 ? "+" : ""}${(+t.R).toFixed(2)}R</b><br><small>${usdv >= 0 ? "+" : ""}${usd(usdv)}</small></td></tr>`; }).join("")}</tbody></table></div>`;
 }
 function board() {
   const rows = DEPTS.map(d => { const G = d.get(BOT) || {}, C = (G.closed || []).filter(t => t.R != null && t.why !== "未成交過期" && t.why !== "拒單");
@@ -206,7 +217,7 @@ function render() {
   const ords = orders(cur, G);
   $("sub").innerHTML = [["pos", `持倉 (${opens.length})`], ["ord", `委託 (${ords.length})`], ["his", `歷史 (${(G.closed || []).length})`]].map(([k, l]) => `<button type="button" data-s="${k}" aria-pressed="${k === sub}">${l}</button>`).join("");
   $("body").innerHTML = sub === "pos" ? (opens.length ? `<div class="list">${openRaw.map(p => posCard(p, G)).join("")}</div>` : `<div class="empty">目前沒有持倉。看右上「執行過程」可以知道機器人為什麼還沒進場。</div>`)
-    : sub === "ord" ? (ords.length ? `<div class="list">${ords.map(o => orderCard(o, cur)).join("")}</div>` : `<div class="empty">${cur === "scen" || cur === "fib" ? "目前沒有掛單" : "這個部門是收盤確認後直接市價進場，不掛單"}</div>`)
+    : sub === "ord" ? (cur === "scen" ? tmCal(G) : "") + (ords.length ? `<div class="list">${ords.map(o => orderCard(o, cur)).join("")}</div>` : `<div class="empty">${cur === "scen" || cur === "fib" ? "目前沒有掛單" : "這個部門是收盤確認後直接市價進場，不掛單"}</div>`)
     : histRows(G);
 }
 // ===== 執行過程：把機器人這一輪的判斷一步一步播出來 =====
