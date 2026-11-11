@@ -133,13 +133,15 @@ const I3 = st.intra3 = Object.assign({ equity: 1, open: [], closed: [], lastBar:
 // 日內 D（11/08 第十七輪審查通過）：同日內（成交額 ≥1 億U），但前一天 BTC 收盤「趨勢上」（高於日線 EMA50 達 3%、非恐慌）不開新單
 const I4 = st.intra4 = Object.assign({ equity: 1, open: [], closed: [], lastBar: 0, done: {}, created: now }, st.intra4 || {});
 const trendBlk = () => btcTrendUp;
-const IGROUPS = [[I, LIQ_MIN, null, "日內"], [I2, LIQ_MIN2, null, "日內B"], [I3, LIQ_MIN2, evBlock, "日內C"], [I4, LIQ_MIN, trendBlk, "日內D"]];
+// 11/11 第二十輪審查表補測：日內（≥1 億U）成本 ×1.5 後樣本內外平均R 都轉負（+0.035→+0.001／+0.020→−0.009）＝邊太薄，依審查表「視同淘汰」停止新開單；紀錄與模擬器分頁保留，日內B／C／D 不受影響。董事長可否決（把 paused 改回 false 即恢復）。
+I.paused = true; I.pausedAt = I.pausedAt || now; I.pausedWhy = "11/11 審查表：成本 ×1.5 轉負（邊太薄），停止新開單、保留紀錄";
+const IGROUPS = [[I, LIQ_MIN, null, "日內", true], [I2, LIQ_MIN2, null, "日內B"], [I3, LIQ_MIN2, evBlock, "日內C"], [I4, LIQ_MIN, trendBlk, "日內D"]];
 for (const [S] of IGROUPS) if (!S.lastBar) S.lastBar = Math.floor(now / M15) * M15 - 2 * M15; // 第一次執行不回補舊訊號
 const iNeed = new Set([...top, ...I.open.map(p => p.base), ...I2.open.map(p => p.base), ...I3.open.map(p => p.base), ...I4.open.map(p => p.base)]);
 for (const b of iNeed) {
   let c; try { c = (await kl(b, "15m", 400)).filter(x => x.t + M15 <= now); } catch (e) { continue; } await sleep(80);
   if (c.length < IN + 20) continue; const a = atr(c, 14), v20 = sma(c.map(x => x.v), 20);
-  for (const [S, lmin, blk, nm] of IGROUPS) for (let i = IN; i < c.length; i++) {
+  for (const [S, lmin, blk, nm, paused] of IGROUPS) for (let i = IN; i < c.length; i++) {
     const bar = c[i], day = Math.floor(bar.t / D1), dayEnd = (day + 1) * D1;
     const p = S.open.find(q => q.base === b);
     if (p) {
@@ -152,6 +154,7 @@ for (const b of iNeed) {
       continue;
     }
     if (bar.t <= S.lastBar) continue;
+    if (paused) continue; // 停止新開單（既有持倉照常管理）
     if (bar.t >= day * D1 + 20 * 36e5 || S.done[b] === day || !btcUp || !top.has(b) || S.open.length >= MAXPOS) continue;
     let hi = -Infinity; for (let j = i - IN; j < i; j++) hi = Math.max(hi, c[j].h);
     if (!(bar.c > hi)) continue;
@@ -424,7 +427,9 @@ try {
   const opens = day => { const y = new Date(day * D1).getUTCFullYear(), us = day >= nthSun(y, 2, 2) && day < nthSun(y, 10, 1), uk = day >= lastSun(y, 2) && day < lastSun(y, 9);
     return [["tokyo", "東京", day * D1], ["london", "倫敦", day * D1 + (uk ? 7 : 8) * 36e5], ["ny", "紐約", day * D1 + (us ? 13.5 : 14.5) * 36e5]]; };
   const live = [], plan = [];
-  for (const [sym, name] of SYMS) {
+  // 11/11：累積 30 筆、平均 −0.69R（第十一輪回測也扣成本不賺），依 10/31 規則停止新開單；紀錄保留、模擬器分頁照舊。董事長可否決（paused 改回 false 即恢復）。
+  FB.paused = true; FB.pausedAt = FB.pausedAt || now; FB.pausedWhy = "11/11 滿 30 筆平均 −0.69R，依 10/31 規則停止新開單、保留紀錄";
+  for (const [sym, name] of (FB.paused ? [] : SYMS)) {
     let c; try { c = (await kl(sym, "15m", 300)).filter(x => x.t + M15 <= now); } catch (e) { console.log("斐波下單員略過", sym, e.message); continue; } await sleep(80);
     if (c.length < 40) continue; const a = atr(c, 14), cur = c.at(-1).c;
     const first = t => { let lo = 0, hi = c.length; while (lo < hi) { const m = (lo + hi) >> 1; if (c[m].t < t) lo = m + 1; else hi = m; } return lo; };

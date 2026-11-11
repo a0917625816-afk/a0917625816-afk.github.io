@@ -115,12 +115,12 @@ const ACC = 10000, MMR = 0.005;
 const DEPTS = [
   { key: "A", name: "波段 A", get: B => B, rules: "4 小時 K 突破 55 根新高才做多，且要：BTC 日線在 EMA50 之上、該幣 20 天漲幅前 10 名、4h 在 EMA200 之上。停損 2 倍 ATR，跌破前 27 根低點出場。" },
   { key: "b", name: "波段 B", get: B => B.b, rules: "進場同波段 A；漲到 1R 先平 1/3，剩下停損移到成本。" },
-  { key: "intra", name: "日內", get: B => B.intra, rules: "15 分 K 突破 48 小時新高＋同濾網＋量能放大、收在 K 棒上半段；台灣 04:00 後不進場、08:00 平倉。" },
+  { key: "intra", name: "日內", get: B => B.intra, rules: "15 分 K 突破 48 小時新高＋同濾網＋量能放大、收在 K 棒上半段；台灣 04:00 後不進場、08:00 平倉。（11/11 起停止新開單：第二十輪審查表補測成本 ×1.5 後平均R 轉負＝邊太薄；紀錄保留，日內 B／C／D 照跑。）" },
   { key: "intra2", name: "日內 B", get: B => B.intra2, rules: "同日內，只做日均成交額 ≥5 億 U 的大幣。" },
   { key: "intra3", name: "日內 C", get: B => B.intra3, rules: "同日內 B，加上 FOMC／CPI／非農公布前後 4 小時不開新單。" },
   { key: "intra4", name: "日內 D", get: B => B.intra4, rules: "同日內（成交額 ≥1 億 U），但前一天 BTC 收盤「趨勢上」（高於日線 EMA50 達 3%、非恐慌）不開新單——追已經漲多的市場不划算（11/08 第十七輪審查通過）。" },
   { key: "scen", name: "劇本單", get: B => B.scen, rules: "盤前室（東京／倫敦／紐約）AI 劇本員寫劇本、下單員照劇本掛單，可多可空；每筆固定賠本金 1%。" },
-  { key: "fib", name: "斐波下單員", get: B => B.fib, rules: "黃金、那指在各開盤：開盤前 2 小時區間，破區間後在 -0.5 反向掛單、停損 -1.0、目標回到 0 線；最多抱 4 小時。（回測扣成本不賺，實驗觀察組）" },
+  { key: "fib", name: "斐波下單員", get: B => B.fib, rules: "黃金、那指在各開盤：開盤前 2 小時區間，破區間後在 -0.5 反向掛單、停損 -1.0、目標回到 0 線；最多抱 4 小時。（回測扣成本不賺，實驗觀察組；11/11 滿 30 筆平均 −0.69R，依 10/31 規則停止新開單，紀錄保留）" },
   { key: "gnSwing", name: "黃金波段", get: B => B.gnSwing, rules: "黃金 4h 收盤突破 55 根新高（在 EMA200 之上）做多、跌破新低（在 EMA200 之下）做空；停損 2ATR。（觀察組）" },
 ];
 let BOT = null, INTEL = {}, cur = "A", sub = "pos", live = {}, ws = null, typing = null;
