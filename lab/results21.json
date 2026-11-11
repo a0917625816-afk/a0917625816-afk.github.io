@@ -1,0 +1,563 @@
+{
+ "at": "2026-11-11T18:58:56.280Z",
+ "note": "劇本單實單回放；成交 <30 張＝判不了，只看方向",
+ "sanity": {
+  "n": 67,
+  "mismatches": 4,
+  "examples": [
+   {
+    "id": "1108-ld-SOL-A",
+    "sim": 1.9,
+    "simWhy": "停利",
+    "actual": 1.683,
+    "actualWhy": "停利"
+   },
+   {
+    "id": "1106-ld-SOL-A",
+    "sim": -1.26,
+    "simWhy": "停損",
+    "actual": 0,
+    "actualWhy": "未成交過期"
+   },
+   {
+    "id": "1104-ld-SOL-A",
+    "sim": -1.08,
+    "simWhy": "停損",
+    "actual": 0,
+    "actualWhy": "未成交過期"
+   },
+   {
+    "id": "1101-ny-SOL-A",
+    "sim": 1.34,
+    "simWhy": "停利",
+    "actual": 1.161,
+    "actualWhy": "停利"
+   }
+  ]
+ },
+ "variants": {
+  "V0": {
+   "name": "原版",
+   "orders": 67,
+   "fills": 29,
+   "fillPct": 43,
+   "win": 45,
+   "avgRFilled": 0.1,
+   "sumR": 3.02,
+   "avgRPerOrder": 0.045,
+   "maxDD": 6
+  },
+  "V1": {
+   "name": "兩段掛（中點＋原價各半）",
+   "orders": 67,
+   "fills": 50,
+   "fillPct": 75,
+   "win": 64,
+   "avgRFilled": 0.1,
+   "sumR": 4.77,
+   "avgRPerOrder": 0.071,
+   "maxDD": 6.61
+  },
+  "V2": {
+   "name": "1R 先平一半＋保本",
+   "orders": 67,
+   "fills": 29,
+   "fillPct": 43,
+   "win": 66,
+   "avgRFilled": -0.07,
+   "sumR": -1.94,
+   "avgRPerOrder": -0.029,
+   "maxDD": 3.53
+  },
+  "V3": {
+   "name": "停利上限 1.5R",
+   "orders": 67,
+   "fills": 29,
+   "fillPct": 43,
+   "win": 48,
+   "avgRFilled": -0.05,
+   "sumR": -1.41,
+   "avgRPerOrder": -0.021,
+   "maxDD": 5.9
+  },
+  "V4": {
+   "name": "兩段掛＋1R 先平一半",
+   "orders": 67,
+   "fills": 50,
+   "fillPct": 75,
+   "win": 66,
+   "avgRFilled": 0.01,
+   "sumR": 0.52,
+   "avgRPerOrder": 0.008,
+   "maxDD": 4.32
+  }
+ },
+ "bySession": {
+  "V0": {
+   "tokyo": {
+    "orders": 30,
+    "fills": 9,
+    "fillPct": 30,
+    "win": 44,
+    "avgRFilled": 0.33,
+    "sumR": 3.01,
+    "avgRPerOrder": 0.1,
+    "maxDD": 2.51
+   },
+   "london": {
+    "orders": 20,
+    "fills": 12,
+    "fillPct": 60,
+    "win": 25,
+    "avgRFilled": -0.63,
+    "sumR": -7.53,
+    "avgRPerOrder": -0.376,
+    "maxDD": 7.53
+   },
+   "ny": {
+    "orders": 17,
+    "fills": 8,
+    "fillPct": 47,
+    "win": 75,
+    "avgRFilled": 0.94,
+    "sumR": 7.53,
+    "avgRPerOrder": 0.443,
+    "maxDD": 2.38
+   }
+  },
+  "V1": {
+   "tokyo": {
+    "orders": 30,
+    "fills": 20,
+    "fillPct": 67,
+    "win": 65,
+    "avgRFilled": 0.15,
+    "sumR": 2.94,
+    "avgRPerOrder": 0.098,
+    "maxDD": 2.42
+   },
+   "london": {
+    "orders": 20,
+    "fills": 17,
+    "fillPct": 85,
+    "win": 47,
+    "avgRFilled": -0.36,
+    "sumR": -6.07,
+    "avgRPerOrder": -0.304,
+    "maxDD": 6.25
+   },
+   "ny": {
+    "orders": 17,
+    "fills": 13,
+    "fillPct": 76,
+    "win": 85,
+    "avgRFilled": 0.61,
+    "sumR": 7.9,
+    "avgRPerOrder": 0.465,
+    "maxDD": 2.34
+   }
+  },
+  "V2": {
+   "tokyo": {
+    "orders": 30,
+    "fills": 9,
+    "fillPct": 30,
+    "win": 56,
+    "avgRFilled": -0.19,
+    "sumR": -1.74,
+    "avgRPerOrder": -0.058,
+    "maxDD": 3.33
+   },
+   "london": {
+    "orders": 20,
+    "fills": 12,
+    "fillPct": 60,
+    "win": 58,
+    "avgRFilled": -0.24,
+    "sumR": -2.92,
+    "avgRPerOrder": -0.146,
+    "maxDD": 2.92
+   },
+   "ny": {
+    "orders": 17,
+    "fills": 8,
+    "fillPct": 47,
+    "win": 88,
+    "avgRFilled": 0.34,
+    "sumR": 2.72,
+    "avgRPerOrder": 0.16,
+    "maxDD": 1.2
+   }
+  },
+  "V3": {
+   "tokyo": {
+    "orders": 30,
+    "fills": 9,
+    "fillPct": 30,
+    "win": 44,
+    "avgRFilled": -0.14,
+    "sumR": -1.25,
+    "avgRPerOrder": -0.042,
+    "maxDD": 2.51
+   },
+   "london": {
+    "orders": 20,
+    "fills": 12,
+    "fillPct": 60,
+    "win": 33,
+    "avgRFilled": -0.42,
+    "sumR": -5.02,
+    "avgRPerOrder": -0.251,
+    "maxDD": 5.88
+   },
+   "ny": {
+    "orders": 17,
+    "fills": 8,
+    "fillPct": 47,
+    "win": 75,
+    "avgRFilled": 0.61,
+    "sumR": 4.86,
+    "avgRPerOrder": 0.286,
+    "maxDD": 2.38
+   }
+  },
+  "V4": {
+   "tokyo": {
+    "orders": 30,
+    "fills": 20,
+    "fillPct": 67,
+    "win": 65,
+    "avgRFilled": -0.07,
+    "sumR": -1.34,
+    "avgRPerOrder": -0.045,
+    "maxDD": 2.64
+   },
+   "london": {
+    "orders": 20,
+    "fills": 17,
+    "fillPct": 85,
+    "win": 53,
+    "avgRFilled": -0.19,
+    "sumR": -3.2,
+    "avgRPerOrder": -0.16,
+    "maxDD": 3.2
+   },
+   "ny": {
+    "orders": 17,
+    "fills": 13,
+    "fillPct": 76,
+    "win": 85,
+    "avgRFilled": 0.39,
+    "sumR": 5.06,
+    "avgRPerOrder": 0.297,
+    "maxDD": 0.81
+   }
+  }
+ },
+ "byPattern": {
+  "V0": {
+   "P11|short": {
+    "orders": 2,
+    "fills": 1,
+    "fillPct": 50,
+    "win": 0,
+    "avgRFilled": -1.2,
+    "sumR": -1.2,
+    "avgRPerOrder": -0.602,
+    "maxDD": 1.2
+   },
+   "P6|short": {
+    "orders": 11,
+    "fills": 8,
+    "fillPct": 73,
+    "win": 38,
+    "avgRFilled": -0.48,
+    "sumR": -3.8,
+    "avgRPerOrder": -0.346,
+    "maxDD": 4.7
+   },
+   "P8|short": {
+    "orders": 6,
+    "fills": 3,
+    "fillPct": 50,
+    "win": 67,
+    "avgRFilled": 0.74,
+    "sumR": 2.21,
+    "avgRPerOrder": 0.368,
+    "maxDD": 1.23
+   },
+   "P7|short": {
+    "orders": 15,
+    "fills": 6,
+    "fillPct": 40,
+    "win": 50,
+    "avgRFilled": 0.15,
+    "sumR": 0.91,
+    "avgRPerOrder": 0.06,
+    "maxDD": 2.27
+   },
+   "P4|short": {
+    "orders": 4,
+    "fills": 0,
+    "fillPct": 0,
+    "win": 0,
+    "avgRFilled": 0,
+    "sumR": 0,
+    "avgRPerOrder": 0,
+    "maxDD": 0
+   },
+   "P0|short": {
+    "orders": 7,
+    "fills": 3,
+    "fillPct": 43,
+    "win": 100,
+    "avgRFilled": 2.18,
+    "sumR": 6.55,
+    "avgRPerOrder": 0.935,
+    "maxDD": 0
+   },
+   "P5|short": {
+    "orders": 1,
+    "fills": 0,
+    "fillPct": 0,
+    "win": 0,
+    "avgRFilled": 0,
+    "sumR": 0,
+    "avgRPerOrder": 0,
+    "maxDD": 0
+   },
+   "P2|short": {
+    "orders": 4,
+    "fills": 2,
+    "fillPct": 50,
+    "win": 0,
+    "avgRFilled": -1.21,
+    "sumR": -2.42,
+    "avgRPerOrder": -0.604,
+    "maxDD": 2.42
+   },
+   "P8|long": {
+    "orders": 2,
+    "fills": 1,
+    "fillPct": 50,
+    "win": 0,
+    "avgRFilled": -1.2,
+    "sumR": -1.2,
+    "avgRPerOrder": -0.598,
+    "maxDD": 1.2
+   },
+   "P1|long": {
+    "orders": 4,
+    "fills": 1,
+    "fillPct": 25,
+    "win": 100,
+    "avgRFilled": 2.04,
+    "sumR": 2.04,
+    "avgRPerOrder": 0.511,
+    "maxDD": 0
+   },
+   "P1|short": {
+    "orders": 2,
+    "fills": 1,
+    "fillPct": 50,
+    "win": 0,
+    "avgRFilled": -1.08,
+    "sumR": -1.08,
+    "avgRPerOrder": -0.539,
+    "maxDD": 1.08
+   },
+   "P4|long": {
+    "orders": 4,
+    "fills": 2,
+    "fillPct": 50,
+    "win": 50,
+    "avgRFilled": 1.17,
+    "sumR": 2.33,
+    "avgRPerOrder": 0.583,
+    "maxDD": 1.29
+   },
+   "P6|long": {
+    "orders": 1,
+    "fills": 1,
+    "fillPct": 100,
+    "win": 0,
+    "avgRFilled": -1.32,
+    "sumR": -1.32,
+    "avgRPerOrder": -1.324,
+    "maxDD": 1.32
+   },
+   "P7|long": {
+    "orders": 2,
+    "fills": 0,
+    "fillPct": 0,
+    "win": 0,
+    "avgRFilled": 0,
+    "sumR": 0,
+    "avgRPerOrder": 0,
+    "maxDD": 0
+   },
+   "P2|long": {
+    "orders": 2,
+    "fills": 0,
+    "fillPct": 0,
+    "win": 0,
+    "avgRFilled": 0,
+    "sumR": 0,
+    "avgRPerOrder": 0,
+    "maxDD": 0
+   }
+  },
+  "V2": {
+   "P11|short": {
+    "orders": 2,
+    "fills": 1,
+    "fillPct": 50,
+    "win": 0,
+    "avgRFilled": -1.2,
+    "sumR": -1.2,
+    "avgRPerOrder": -0.602,
+    "maxDD": 1.2
+   },
+   "P6|short": {
+    "orders": 11,
+    "fills": 8,
+    "fillPct": 73,
+    "win": 63,
+    "avgRFilled": -0.11,
+    "sumR": -0.91,
+    "avgRPerOrder": -0.083,
+    "maxDD": 2.32
+   },
+   "P8|short": {
+    "orders": 6,
+    "fills": 3,
+    "fillPct": 50,
+    "win": 100,
+    "avgRFilled": 0.72,
+    "sumR": 2.15,
+    "avgRPerOrder": 0.359,
+    "maxDD": 0
+   },
+   "P7|short": {
+    "orders": 15,
+    "fills": 6,
+    "fillPct": 40,
+    "win": 50,
+    "avgRFilled": -0.27,
+    "sumR": -1.61,
+    "avgRPerOrder": -0.107,
+    "maxDD": 3.19
+   },
+   "P4|short": {
+    "orders": 4,
+    "fills": 0,
+    "fillPct": 0,
+    "win": 0,
+    "avgRFilled": 0,
+    "sumR": 0,
+    "avgRPerOrder": 0,
+    "maxDD": 0
+   },
+   "P0|short": {
+    "orders": 7,
+    "fills": 3,
+    "fillPct": 43,
+    "win": 100,
+    "avgRFilled": 0.68,
+    "sumR": 2.04,
+    "avgRPerOrder": 0.292,
+    "maxDD": 0
+   },
+   "P5|short": {
+    "orders": 1,
+    "fills": 0,
+    "fillPct": 0,
+    "win": 0,
+    "avgRFilled": 0,
+    "sumR": 0,
+    "avgRPerOrder": 0,
+    "maxDD": 0
+   },
+   "P2|short": {
+    "orders": 4,
+    "fills": 2,
+    "fillPct": 50,
+    "win": 50,
+    "avgRFilled": -0.45,
+    "sumR": -0.89,
+    "avgRPerOrder": -0.223,
+    "maxDD": 1.16
+   },
+   "P8|long": {
+    "orders": 2,
+    "fills": 1,
+    "fillPct": 50,
+    "win": 100,
+    "avgRFilled": 0.33,
+    "sumR": 0.33,
+    "avgRPerOrder": 0.165,
+    "maxDD": 0
+   },
+   "P1|long": {
+    "orders": 4,
+    "fills": 1,
+    "fillPct": 25,
+    "win": 100,
+    "avgRFilled": 0.25,
+    "sumR": 0.25,
+    "avgRPerOrder": 0.062,
+    "maxDD": 0
+   },
+   "P1|short": {
+    "orders": 2,
+    "fills": 1,
+    "fillPct": 50,
+    "win": 0,
+    "avgRFilled": -1.08,
+    "sumR": -1.08,
+    "avgRPerOrder": -0.539,
+    "maxDD": 1.08
+   },
+   "P4|long": {
+    "orders": 4,
+    "fills": 2,
+    "fillPct": 50,
+    "win": 50,
+    "avgRFilled": -0.61,
+    "sumR": -1.22,
+    "avgRPerOrder": -0.304,
+    "maxDD": 1.29
+   },
+   "P6|long": {
+    "orders": 1,
+    "fills": 1,
+    "fillPct": 100,
+    "win": 100,
+    "avgRFilled": 0.2,
+    "sumR": 0.2,
+    "avgRPerOrder": 0.201,
+    "maxDD": 0
+   },
+   "P7|long": {
+    "orders": 2,
+    "fills": 0,
+    "fillPct": 0,
+    "win": 0,
+    "avgRFilled": 0,
+    "sumR": 0,
+    "avgRPerOrder": 0,
+    "maxDD": 0
+   },
+   "P2|long": {
+    "orders": 2,
+    "fills": 0,
+    "fillPct": 0,
+    "win": 0,
+    "avgRFilled": 0,
+    "sumR": 0,
+    "avgRPerOrder": 0,
+    "maxDD": 0
+   }
+  }
+ }
+}
