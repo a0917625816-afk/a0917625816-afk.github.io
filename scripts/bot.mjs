@@ -355,15 +355,15 @@ try {
   };
   for (const o of orders) if (!SC.waiting[o.id] && !SC.open.find(q => q.id === o.id) && Object.keys(SC.waiting).length < MAXWAIT) SC.waiting[o.id] = { ...o, t0: now };
   const close = (p, x, why, tx) => {
-    const dir = p.side === "long" ? 1 : -1, left = p.left ?? 1, R = (p.real || 0) + left * dir * (x - p.e) / p.r - p.cost * p.e / p.r;
-    SC.equity += p.amt * R; SC.done[p.id] = 1; SC.open = SC.open.filter(q => q !== p);
-    SC.closed.unshift({ id: p.id, base: p.base, side: p.side, type: p.type, session: p.session, scenario: p.scenario, pattern: p.pattern, e: p.e, stop: p.stop, target: p.target, x, R: +R.toFixed(3), why, reason: p.reason, lev: p.lev, levNeeded: p.levNeeded, t: p.t, tx, amt: p.amt, tm: p.tm || null });
+    const dir = p.side === "long" ? 1 : -1, left = p.left ?? 1, Rraw = (p.real || 0) + left * dir * (x - p.e) / p.r - p.cost * p.e / p.r, mul = p.riskMul || 1, R = Rraw * mul; // R 一律換算成「本金 1% 風險」單位：兩段掛的半段 +1R 記成 +0.5R
+    SC.equity += p.amt * Rraw; SC.done[p.id] = 1; SC.open = SC.open.filter(q => q !== p);
+    SC.closed.unshift({ id: p.id, base: p.base, side: p.side, type: p.type, session: p.session, scenario: p.scenario, pattern: p.pattern, e: p.e, stop: p.stop, target: p.target, x, R: +R.toFixed(3), why, reason: p.reason, lev: p.lev, levNeeded: p.levNeeded, t: p.t, tx, amt: p.amt, tm: p.tm || null, riskMul: mul, Rraw: +Rraw.toFixed(3), group: p.group || null });
   };
   for (const id of Object.keys(SC.waiting)) {
     const w = SC.waiting[id];
     if (!orders.find(o => o.id === id)) { delete SC.waiting[id]; continue; }
     const exp = Math.min(72, w.expireH || 8) * H1;
-    if (now - w.t0 > exp) { SC.done[id] = 1; delete SC.waiting[id]; SC.closed.unshift({ id, base: w.base, side: w.side, session: w.session, scenario: w.scenario, e: w.entry, x: null, R: 0, why: "未成交過期", reason: w.reason || "", t: w.t0, tx: now, amt: 0, stop: w.stop, target: w.target, type: w.type || "limit", pattern: w.pattern || "P0", tm: w.tm || null }); continue; }
+    if (now - w.t0 > exp) { SC.done[id] = 1; delete SC.waiting[id]; SC.closed.unshift({ id, base: w.base, side: w.side, session: w.session, scenario: w.scenario, e: w.entry, x: null, R: 0, why: "未成交過期", reason: w.reason || "", t: w.t0, tx: now, amt: 0, stop: w.stop, target: w.target, type: w.type || "limit", pattern: w.pattern || "P0", tm: w.tm || null, riskMul: Math.min(1, Math.max(0.1, +w.risk || 1)), group: w.group || null }); continue; }
     if (!w.tm) { try { const tmBars = await kl(w.base, "15m", 1000); await sleep(80); w.tm = timeMachine(w, tmBars.filter(x => x.t + M15 <= now), tierCost(await liqOf(w.base)), now - w.t0) || { err: "資料不足" }; } catch (e) { w.tm = { err: "抓不到K線" }; } }
     if (SC.open.length >= MAXOPEN) continue;
     let c; try { c = (await kl(w.base, "15m", 400)).filter(x => x.t + M15 <= now); } catch (e) { continue; } await sleep(80);
@@ -376,7 +376,7 @@ try {
     const levNeeded = +(RISK * e / r).toFixed(2); // 用全部本金當保證金時需要的槓桿
     if (w.lev && !(L ? e <= w.stop : e >= w.stop) && (1 / w.lev - MMR) <= dist / e) { SC.done[id] = 1; SC.closed.unshift({ id, base: w.base, side: w.side, session: w.session, e, x: null, R: 0, why: `槓桿 ${w.lev} 倍太高：停損前會先爆倉，拒單`, reason: w.reason || "", t: hit.t, tx: now, amt: 0 }); continue; }
     const lv = await liqOf(w.base);
-    const p = { id, base: w.base, side: w.side, type: w.type || "limit", session: w.session || "", scenario: w.scenario || "", pattern: w.pattern || "P0", e, r, plannedE: w.entry, stop: w.stop, target: w.target, reason: w.reason || "", lev: w.lev || null, levNeeded, cost: tierCost(lv), t: hit.t + M15, lastBar: hit.t, amt: SC.equity * RISK, maxHold: Math.min(168, w.maxHoldH || 48) * H1, cur: hit.c, curR: 0, protectAt: w.protectAt ? Date.parse(w.protectAt) || null : null, left: 1, real: 0, tm: w.tm || null };
+    const p = { id, base: w.base, side: w.side, type: w.type || "limit", session: w.session || "", scenario: w.scenario || "", pattern: w.pattern || "P0", e, r, plannedE: w.entry, stop: w.stop, target: w.target, reason: w.reason || "", lev: w.lev || null, levNeeded, cost: tierCost(lv), t: hit.t + M15, lastBar: hit.t, riskMul: Math.min(1, Math.max(0.1, +w.risk || 1)), group: w.group || null, amt: SC.equity * RISK * Math.min(1, Math.max(0.1, +w.risk || 1)), maxHold: Math.min(168, w.maxHoldH || 48) * H1, cur: hit.c, curR: 0, protectAt: w.protectAt ? Date.parse(w.protectAt) || null : null, left: 1, real: 0, tm: w.tm || null };
     SC.open.push(p);
     // 跳空越過停損：成交後停損立刻觸發，以成交價出場（只賠成本）；成交當根又碰到停損：算停損
     if (L ? e <= p.stop : e >= p.stop) close(p, e, "跳空越過停損，成交即出場", hit.t + M15);
@@ -387,7 +387,7 @@ try {
     const L = p.side === "long";
     for (const b of c) {
       if (b.t <= p.lastBar) continue;
-      p.lastBar = b.t; p.cur = b.c; p.curR = +((p.real || 0) + (p.left ?? 1) * (L ? 1 : -1) * (b.c - p.e) / p.r).toFixed(2);
+      p.lastBar = b.t; p.cur = b.c; p.curR = +(((p.real || 0) + (p.left ?? 1) * (L ? 1 : -1) * (b.c - p.e) / p.r) * (p.riskMul || 1)).toFixed(2);
       if (L ? b.l <= p.stop : b.h >= p.stop) { close(p, L ? Math.min(b.o, p.stop) : Math.max(b.o, p.stop), p.protected === "be" || p.protected === "half" ? "保本出場（事件保護後）" : "停損", b.t + M15); break; }
       if (L ? b.h >= p.target : b.l <= p.target) { close(p, L ? Math.max(b.o, p.target) : Math.min(b.o, p.target), "停利", b.t + M15); break; }
       if (b.t + M15 - p.t >= p.maxHold) { close(p, b.c, "超時平倉", b.t + M15); break; }
@@ -405,7 +405,9 @@ try {
     }
   }
   SC.closed = SC.closed.slice(0, 500);
-  const real = SC.closed.filter(x => x.amt), agg = xs => { const w = xs.filter(x => x.R > 0).length; return { n: xs.length, win: xs.length ? Math.round(w / xs.length * 100) : 0, sumR: +xs.reduce((q, x) => q + x.R, 0).toFixed(2), avgR: xs.length ? +(xs.reduce((q, x) => q + x.R, 0) / xs.length).toFixed(2) : 0 }; };
+  // 兩段掛（同一個 group 的兩段）在統計裡合併成「一張劇本單」，R 相加（已換算成 1% 風險單位），避免筆數灌水
+  const mergeG = xs => { const m = new Map(), out = []; for (const x of xs) { if (!x.group) { out.push(x); continue; } const g = m.get(x.group); if (!g) { const y = { ...x, legs: 1 }; m.set(x.group, y); out.push(y); } else { g.R = +(g.R + x.R).toFixed(3); g.legs++; g.tx = Math.max(g.tx, x.tx); g.why = g.why + "／" + x.why; } } return out; };
+  const real = mergeG(SC.closed.filter(x => x.amt)), agg = xs => { const w = xs.filter(x => x.R > 0).length; return { n: xs.length, win: xs.length ? Math.round(w / xs.length * 100) : 0, sumR: +xs.reduce((q, x) => q + x.R, 0).toFixed(2), avgR: xs.length ? +(xs.reduce((q, x) => q + x.R, 0) / xs.length).toFixed(2) : 0 }; };
   SC.stats = { ...agg(real), ret: +((SC.equity - 1) * 100).toFixed(1), bySession: Object.fromEntries(["tokyo", "london", "ny"].map(k => [k, agg(real.filter(x => x.session === k))])), bySide: { long: agg(real.filter(x => x.side === "long")), short: agg(real.filter(x => x.side === "short")) }, byType: { limit: agg(real.filter(x => (x.type || "limit") === "limit")), stop: agg(real.filter(x => x.type === "stop")) }, expired: SC.closed.filter(x => !x.amt).length };
   // 時光機準不準：拿有預估的單，比「預估平均」跟「實際比例」
   { const T = SC.closed.filter(x => x.tm && x.tm.pFill != null && !/拒單/.test(x.why || "")), F = T.filter(x => x.amt), avg = (a, f) => a.length ? +(a.reduce((q, x) => q + f(x), 0) / a.length).toFixed(2) : null;
