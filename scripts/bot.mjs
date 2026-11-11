@@ -223,7 +223,10 @@ try {
 const H1 = 36e5, PX = v => (v == null || !isFinite(v)) ? null : +(+v).toPrecision(6);
 const LV = { updated: new Date().toISOString(), coins: {} };
 const lvSyms = [...new Set(["BTC", "ETH", "SOL", ...[...top].slice(0, 3)])];
-for (const b of lvSyms) {
+const LVprev = (st.levels && st.levels.coins) || {}, LVprevAt = st.levels && Date.parse(st.levels.updated) || 0;
+for (const b of lvSyms) for (let att = 0; att < 2 && !LV.coins[b]; att++) {
+  // 11/12：交易所偶爾回傳失敗，造成某幣整份快照消失（11/11 紐約盤因此 ETH 沒下單）→ 重試一次；仍失敗就沿用上一份（2 小時內）並標記 stale
+  if (att) await sleep(1500);
   try {
     const h1 = (await kl(b, "1h", 400)).filter(x => x.t + H1 <= now); await sleep(80);
     const h4 = D[b] ? closedBars(D[b].h) : (await kl(b, "4h", 320)).filter(x => x.t + H4 <= now);
@@ -246,8 +249,9 @@ for (const b of lvSyms) {
       fibUp4h: fib(fu), fibDown4h: fib(fd),
       sesToday: ses(day0), sesYday: ses(day0 - D1),
     };
-  } catch (e) { console.log("快照略過", b, e.message); }
+  } catch (e) { console.log("快照略過", b, "第", att + 1, "次", e.message); }
 }
+for (const b of lvSyms) if (!LV.coins[b] && LVprev[b] && now - (LVprev[b].staleSince || LVprevAt) < 2 * H1) LV.coins[b] = { ...LVprev[b], stale: true, staleSince: LVprev[b].staleSince || LVprevAt };
 st.levels = LV;
 
 // ===== 8) 戰情室資料（11/1 新增）：BTC 近 72 根 1h K、成交額前 20 大的幣掃描（劇本型態候選＋跟 BTC 的連動）=====
