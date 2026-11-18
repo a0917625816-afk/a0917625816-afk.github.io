@@ -23,7 +23,7 @@ try { st = Object.assign(st, JSON.parse(await fs.readFile(FILE, "utf8"))); } cat
 
 const bx = JSON.parse(await fs.readFile("bingx.json", "utf8"));
 const univ = ["BTC", ...bx.symbols.filter(x => x.base !== "BTC" && !EXCLUDE.has(x.base) && !/NCCO|USD$|^\d/.test(x.base)).sort((a, b) => b.qv - a.qv).map(x => x.base)];
-const need = new Set([...univ.slice(0, UNIV + 10), ...st.open.map(p => p.base), ...((st.b || {}).open || []).map(p => p.base)]);
+const need = new Set([...univ.slice(0, UNIV + 10), ...st.open.map(p => p.base), ...((st.b || {}).open || []).map(p => p.base), ...((st.am || {}).open || []).map(p => p.base)]);
 const D = {};
 for (const b of need) { try { const d = await kl(b, "1d", 260), h = await kl(b, "4h", 320); if (d.length >= 60 && h.length >= 260) D[b] = { d, h }; } catch (e) { console.log("略過", b, e.message); } await sleep(80); }
 const coins = univ.filter(b => D[b]).slice(0, UNIV);
@@ -43,6 +43,11 @@ const top = new Set(mom.slice(0, TOPK).filter(x => x[1] > 0).map(x => x[0]));
 // 1) 管理持倉：逐根處理上次之後收盤的 4h K
 // A 版＝原版；B 版＝漲到 1R 先平 1/3、剩下停損移到成本（10/24 起兩版並行比較）
 const B = st.b = Object.assign({ equity: 1, open: [], closed: [] }, st.b || {});
+// 波段A-M（11/17 第二十七輪 run27 合格、11/18 會議實作，事後假設）：規則同波段A，但進場 K（下一根開盤那根）落在「週一 00:00 UTC 起 24 小時」內不開新單；出場不變。
+// 回測（分級成本，對波段A）：樣本內 23.1%→24.4%／+0.246→+0.305R／回撤 20.2→17.7%；樣本外 22.8%→25%／+0.536→+0.626R／22.4→21.4%；成本 ×1.5／×2 仍優於原本；鄰近 4 組 3 組過。
+// 這是看完 run26 分桶才想到的事後假設：只新增虛擬單並列、不動波段A，用 2026-11 之後的新資料看樣本外。董事長可否決（刪掉這組即可）。
+const AM = st.am = Object.assign({ equity: 1, open: [], closed: [], created: now }, st.am || {});
+const monBlock = t => new Date(t).getUTCDay() === 1; // 進場時刻（UTC）是週一
 function manageSwing(S, partial) {
   for (const p of [...S.open]) {
     const c = D[p.base] ? closedBars(D[p.base].h) : null; if (!c) continue;
@@ -66,7 +71,7 @@ function manageSwing(S, partial) {
     if (S.open.includes(p)) { const live = D[p.base].h.at(-1).c; p.cur = live; p.curR = +((p.real || 0) + (p.took ? 2 / 3 : 1) * (live - p.e) / p.r).toFixed(2); }
   }
 }
-manageSwing(st, false); manageSwing(B, true);
+manageSwing(st, false); manageSwing(B, true); manageSwing(AM, false);
 
 // 2) 新訊號：最近收盤的 4h K（以及上次執行後漏掉的）
 const watch = [];
@@ -80,8 +85,9 @@ for (const b of coins) {
   const sig = c[i].c > hiPrev && okTrend;
   if (!sig || !btcUp || !okTop) continue;
   const nxt = all.find(x => x.t === c[i].t + H4); const e = nxt ? nxt.o : c[i].c, r = K * a[i];
-  for (const S of [st, B]) {
+  for (const S of [st, B, AM]) {
     if (S.open.length >= MAXPOS || S.open.some(p => p.base === b)) continue;
+    if (S === AM && monBlock(c[i].t + H4)) { console.log("波段A-M 略過（週一 UTC 不開新單）", b); continue; }
     S.open.push({ base: b, t: c[i].t + H4, e, r, stop: e - r, amt: S.equity * RISK, lastBar: c[i].t, cur, curR: +((cur - e) / r).toFixed(2), real: 0, took: false, mom: +(((mom.find(x => x[0] === b) || [0, 0])[1]) * 100).toFixed(1) });
   }
 }
@@ -178,6 +184,8 @@ const cl = st.closed, wins = cl.filter(x => x.R > 0).length;
 st.stats = { n: cl.length, win: cl.length ? Math.round(wins / cl.length * 100) : 0, avgR: cl.length ? +(cl.reduce((s, x) => s + x.R, 0) / cl.length).toFixed(2) : 0, sumR: +cl.reduce((s, x) => s + x.R, 0).toFixed(2), ret: +((st.equity - 1) * 100).toFixed(1) };
 B.closed = B.closed.slice(0, 300);
 { const c2 = B.closed, w = c2.filter(x => x.R > 0).length; B.stats = { n: c2.length, win: c2.length ? Math.round(w / c2.length * 100) : 0, sumR: +c2.reduce((s, x) => s + x.R, 0).toFixed(2), ret: +((B.equity - 1) * 100).toFixed(1) }; }
+AM.closed = AM.closed.slice(0, 300);
+{ const c2 = AM.closed, w = c2.filter(x => x.R > 0).length; AM.stats = { n: c2.length, win: c2.length ? Math.round(w / c2.length * 100) : 0, avgR: c2.length ? +(c2.reduce((s, x) => s + x.R, 0) / c2.length).toFixed(2) : 0, sumR: +c2.reduce((s, x) => s + x.R, 0).toFixed(2), ret: +((AM.equity - 1) * 100).toFixed(1) }; }
 // 5) 綜合決策員的手動模擬單（intel.json 的 manualVirtual）：只做多、限價進場、獨立紀錄，不影響 A/B/日內
 try {
   const MN = st.manual = Object.assign({ equity: 1, open: [], closed: [], waiting: {}, done: {} }, st.manual || {});

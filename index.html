@@ -361,6 +361,7 @@ canvas.chart{background:#070C16;border-color:var(--line)}
       <div class="intel-card"><h4>① 五組機器人（雲端 24 小時虛擬單）</h4><ul>
         <li><b>波段 A</b>：4 小時K 突破 55 根新高才做多，讓獲利奔跑。勝率低（約 25%），靠少數大賺。</li>
         <li><b>波段 B</b>：進場同 A，漲到 1R 先賣 1/3、剩下保本。勝率較高（約 51%），賺得少一點。跑到 11/24 跟 A 比，留哪版由你決定。</li>
+        <li><b>波段 A-M</b>（11/18 新增）：規則同波段 A，但進場時刻落在「週一 00:00 UTC 起 24 小時」內就不開新單（出場不變）。第二十七輪回測：對波段 A 勝率 23→25%、平均R +0.36→+0.43、回撤 23→21%，成本 ×1.5／×2 仍優於原本、鄰近 4 組 3 組過。這條是看完分桶才想到的「事後假設」，所以只新增並列比較、不動波段 A，要用 11 月以後的新資料看樣本外。</li>
         <li><b>日內</b>：15 分K 突破 48 小時新高，要量能放大、收盤夠強、而且是成交額夠大的熱門幣；早上 08:00 一律平倉。<b>11/11 起停止新開單</b>：第二十輪審查表補測，成本 ×1.5 後樣本內外平均R 都轉負（邊太薄），依審查表視同淘汰；紀錄保留，日內 B／C／D 不受影響。</li>
         <li><b>日內 B</b>（10/31 新增）：規則同日內，但只做近 30 天日均成交額 ≥5 億 U 的大幣。第八輪回測合格，與日內並列比較，不刪原組。</li>
         <li><b>日內 C</b>（11/03 新增）：規則同日內 B，另外 FOMC 決議、CPI、非農公布前 4 小時到後 4 小時不開新單（已持倉不受影響）。第十二輪回測合格、第十三輪窗口 ±20% 審查全過，與日內 B 並列比較，不刪原組。</li>
@@ -1025,16 +1026,16 @@ async function loadOffice(){const fl=$("officeFloor");if(!fl)return;
   const meet=["y",`下次開會 ${nextSun}`];
   const D=(av,nm,rl,st,busy)=>`<div class="desk"><span class="av${busy?" busy":""}" aria-hidden="true">${av}</span><span class="nm">${esc(nm)}</span><span class="rl">${esc(rl)}</span><span class="stt ${st[0]}"><i></i>${esc(st[1])}</span></div>`;
   const R=(t,d)=>`<div class="room"><h5>${t}</h5><div class="desks">${d.join("")}</div></div>`;
-  const sA=botSt(B,"持倉"),sB=botSt(B&&B.b,"持倉"),sI=botSt(B&&B.intra,"持倉"),sI2=botSt(B&&B.intra2,"持倉"),sI3=botSt(B&&B.intra3,"持倉"),sI4=botSt(B&&B.intra4,"持倉");
-  fl.innerHTML=R("💹 交易區（24 小時）",[D("🤖","波段 A","4h 突破・讓利潤跑",sA,alive),D("🦾","波段 B","1R 先收 1/3",sB,alive),D("⚡","日內","15m 突破・08:00 平倉",sI,alive),D("⚡","日內 B","同日內・只做成交額≥5億U",sI2,alive),D("⚡","日內 C","日內B・重大事件前後4h不開單",sI3,alive),D("⚡","日內 D","日內・BTC趨勢上不開單",sI4,alive),D("🧠","綜合決策員","綜合所有資訊・可下模擬單",I&&I.synth?["g",B&&B.manual&&B.manual.open&&B.manual.open.length?"模擬單 "+B.manual.open.length+" 張":"待命"]:meet,false),D("🛡️","監控員","盯全部人＋催任務",["g","巡邏中"],false)])
+  const sA=botSt(B,"持倉"),sB=botSt(B&&B.b,"持倉"),sAM=botSt(B&&B.am,"持倉"),sI=botSt(B&&B.intra,"持倉"),sI2=botSt(B&&B.intra2,"持倉"),sI3=botSt(B&&B.intra3,"持倉"),sI4=botSt(B&&B.intra4,"持倉");
+  fl.innerHTML=R("💹 交易區（24 小時）",[D("🤖","波段 A","4h 突破・讓利潤跑",sA,alive),D("🦾","波段 B","1R 先收 1/3",sB,alive),D("🗓️","波段 A-M","波段A・週一(UTC)不開單",sAM,alive),D("⚡","日內","15m 突破・08:00 平倉",sI,alive),D("⚡","日內 B","同日內・只做成交額≥5億U",sI2,alive),D("⚡","日內 C","日內B・重大事件前後4h不開單",sI3,alive),D("⚡","日內 D","日內・BTC趨勢上不開單",sI4,alive),D("🧠","綜合決策員","綜合所有資訊・可下模擬單",I&&I.synth?["g",B&&B.manual&&B.manual.open&&B.manual.open.length?"模擬單 "+B.manual.open.length+" 張":"待命"]:meet,false),D("🛡️","監控員","盯全部人＋催任務",["g","巡邏中"],false)])
    +R("🕰️ 盤前室（東京・倫敦・紐約）",[D("🗺️","劇本員","漲到哪・回調到哪",meet),D("🎯","下單員","只照劇本下單",B&&B.scen&&B.scen.open&&B.scen.open.length?["g","持倉 "+B.scen.open.length+" 張"]:["y","待命"],false),D("🔁","覆盤員","每天 08:22 復盤",meet)])
    +R("🔭 情報室（每天）",[D("🗞️","觀察員1","總經＋事件日期",meet),D("🎲","觀察員2","籌碼（費率・OI・爆倉）",meet)])
    +R("⚖️ 會議室（每天）",[D("🐂","多方","找做多理由",meet),D("🐻","空方","找風險",meet),D("🧑‍⚖️","裁判","下結論",I?["g",esc(I.verdict.winner)]:meet)])
    +R("🧪 研究驗證組（每天）",[D("🗄️","資料工程師","補齊歷史資料",meet),D("🌦️","市場狀態分類員","趨勢／盤整／恐慌",meet),D("🚪","出場研究員","分批・移動停損",meet),D("🔁","覆盤員","每筆單對照回測",meet),D("🐻","做空研究員","空頭期也有事做",meet),D("🧯","過擬合審查員","擋掉運氣好的策略",meet)])
    +R("🧪 實驗室",[D("🔬","回測員","歷史資料驗證",lab?(labBusy?["g","回測中…"]:["y","待命"]):["y","待命"],labBusy),D("🎰","蒙地卡羅","模擬 1000 次",labBusy?["g","計算中…"]:["y","待命"],labBusy)]);
   if(!B)return;
-  const all=[...(B.open||[]).map(p=>({k:"A",p})),...((B.b||{}).open||[]).map(p=>({k:"B",p})),...((B.intra||{}).open||[]).map(p=>({k:"日內",p})),...((B.intra2||{}).open||[]).map(p=>({k:"日內B",p})),...((B.intra3||{}).open||[]).map(p=>({k:"日內C",p})),...((B.intra4||{}).open||[]).map(p=>({k:"日內D",p}))];
-  const cl=[...(B.closed||[]).map(x=>({k:"波段A",x})),...((B.b||{}).closed||[]).map(x=>({k:"波段B",x})),...((B.intra||{}).closed||[]).map(x=>({k:"日內",x})),...((B.intra2||{}).closed||[]).map(x=>({k:"日內B",x})),...((B.intra3||{}).closed||[]).map(x=>({k:"日內C",x})),...((B.intra4||{}).closed||[]).map(x=>({k:"日內D",x}))];
+  const all=[...(B.open||[]).map(p=>({k:"A",p})),...((B.b||{}).open||[]).map(p=>({k:"B",p})),...((B.am||{}).open||[]).map(p=>({k:"A-M",p})),...((B.intra||{}).open||[]).map(p=>({k:"日內",p})),...((B.intra2||{}).open||[]).map(p=>({k:"日內B",p})),...((B.intra3||{}).open||[]).map(p=>({k:"日內C",p})),...((B.intra4||{}).open||[]).map(p=>({k:"日內D",p}))];
+  const cl=[...(B.closed||[]).map(x=>({k:"波段A",x})),...((B.b||{}).closed||[]).map(x=>({k:"波段B",x})),...((B.am||{}).closed||[]).map(x=>({k:"波段A-M",x})),...((B.intra||{}).closed||[]).map(x=>({k:"日內",x})),...((B.intra2||{}).closed||[]).map(x=>({k:"日內B",x})),...((B.intra3||{}).closed||[]).map(x=>({k:"日內C",x})),...((B.intra4||{}).closed||[]).map(x=>({k:"日內D",x}))];
   const day0=new Date();day0.setHours(0,0,0,0);const today=cl.filter(c=>c.x.tx>=day0.getTime());
   $("oStats").innerHTML=`<div><b>${all.length}</b>持倉中</div><div><b>${today.length}</b>今日結束</div><div><b style="color:${alive?"var(--long)":"var(--short)"}">${alive?"正常":"異常"}</b>機器人（${ago} 分前）</div><div><b style="color:${btcUp?"var(--long)":"var(--watch)"}">${btcUp?"開":"關"}</b>BTC 濾網</div><div><b data-btc-live>${window.__BTC_LIVE?fmtP(window.__BTC_LIVE.px):"…"}</b>BTC 即時</div>`;
   const ev=[...cl.map(c=>({t:c.x.tx,h:`${c.k}｜${esc(c.x.base)} ${esc(c.x.why)} <b class="${c.x.R>0?"out-win":"out-loss"}">${rTxt(c.x.R)}</b>`})),...all.map(a=>({t:a.p.t,h:`${a.k==="A"?"波段A":a.k==="B"?"波段B":a.k}｜進場 ${esc(a.p.base)}`}))].sort((a,b)=>b.t-a.t).slice(0,8);

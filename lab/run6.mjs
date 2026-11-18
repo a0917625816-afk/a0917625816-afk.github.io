@@ -121,6 +121,7 @@ function trades(cn, kind, q, x, f) {
     if (!passF(cn, t, f)) continue;
     if (f.ev && evBlock6(t)) continue;
     if (f.trend && trendBlock6(t)) continue;
+    if (f.mon && new Date(t).getUTCDay() === 1) continue; // 波段A-M：進場時刻（UTC）週一不開新單
     const e = c[i + 1].o, r = stopK * a[i]; if (!(r > 0) || r / e < 0.002) continue;
     pos = { e, r, st: e - r, t, real: 0, took: false, dayEnd: (dk(b.t) + 1) * D1, cost: tieredCost(cn, t) };
   }
@@ -139,6 +140,7 @@ const F = grid({ liq: [0, 20, 50, 100], age: [0, 90, 180, 365], fund: [null, 0.0
 const STRATS = [
   { key: "A", name: "波段A", kind: "swing", q: {}, x: { tp: 0, f: 0, be: false }, f: {} },
   { key: "B", name: "波段B（1R先平1/3＋保本）", kind: "swing", q: {}, x: { tp: 1, f: 0.33, be: true }, f: {} },
+  { key: "AM", name: "波段A-M（波段A＋週一 UTC 不開新單）", kind: "swing", q: {}, x: { tp: 0, f: 0, be: false }, f: { mon: true } },
   { key: "I", name: "日內（量能＋收盤強度＋成交額≥1億U）", kind: "intra", q: { vol: 1.5, cs: 0.6 }, x: { tp: 0, f: 0, be: false }, f: { liq: 100 } },
   { key: "I2", name: "日內B（同日內，成交額≥5億U）", kind: "intra", q: { vol: 1.5, cs: 0.6 }, x: { tp: 0, f: 0, be: false }, f: { liq: 500 } },
   { key: "I3", name: "日內C（日內B＋重大事件前後4h不開單）", kind: "intra", q: { vol: 1.5, cs: 0.6 }, x: { tp: 0, f: 0, be: false }, f: { liq: 500, ev: true } },
