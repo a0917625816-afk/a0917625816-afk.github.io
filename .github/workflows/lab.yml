@@ -37,6 +37,7 @@ on:
       - 'lab/run33.mjs'
       - 'lab/run34.mjs'
       - 'lab/run35.mjs'
+      - 'lab/run36.mjs'
       - '.github/workflows/lab.yml'
 permissions:
   contents: write
@@ -53,13 +54,13 @@ jobs:
         with:
           node-version: '20'
       - name: 回測
-        run: set -o pipefail; node --max-old-space-size=6000 lab/run35.mjs 2>&1 | tee lab/log35.txt
+        run: set -o pipefail; node --max-old-space-size=6000 lab/run36.mjs 2>&1 | tee lab/log36.txt
       - name: 存檔
         if: always()
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -f lab/log35.txt; git add lab/results35.json lab/report35.md 2>/dev/null || true
+          git add -f lab/log36.txt; git add lab/results36.json lab/report36.md 2>/dev/null || true
           if git diff --cached --quiet; then exit 0; fi
           git commit -m "策略實驗室結果 $(TZ=Asia/Taipei date '+%m-%d %H:%M')"
           for i in 1 2 3; do git pull --rebase origin main && git push && break; sleep 5; done
